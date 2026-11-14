@@ -461,7 +461,19 @@ final class AppModel {
     // MARK: Library jobs
 
     /// Starts every background library job that has work and is not running.
+    /// Problems reading or saving Sift's own files, not yet shown.
+    var dataProblem: String?
+    private var shownProblems = 0
+
+    private func checkDataProblems() {
+        let all = SafeStore.problems
+        guard all.count > shownProblems else { return }
+        dataProblem = all[shownProblems...].joined(separator: "\n\n")
+        shownProblems = all.count
+    }
+
     func startLibraryJobs() {
+        checkDataProblems()
         // YouTube videos get their transcript.
         if !isTranscribing, !videosNeedingTranscript.isEmpty { Task { await fetchTranscripts() } }
         // Instagram reels get their speech as text.

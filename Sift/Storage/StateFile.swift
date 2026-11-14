@@ -105,16 +105,13 @@ enum StateFile {
     }
 
     static func load() -> SiftState {
-        guard let data = try? Data(contentsOf: url),
-              let state = try? JSONDecoder().decode(SiftState.self, from: data)
-        else { return SiftState() }
-        return state
+        SafeStore.load(url, as: SiftState.self) ?? SiftState()
     }
 
     static func save(_ state: SiftState) {
         let encoder = JSONEncoder()
         encoder.outputFormatting = [.prettyPrinted, .sortedKeys]
         guard let data = try? encoder.encode(state) else { return }
-        try? data.write(to: url, options: .atomic)
+        SafeStore.save(data, to: url)
     }
 }

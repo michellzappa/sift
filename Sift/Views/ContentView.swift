@@ -67,6 +67,15 @@ struct ContentView: View {
         } message: {
             Text(model.exportMessage ?? "")
         }
+        .alert("Your Sift data", isPresented: .init(get: { model.dataProblem != nil }, set: { if !$0 { model.dataProblem = nil } })) {
+            Button("Show Files") {
+                NSWorkspace.shared.activateFileViewerSelecting([StateFile.url])
+                model.dataProblem = nil
+            }
+            Button("OK") { model.dataProblem = nil }
+        } message: {
+            Text(model.dataProblem ?? "")
+        }
         .alert("Not sent", isPresented: .init(get: { model.sendError != nil }, set: { if !$0 { model.sendError = nil } })) {
             Button("OK") { model.sendError = nil }
         } message: {

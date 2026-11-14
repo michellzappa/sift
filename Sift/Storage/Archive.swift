@@ -64,10 +64,9 @@ enum ArchiveStore {
     static var url: URL { StateFile.url.deletingLastPathComponent().appending(path: "archive.json") }
 
     static func load() -> [String: ArchiveRecord] {
-        guard let data = try? Data(contentsOf: url) else { return [:] }
         let decoder = JSONDecoder()
         decoder.dateDecodingStrategy = .iso8601
-        return (try? decoder.decode([String: ArchiveRecord].self, from: data)) ?? [:]
+        return SafeStore.load(url, as: [String: ArchiveRecord].self, decoder: decoder) ?? [:]
     }
 
     static func save(_ records: [String: ArchiveRecord]) {
@@ -75,6 +74,6 @@ enum ArchiveStore {
         encoder.dateEncodingStrategy = .iso8601
         encoder.outputFormatting = [.sortedKeys]
         guard let data = try? encoder.encode(records) else { return }
-        try? data.write(to: url, options: .atomic)
+        SafeStore.save(data, to: url)
     }
 }

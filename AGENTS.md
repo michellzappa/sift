@@ -118,6 +118,13 @@ transcripts), not only the link. Never add a Sift server or account.
   length are read again once, unless a transcript is in the file.
 - Sidebar: Overview is the graph; a source or theme picked in the sidebar
   opens its list (a theme picked on the graph keeps the graph panel).
+- Data safety (2026-11-14): state.json, archive.json, previews.json and
+  Library/index.json load and save through `SafeStore`: hourly backups in
+  `Application Support/Sift/Backups` (24 per file); an unreadable file is
+  copied aside and the newest readable backup is used; with none, saving
+  that file is off for the run. A save that shrinks a file over 64 KB to
+  under a tenth is refused. Problems show in an alert. Never write these
+  files directly.
 - Capture paces requests per site (`HostGate`: 4 s for YouTube, Instagram
   and X, 1 s elsewhere) and skips a site for an hour after 429/503. Never
   fetch one site in parallel bursts: YouTube rate-limited the owner's IP.

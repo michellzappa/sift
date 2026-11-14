@@ -196,15 +196,14 @@ enum Library {
     static var indexURL: URL { folder.appending(path: "index.json") }
 
     static func loadIndex() -> [String: Entry] {
-        guard let data = try? Data(contentsOf: indexURL) else { return [:] }
         let d = JSONDecoder(); d.dateDecodingStrategy = .iso8601
-        return (try? d.decode([String: Entry].self, from: data)) ?? [:]
+        return SafeStore.load(indexURL, as: [String: Entry].self, decoder: d) ?? [:]
     }
 
     static func saveIndex(_ index: [String: Entry]) {
         let e = JSONEncoder(); e.dateEncodingStrategy = .iso8601; e.outputFormatting = [.sortedKeys]
         guard let data = try? e.encode(index) else { return }
-        try? data.write(to: indexURL, options: .atomic)
+        SafeStore.save(data, to: indexURL)
     }
 
     static func fileName(for url: String) -> String {

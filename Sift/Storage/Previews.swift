@@ -50,13 +50,12 @@ enum PreviewFetcher {
     static var cacheURL: URL { StateFile.url.deletingLastPathComponent().appending(path: "previews.json") }
 
     static func loadCache() -> [String: Preview] {
-        guard let data = try? Data(contentsOf: cacheURL) else { return [:] }
-        return (try? JSONDecoder().decode([String: Preview].self, from: data)) ?? [:]
+        SafeStore.load(cacheURL, as: [String: Preview].self) ?? [:]
     }
 
     static func saveCache(_ cache: [String: Preview]) {
         guard let data = try? JSONEncoder().encode(cache) else { return }
-        try? data.write(to: cacheURL, options: .atomic)
+        SafeStore.save(data, to: cacheURL)
     }
 
     static func fetch(_ urlString: String, xSyndication: Bool = false) async -> Preview {
