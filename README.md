@@ -17,8 +17,16 @@ Sift reads the tabs that Safari syncs to your Mac through iCloud, so your
 iPhone and iPad tabs show up too. It also reads your Reading List. You pick
 the source in the toolbar.
 
+Sift can also read the posts you saved on Instagram. In Instagram's Accounts
+Center, open Download your information and ask for your information in JSON
+format (an HTML export does not work). When the export arrives, choose the zip
+or its unpacked folder in Settings > Sorting > Sources. **Instagram Saved**
+then shows in the source picker. Each saved post becomes a link with its
+author, caption and collection, and Discover Themes includes them. Sift reads
+the export and never changes it.
+
 There is no folder structure to set up. **Discover Themes** sends every link
-Sift can see (your phone's tabs and the Reading List) to your own Claude in
+Sift can see (your phone's tabs, the Reading List and Instagram Saved) to your own Claude in
 one call and asks what you keep coming back to. You get 12 to 20 themes, each
 with a description, the links behind it and a suggested home. You rename,
 untick or accept them; nothing changes before you do. Run it again later and

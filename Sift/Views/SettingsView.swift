@@ -56,6 +56,24 @@ private struct SortingSettings: View {
                 LabeledContent("Tab database", value: CloudTabsReader.databaseURL.path(percentEncoded: false))
                 Button("Open Full Disk Access") { AppModel.openFullDiskAccessSettings() }
             }
+            Section {
+                LabeledContent("Instagram export") {
+                    HStack {
+                        Text(model.state.instagramExportPath ?? "None")
+                            .lineLimit(1).truncationMode(.middle)
+                            .foregroundStyle(.secondary)
+                        Button("Choose…") { model.chooseInstagramExport() }
+                        if model.state.instagramExportPath != nil {
+                            Button("Remove") { model.clearInstagramExport() }
+                        }
+                    }
+                }
+            } header: {
+                Text("Sources")
+            } footer: {
+                Text(model.instagramError ?? "Instagram Saved reads saved posts and collections from a JSON data export (Accounts Center, Download your information). Choose the zip or the folder it unpacks to.")
+                    .foregroundStyle(.secondary)
+            }
         }
         .formStyle(.grouped)
     }

@@ -1,6 +1,7 @@
 import AppKit
 import Foundation
 import Observation
+import UniformTypeIdentifiers
 
 @MainActor
 @Observable
@@ -32,12 +33,23 @@ final class AppModel {
         do {
             devices = try CloudTabsReader.devices()
             readingListCount = (try? ReadingListReader.items().count) ?? 0
+            // Instagram Saved: read the export once per reload. Without a
+            // readable export the source falls back to the phone.
+            let instagram = instagramItems()
+            instagramCount = instagram.count
+            if isInstagram && instagram.isEmpty { state.deviceID = nil }
             loadError = nil
-            if state.deviceID == nil || (!isReadingList && !devices.contains(where: { $0.id == state.deviceID })) {
+            if state.deviceID == nil || (!isSavedList && !devices.contains(where: { $0.id == state.deviceID })) {
                 // The device with the most tabs is almost always the phone.
                 state.deviceID = devices.first?.id
             }
-            if isReadingList {
+            if isInstagram {
+                tabs = instagram.map(\.tab)
+                // The export carries author, caption and collection; use them until Sift fetches its own.
+                for item in instagram where previews[item.tab.url] == nil {
+                    if let p = item.preview { previews[item.tab.url] = p }
+                }
+            } else if isReadingList {
                 let items = try ReadingListReader.items()
                 tabs = items.map(\.tab)
                 // Safari stores preview text for Reading List items; use it until Sift fetches its own.
@@ -84,6 +96,50 @@ final class AppModel {
     var isReadingList: Bool { state.deviceID == ReadingListReader.sourceID }
 
     private(set) var readingListCount = 0
+
+    // MARK: Instagram Saved
+
+    /// True when the source is Instagram's saved posts from the data export.
+    var isInstagram: Bool { state.deviceID == InstagramReader.sourceID }
+
+    /// True when the source is a saved list (Reading List, Instagram Saved),
+    /// not a device's open tabs. Saved lists have nothing to close on the iPhone.
+    var isSavedList: Bool { isReadingList || isInstagram }
+
+    private(set) var instagramCount = 0
+    /// Why the chosen export could not be read, for Settings.
+    private(set) var instagramError: String?
+
+    private func instagramItems() -> [InstagramReader.Item] {
+        guard let path = state.instagramExportPath else { instagramError = nil; return [] }
+        do {
+            let items = try InstagramReader.items(at: path)
+            instagramError = nil
+            return items
+        } catch {
+            instagramError = error.localizedDescription
+            return []
+        }
+    }
+
+    /// Asks for the Instagram export (the zip or its unpacked folder) and shows it as a source.
+    func chooseInstagramExport() {
+        let panel = NSOpenPanel()
+        panel.canChooseFiles = true
+        panel.canChooseDirectories = true
+        panel.allowedContentTypes = [.zip, .folder]
+        panel.prompt = "Choose"
+        panel.message = "Choose your Instagram export: the zip, or the folder it unpacks to."
+        if let last = state.instagramExportPath { panel.directoryURL = URL(filePath: last).deletingLastPathComponent() }
+        guard panel.runModal() == .OK, let url = panel.url else { return }
+        state.instagramExportPath = url.path(percentEncoded: false)
+        reload()
+    }
+
+    func clearInstagramExport() {
+        state.instagramExportPath = nil
+        reload()
+    }
 
     // MARK: Sites and actions
 
@@ -161,7 +217,7 @@ final class AppModel {
     /// The URLs the proposal's item ids point at, in order.
     private(set) var proposalURLs: [String] = []
 
-    /// Reads every link Sift can see (the phone's tabs and the Reading List),
+    /// Reads every link Sift can see (the phone's tabs, the Reading List and Instagram Saved),
     /// fills in titles for bare links, and asks Claude for themes. The result
     /// waits in `themeProposal` until the user accepts it.
     func discoverThemes() async {
@@ -178,6 +234,9 @@ final class AppModel {
             for item in reading where previews[item.tab.url] == nil { if let p = item.preview { previews[item.tab.url] = p } }
             add(reading.map(\.tab))
         }
+        let instagram = instagramItems()
+        for item in instagram where previews[item.tab.url] == nil { if let p = item.preview { previews[item.tab.url] = p } }
+        add(instagram.map(\.tab))
         add(tabs)
 
         // Transactional tabs are not curiosity: they skip Claude entirely.
@@ -418,7 +477,7 @@ final class AppModel {
     /// What every exporter receives: sorted links in themes and the personal
     /// bucket, never drop, unknown or unsorted ones.
     func exportSnapshot() -> ExportSnapshot {
-        let source = isReadingList ? "reading-list" : (devices.first { $0.id == state.deviceID }?.name ?? "tabs")
+        let source = isReadingList ? "reading-list" : isInstagram ? InstagramReader.sourceID : (devices.first { $0.id == state.deviceID }?.name ?? "tabs")
         let items: [ExportItem] = tabs.compactMap { tab in
             guard let a = state.assignments[tab.url], a.project != Project.drop, a.project != Project.unknown,
                   a.project != Project.errands else { return nil }

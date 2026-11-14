@@ -36,6 +36,13 @@ project and as an overview network (one hub per project, one dot per tab).
   Close Tab) closes them. Reload prunes URLs that are no longer open.
   Safari's own `cloud_tab_close_requests` table is not used: its rows carry
   CloudKit system fields that Sift cannot make.
+- Instagram Saved: `InstagramReader`, source id `instagram-saved`. Reads
+  `your_instagram_activity/saved/saved_posts.json` and
+  `saved_collections.json` from the JSON data export the user picks in
+  Settings (`instagramExportPath`): the zip through `/usr/bin/unzip -p`, or
+  the unpacked folder. Instagram writes UTF-8 as one `\u00XX` escape per
+  byte; `InstagramReader.fix` turns it back into text. Never commit
+  anything from an export.
 - State: one JSON file, `~/Library/Application Support/Sift/state.json`,
   keyed by URL. Hand moves set `manual: true`; the sorter never overwrites them.
 - API key: login keychain, service `app.sift.anthropic-api-key`.
@@ -44,7 +51,7 @@ project and as an overview network (one hub per project, one dot per tab).
 
 - Themes are the only categories, always generated (2026-11-14). There is
   no repo scanning and no fixed project list. `Sorter.discoverThemes`
-  clusters the whole corpus (phone tabs + Reading List) in one Claude call
+  clusters the whole corpus (phone tabs + Reading List + Instagram Saved) in one Claude call
   through the user's own backend. Themes are `Project` with `isTheme`;
   non-theme entries are hand-added destinations, used only as hints. A rerun
   passes the current themes as names to keep, so links do not reshuffle. The
