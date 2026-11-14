@@ -1,49 +1,51 @@
 import SwiftUI
 
-/// The overview graph, with two zoom levels.
+/// The overview: one canvas with two zoom levels.
 ///
-/// Theme level: one node per theme, sized by its links, joined where themes
-/// share sources (the same site or the same linked domain). Only theme names
-/// show. Click a theme, or double-click it, to zoom in.
+/// Zoomed out, each theme is a node with its links around it as dots, and
+/// themes are joined where they share sources (the same site, or posts that
+/// link to the same domain). Only theme names show.
 ///
-/// Link level: the chosen theme in the middle, its links around it as small
-/// cards with image, title and site. The other themes wait at the edge;
-/// click one to move there, or press Esc / the back button to zoom out.
+/// Click a theme and the camera glides onto it: its links unfold around it
+/// as small cards with image, title and site, and the rest of the graph
+/// fades back. Click a card to read the page in the browser on the right.
+/// Esc, or a click on empty space, zooms back out.
 struct GraphView: View {
     @Environment(AppModel.self) private var model
     @Binding var selection: SidebarItem?
     @State private var sim = GraphSimulation()
+    @State private var cam = GraphCamera()
     @State private var focusTheme: String?
+    @State private var picked: String?
     @State private var hover: Int?
-    @State private var offset: CGSize = .zero
-    @State private var panBase: CGSize = .zero
-    @State private var scale: CGFloat = 1
+    @State private var redraw = 0
+    @State private var panBase: CGSize?
     @State private var pinchBase: CGFloat = 1
+
+    private static let chip = CGSize(width: 196, height: 54)
 
     var body: some View {
         GeometryReader { geo in
-            ZStack {
-                if let theme = focusTheme {
-                    LinkLevel(theme: theme, size: geo.size, color: color(for: theme)) { next in
-                        withAnimation(.snappy) { focusTheme = next }
-                    }
-                    .transition(.opacity.combined(with: .scale(scale: 0.92)))
-                } else {
-                    themeLevel(size: geo.size)
-                        .transition(.opacity.combined(with: .scale(scale: 1.08)))
+            let browserWidth = min(max(geo.size.width * 0.44, 420), geo.size.width - 360)
+            let graphSize = picked == nil ? geo.size : CGSize(width: geo.size.width - browserWidth, height: geo.size.height)
+            HStack(spacing: 0) {
+                canvas(size: graphSize)
+                    .frame(width: graphSize.width, height: graphSize.height)
+                    .clipped()
+                if let url = picked, let tab = model.tabs.first(where: { $0.url == url }) {
+                    Divider()
+                    WebPane(tab: tab) { withAnimation(.snappy) { picked = nil } }
+                        .frame(width: browserWidth)
+                        .transition(.move(edge: .trailing))
                 }
             }
         }
-        .background(focusTheme == nil ? AnyShapeStyle(GraphStyle.background) : AnyShapeStyle(Color(nsColor: .textBackgroundColor)))
         .overlay(alignment: .topLeading) {
-            if let theme = focusTheme {
-                Button { withAnimation(.snappy) { focusTheme = nil } } label: {
-                    Label("All themes", systemImage: "chevron.left")
-                }
-                .keyboardShortcut(.escape, modifiers: [])
-                .padding(12)
-                .help("Back to all themes (Esc)")
-                .accessibilityLabel("Back to all themes from \(theme)")
+            if focusTheme != nil {
+                Button { unfocus() } label: { Label("All themes", systemImage: "chevron.left") }
+                    .keyboardShortcut(.escape, modifiers: [])
+                    .padding(12)
+                    .help("Zoom back out (Esc)")
             }
         }
         .overlay {
@@ -62,118 +64,189 @@ struct GraphView: View {
                 .background(.background)
             }
         }
-        .navigationTitle("Overview")
-        .navigationSubtitle("\(model.tabs.count) links · \(model.themes.count) themes")
+        .navigationTitle(focusTheme ?? "Overview")
+        .navigationSubtitle(focusTheme.map { "\(model.count($0)) links" } ?? "\(model.tabs.count) links · \(model.themes.count) themes")
         .onAppear { rebuild() }
         .onChange(of: dataKey) { rebuild() }
     }
 
-    // MARK: Theme level
+    // MARK: Canvas
 
-    private func themeLevel(size: CGSize) -> some View {
-        let center = CGPoint(x: size.width / 2 + offset.width, y: size.height / 2 + offset.height)
-        return TimelineView(.animation(paused: !sim.isMoving)) { timeline in
-            Canvas { ctx, canvasSize in
-                _ = timeline.date
-                sim.tick()
-                drawTree(&ctx, center: center, size: canvasSize)
+    private func canvas(size: CGSize) -> some View {
+        TimelineView(.animation(paused: !(sim.isMoving || cam.isAnimating))) { timeline in
+            let _ = redraw
+            ZStack(alignment: .topLeading) {
+                Canvas { ctx, canvasSize in
+                    _ = timeline.date
+                    sim.tick()
+                    cam.step()
+                    drawGraph(&ctx, size: canvasSize)
+                }
+                if let theme = focusTheme, let i = nodeIndex(theme) {
+                    chips(theme: theme, node: i, size: size)
+                }
             }
         }
         .background(GraphStyle.background)
         .contentShape(Rectangle())
         .gesture(
             DragGesture(minimumDistance: 4)
-                .onChanged { v in offset = CGSize(width: panBase.width + v.translation.width, height: panBase.height + v.translation.height) }
-                .onEnded { _ in panBase = offset }
+                .onChanged { v in
+                    let base = panBase ?? cam.offset
+                    panBase = base
+                    cam.stop()
+                    cam.offset = CGSize(width: base.width + v.translation.width, height: base.height + v.translation.height)
+                    redraw += 1
+                }
+                .onEnded { _ in panBase = nil }
         )
         .simultaneousGesture(MagnifyGesture()
             .onChanged { zoom(to: pinchBase * $0.magnification, around: $0.startLocation, size: size) }
-            .onEnded { _ in pinchBase = scale })
+            .onEnded { _ in pinchBase = cam.scale })
         .background(ScrollZoom { delta, location in
-            zoom(to: scale * (1 + delta * 0.01), around: location, size: size)
-            pinchBase = scale
+            zoom(to: cam.scale * (1 + delta * 0.01), around: location, size: size)
+            pinchBase = cam.scale
         })
         .onTapGesture { p in
-            guard let i = hit(p, center: center) else { return }
-            let n = sim.nodes[i]
-            switch n.kind {
-            case .theme: withAnimation(.snappy) { focusTheme = n.key }
-            case .group, .leaf: if let t = n.theme { withAnimation(.snappy) { focusTheme = t } }
-            case .root: break
+            if let i = hit(p, size: size), let theme = sim.nodes[i].theme {
+                if theme != focusTheme { focus(theme, size: size) }
+            } else if focusTheme != nil {
+                unfocus()
             }
         }
         .onContinuousHover { phase in
-            if case .active(let p) = phase { hover = hit(p, center: center) } else { hover = nil }
+            if case .active(let p) = phase { hover = hit(p, size: size) } else { hover = nil }
         }
         .overlay(alignment: .bottomLeading) {
-            Text("Each branch is a theme, each light a link. Click a branch to open it.")
-                .font(.caption).foregroundStyle(.white.opacity(0.45)).padding(12)
+            if focusTheme == nil {
+                Text("Click a theme to zoom in. Pinch or scroll to zoom, drag to move.")
+                    .font(.caption).foregroundStyle(.white.opacity(0.45)).padding(12)
+            }
         }
     }
 
-    /// Zooms so the point under the cursor stays where it is.
     private func zoom(to newScale: CGFloat, around point: CGPoint, size: CGSize) {
-        let clamped = min(5, max(0.25, newScale))
-        let center = CGPoint(x: size.width / 2 + offset.width, y: size.height / 2 + offset.height)
-        let world = CGPoint(x: (point.x - center.x) / scale, y: (point.y - center.y) / scale)
-        let newCenter = CGPoint(x: point.x - world.x * clamped, y: point.y - world.y * clamped)
-        offset = CGSize(width: newCenter.x - size.width / 2, height: newCenter.y - size.height / 2)
-        panBase = offset
-        scale = clamped
+        let clamped = min(6, max(0.25, newScale))
+        let center = cam.center(in: size)
+        let world = CGPoint(x: (point.x - center.x) / cam.scale, y: (point.y - center.y) / cam.scale)
+        cam.stop()
+        cam.scale = clamped
+        cam.offset = CGSize(width: point.x - world.x * clamped - size.width / 2, height: point.y - world.y * clamped - size.height / 2)
+        redraw += 1
     }
 
-    private func screen(_ p: CGPoint, center: CGPoint) -> CGPoint {
-        CGPoint(x: center.x + p.x * scale, y: center.y + p.y * scale)
+    /// Glides the camera onto a theme and unfolds its links.
+    private func focus(_ theme: String, size: CGSize) {
+        guard let i = nodeIndex(theme) else { return }
+        let target: CGFloat = 1.8
+        let p = sim.nodes[i].p
+        cam.animate(to: CGSize(width: -p.x * target, height: -p.y * target), scale: target)
+        withAnimation(.easeOut(duration: 0.3)) { focusTheme = theme }
+        redraw += 1
     }
 
-    /// The branch a node belongs to, for hover highlighting.
-    private func branch(of i: Int?) -> String? {
-        guard let i, sim.nodes.indices.contains(i) else { return nil }
-        return sim.nodes[i].theme
+    private func unfocus() {
+        withAnimation(.snappy) { picked = nil }
+        withAnimation(.easeOut(duration: 0.25)) { focusTheme = nil }
+        cam.animate(to: .zero, scale: 1)
+        redraw += 1
     }
 
-    private func drawTree(_ ctx: inout GraphicsContext, center: CGPoint, size: CGSize) {
-        let lit = branch(of: hover)
-        let zoomDot = max(0.7, min(scale, 2.2))
+    private func nodeIndex(_ theme: String) -> Int? {
+        sim.nodes.firstIndex { $0.kind == .theme && $0.key == theme }
+    }
 
-        // Lines: thin, warm, colored by their branch.
+    private func screen(_ p: CGPoint, size: CGSize) -> CGPoint {
+        let c = cam.center(in: size)
+        return CGPoint(x: c.x + p.x * cam.scale, y: c.y + p.y * cam.scale)
+    }
+
+    // MARK: Drawing
+
+    private func drawGraph(_ ctx: inout GraphicsContext, size: CGSize) {
+        let lit = focusTheme ?? hover.flatMap { sim.nodes.indices.contains($0) ? sim.nodes[$0].theme : nil }
+        let dotScale = max(0.7, min(cam.scale, 2.2))
+        // Focused: the theme's own links are drawn as cards, not dots.
+        let hidden: (GraphSimulation.Node) -> Bool = { n in
+            focusTheme != nil && n.theme == focusTheme && n.kind != .theme
+        }
+
         for e in sim.edges {
             let a = sim.nodes[e.a], b = sim.nodes[e.b]
-            let pa = screen(a.p, center: center), pb = screen(b.p, center: center)
+            if hidden(b) { continue }
+            let pa = screen(a.p, size: size), pb = screen(b.p, size: size)
             var path = Path(); path.move(to: pa); path.addLine(to: pb)
-            let isBridge = a.kind == .theme && b.kind == .theme
-            let dim = lit != nil && b.theme != lit && !(isBridge && a.theme == lit)
-            let base = b.color
-            let opacity = dim ? 0.08 : (b.kind == .leaf ? 0.38 : 0.6)
-            ctx.stroke(path, with: .linearGradient(Gradient(colors: [a.color.opacity(opacity), base.opacity(opacity)]), startPoint: pa, endPoint: pb),
-                       lineWidth: (b.kind == .leaf ? 0.7 : b.kind == .group ? 1.1 : 1.6) * zoomDot)
+            let bridge = a.kind == .theme && b.kind == .theme
+            let dim = lit != nil && b.theme != lit && !(bridge && a.theme == lit)
+            let opacity = dim ? 0.07 : (b.kind == .leaf ? 0.38 : 0.6)
+            ctx.stroke(path, with: .linearGradient(Gradient(colors: [a.color.opacity(opacity), b.color.opacity(opacity)]), startPoint: pa, endPoint: pb),
+                       lineWidth: (b.kind == .leaf ? 0.7 : b.kind == .group ? 1.1 : 1.6) * dotScale)
         }
-
-        // Nodes: flat dots in the branch color; links slightly lighter.
-        for n in sim.nodes {
+        for n in sim.nodes where !hidden(n) {
             let dim = lit != nil && n.theme != lit
-            let p = screen(n.p, center: center)
-            let r = n.size * zoomDot
-            let rect = CGRect(x: p.x - r, y: p.y - r, width: r * 2, height: r * 2)
-            ctx.fill(Path(ellipseIn: rect), with: .color(n.color.opacity(dim ? 0.2 : (n.kind == .leaf ? 0.75 : 1))))
+            let p = screen(n.p, size: size)
+            let r = n.size * dotScale
+            ctx.fill(Path(ellipseIn: CGRect(x: p.x - r, y: p.y - r, width: r * 2, height: r * 2)),
+                     with: .color(n.color.opacity(dim ? 0.18 : (n.kind == .leaf ? 0.75 : 1))))
         }
-
-        // Labels: themes only, in the branch color, under the node.
-        for n in sim.nodes where n.kind == .theme {
+        for (i, n) in sim.nodes.enumerated() where n.kind == .theme {
             let dim = lit != nil && n.theme != lit
-            let p = screen(n.p, center: center)
-            let text = Text(n.label).font(.system(size: 11.5, weight: .semibold)).foregroundStyle(n.color.opacity(dim ? 0.3 : 1))
-            ctx.draw(text, at: CGPoint(x: p.x, y: p.y + n.size * zoomDot + 9), anchor: .top)
+            let p = screen(n.p, size: size)
+            let focused = n.key == focusTheme
+            let below = focused ? n.size * dotScale : sim.clusterRadius(i) * cam.scale
+            let text = Text(n.label).font(.system(size: focused ? 15 : 11.5, weight: .semibold)).foregroundStyle(n.color.opacity(dim ? 0.3 : 1))
+            ctx.draw(text, at: CGPoint(x: p.x, y: p.y + below + 6), anchor: .top)
         }
     }
 
-    private func hit(_ point: CGPoint, center: CGPoint) -> Int? {
+    // MARK: Cards around the focused theme
+
+    private func chips(theme: String, node: Int, size: CGSize) -> some View {
+        let tabs = model.tabs(in: theme)
+        let origin = screen(sim.nodes[node].p, size: size)
+        let rings = Self.rings(count: tabs.count, start: 120 + sim.nodes[node].size * 2)
+        let color = sim.nodes[node].color
+        let fade = min(1, max(0, (cam.scale - 1.1) / 0.6))
+        return ForEach(Array(tabs.enumerated()), id: \.element.id) { index, tab in
+            if rings.indices.contains(index) {
+                LinkChip(tab: tab, color: color, isPicked: picked == tab.url)
+                    .frame(width: Self.chip.width, height: Self.chip.height)
+                    .position(x: origin.x + rings[index].x, y: origin.y + rings[index].y)
+                    .opacity(fade)
+                    .onTapGesture(count: 2) { TabActions.openInSafari(tab.url) }
+                    .onTapGesture { withAnimation(.snappy) { picked = picked == tab.url ? nil : tab.url } }
+            }
+        }
+    }
+
+    /// Screen offsets on rings around a point, wide rather than tall, sized
+    /// so cards do not overlap.
+    static func rings(count: Int, start: CGFloat) -> [CGPoint] {
+        var out: [CGPoint] = []
+        var radius = start
+        var ring = 0
+        while out.count < count {
+            let capacity = max(4, Int(2 * .pi * radius / (chip.width * 0.6)))
+            let n = min(capacity, count - out.count)
+            let shift = ring.isMultiple(of: 2) ? 0.0 : .pi / Double(n)
+            for k in 0..<n {
+                let a = shift + 2 * .pi * Double(k) / Double(n) - .pi / 2
+                out.append(CGPoint(x: cos(a) * radius * 1.4, y: sin(a) * radius * 0.78))
+            }
+            radius += 82
+            ring += 1
+        }
+        return out
+    }
+
+    private func hit(_ point: CGPoint, size: CGSize) -> Int? {
         var best: (Int, CGFloat)?
-        let zoomDot = max(0.7, min(scale, 2.2))
+        let dotScale = max(0.7, min(cam.scale, 2.2))
         for (i, n) in sim.nodes.enumerated() {
-            let p = screen(n.p, center: center)
+            if focusTheme != nil && n.theme == focusTheme && n.kind != .theme { continue }
+            let p = screen(n.p, size: size)
             let d = hypot(p.x - point.x, p.y - point.y)
-            if d <= max(8, n.size * zoomDot + 6), best == nil || d < best!.1 { best = (i, d) }
+            if d <= max(8, n.size * dotScale + 6), best == nil || d < best!.1 { best = (i, d) }
         }
         return best?.0
     }
@@ -207,24 +280,40 @@ struct GraphView: View {
         var nodes: [GraphSimulation.Node] = []
         var edges: [GraphSimulation.Edge] = []
         for name in themeNames {
-            let tabs = model.tabs(in: name)
+            // Links sorted by site, so each site's links sit together.
+            let tabs = model.tabs(in: name).sorted { ($0.host, $0.url) < ($1.host, $1.url) }
             let tint = color(for: name)
             let t = nodes.count
-            nodes.append(.init(kind: .theme, key: name, label: name, theme: name, color: tint,
-                               size: 4.5 + sqrt(CGFloat(tabs.count)) * 0.9, count: tabs.count))
+            let size = 5 + sqrt(CGFloat(tabs.count)) * 0.8
+            nodes.append(.init(kind: .theme, key: name, label: name, theme: name, color: tint, size: size, count: tabs.count))
+            // A sunflower of links around the theme, compact and fixed.
+            var local: [String: CGPoint] = [:]
+            for (k, tab) in tabs.enumerated() {
+                let angle = Double(k) * 2.399963
+                let r = Double(size) + 7 + 6.2 * sqrt(Double(k) + 1)
+                local[tab.url] = CGPoint(x: cos(angle) * r, y: sin(angle) * r)
+            }
             let bySite = Dictionary(grouping: tabs, by: \.host)
-            for (site, group) in bySite.sorted(by: { $0.value.count > $1.value.count }) {
+            for (site, group) in bySite.sorted(by: { $0.key < $1.key }) {
                 var parent = t
                 if group.count >= 3 {
+                    // The twig sits at the middle of its links.
+                    let pts = group.compactMap { local[$0.url] }
+                    let mid = CGPoint(x: pts.map(\.x).reduce(0, +) / CGFloat(pts.count) * 0.6,
+                                      y: pts.map(\.y).reduce(0, +) / CGFloat(pts.count) * 0.6)
                     parent = nodes.count
-                    nodes.append(.init(kind: .group, key: "\(name)|\(site)", label: site, theme: name, color: tint,
-                                       size: 2.8 + sqrt(CGFloat(group.count)) * 0.5, count: group.count))
-                    edges.append(.init(a: t, b: parent, length: 34 + sqrt(CGFloat(group.count)) * 4))
+                    var twig = GraphSimulation.Node(kind: .group, key: "\(name)|\(site)", label: site, theme: name, color: tint,
+                                                    size: 2.4 + sqrt(CGFloat(group.count)) * 0.4, count: group.count)
+                    twig.anchor = t; twig.local = mid
+                    nodes.append(twig)
+                    edges.append(.init(a: t, b: parent, length: 0))
                 }
                 for tab in group {
-                    let leaf = nodes.count
-                    nodes.append(.init(kind: .leaf, key: tab.url, label: "", theme: name, color: tint, size: 2.1, count: 1))
-                    edges.append(.init(a: parent, b: leaf, length: parent == t ? 26 : 16))
+                    var leaf = GraphSimulation.Node(kind: .leaf, key: tab.url, label: "", theme: name, color: tint, size: 1.9, count: 1)
+                    leaf.anchor = t; leaf.local = local[tab.url] ?? .zero
+                    let i = nodes.count
+                    nodes.append(leaf)
+                    edges.append(.init(a: parent, b: i, length: 0))
                 }
             }
         }
@@ -246,7 +335,7 @@ struct GraphView: View {
             for b in names[(x + 1)...] {
                 let shared = (sources[a] ?? []).intersection(sources[b] ?? []).count
                 guard shared > 0, let ia = themeNode[a], let ib = themeNode[b] else { continue }
-                edges.append(.init(a: ia, b: ib, length: max(120, 300 - CGFloat(shared) * 40)))
+                edges.append(.init(a: ia, b: ib, length: max(30, 150 - CGFloat(shared) * 30), weight: shared))
             }
         }
         sim.load(nodes: nodes, edges: edges)
@@ -271,112 +360,7 @@ enum GraphStyle {
     ]
 }
 
-// MARK: - Link level
-
-/// One theme zoomed in: its links as small cards in rings around it.
-private struct LinkLevel: View {
-    @Environment(AppModel.self) private var model
-    let theme: String
-    let size: CGSize
-    let color: Color
-    let go: (String) -> Void
-    @State private var picked: String?
-    @State private var zoom: CGFloat = 1
-    @State private var zoomBase: CGFloat = 1
-    @State private var pan: CGSize = .zero
-    @State private var panBase: CGSize = .zero
-
-    private static let chip = CGSize(width: 210, height: 58)
-
-    var body: some View {
-        let tabs = model.tabs(in: theme)
-        let browserWidth = min(max(size.width * 0.46, 420), size.width - 320)
-        HStack(spacing: 0) {
-            ring(tabs, size: picked == nil ? size : CGSize(width: size.width - browserWidth, height: size.height))
-            if let url = picked, let tab = tabs.first(where: { $0.url == url }) {
-                Divider()
-                WebPane(tab: tab) { withAnimation(.snappy) { picked = nil } }
-                    .frame(width: browserWidth)
-                    .transition(.move(edge: .trailing))
-            }
-        }
-        .frame(width: size.width, height: size.height)
-    }
-
-    private func ring(_ tabs: [SafariTab], size: CGSize) -> some View {
-        let positions = Self.rings(count: tabs.count, size: size)
-        let center = CGPoint(x: size.width / 2, y: size.height / 2)
-        return ZStack {
-            Canvas { ctx, _ in
-                for p in positions {
-                    var path = Path()
-                    path.move(to: center)
-                    path.addLine(to: CGPoint(x: center.x + p.x, y: center.y + p.y))
-                    ctx.stroke(path, with: .color(color.opacity(0.18)), lineWidth: 1)
-                }
-            }
-            VStack(spacing: 2) {
-                Text(theme).font(.title3.weight(.semibold)).multilineTextAlignment(.center)
-                if let summary = model.projects.first(where: { $0.name == theme })?.summary, !summary.isEmpty {
-                    Text(summary).font(.caption).foregroundStyle(.secondary).multilineTextAlignment(.center).lineLimit(3)
-                }
-                Text("\(tabs.count) links").font(.caption2).foregroundStyle(.tertiary)
-            }
-            .frame(width: 220)
-            .padding(14)
-            .background(Circle().fill(color.opacity(0.14)).overlay(Circle().strokeBorder(color.opacity(0.6))).frame(width: 250, height: 250))
-            .position(center)
-
-            ForEach(Array(tabs.enumerated()), id: \.element.id) { index, tab in
-                if positions.indices.contains(index) {
-                    LinkChip(tab: tab, color: color, isPicked: picked == tab.url)
-                        .frame(width: Self.chip.width, height: Self.chip.height)
-                        .position(x: center.x + positions[index].x, y: center.y + positions[index].y)
-                        .onTapGesture(count: 2) { TabActions.openInSafari(tab.url) }
-                        .onTapGesture { withAnimation(.snappy) { picked = picked == tab.url ? nil : tab.url } }
-                }
-            }
-        }
-        .frame(width: size.width, height: size.height)
-        .scaleEffect(zoom)
-        .offset(pan)
-        .contentShape(Rectangle())
-        .gesture(DragGesture(minimumDistance: 4)
-            .onChanged { v in pan = CGSize(width: panBase.width + v.translation.width, height: panBase.height + v.translation.height) }
-            .onEnded { _ in panBase = pan })
-        .simultaneousGesture(MagnifyGesture()
-            .onChanged { zoom = min(3, max(0.4, zoomBase * $0.magnification)) }
-            .onEnded { _ in zoomBase = zoom })
-        .background(ScrollZoom { delta, _ in
-            zoom = min(3, max(0.4, zoom * (1 + delta * 0.01)))
-            zoomBase = zoom
-        })
-        .clipped()
-    }
-
-    /// Positions on rings around the center, sized so chips do not overlap.
-    static func rings(count: Int, size: CGSize) -> [CGPoint] {
-        var out: [CGPoint] = []
-        var radius: CGFloat = 200
-        var ring = 0
-        while out.count < count {
-            let circumference = 2 * .pi * radius
-            let capacity = max(4, Int(circumference / (chip.width * 0.62)))
-            let n = min(capacity, count - out.count)
-            let start = ring.isMultiple(of: 2) ? 0.0 : .pi / Double(n)
-            for k in 0..<n {
-                let a = start + 2 * .pi * Double(k) / Double(n) - .pi / 2
-                // Ellipse: wider than tall, to fit a window.
-                out.append(CGPoint(x: cos(a) * radius * 1.35, y: sin(a) * radius * 0.8))
-            }
-            radius += 95
-            ring += 1
-        }
-        return out
-    }
-}
-
-/// A link at link level: thumbnail (page image, author avatar or site icon),
+/// A link card around a focused theme: thumbnail (page image, author avatar or site icon),
 /// title and site.
 private struct LinkChip: View {
     @Environment(AppModel.self) private var model
@@ -433,9 +417,44 @@ private struct LinkChip: View {
 
 // MARK: - Simulation
 
-/// Physics for the tree: every node pushes every other away, edges act as
-/// springs with their own rest length, and the root stays in the middle.
-/// It cools down and stops, so a settled graph costs nothing.
+/// Where the canvas looks and how close. Kept out of SwiftUI state so it
+/// can glide every frame without rebuilding the view tree.
+@MainActor
+final class GraphCamera {
+    var offset: CGSize = .zero
+    var scale: CGFloat = 1
+    private var target: (offset: CGSize, scale: CGFloat)?
+
+    var isAnimating: Bool { target != nil }
+
+    func center(in size: CGSize) -> CGPoint {
+        CGPoint(x: size.width / 2 + offset.width, y: size.height / 2 + offset.height)
+    }
+
+    func animate(to offset: CGSize, scale: CGFloat) { target = (offset, scale) }
+
+    func stop() { target = nil }
+
+    /// Eases a little closer to the target each frame.
+    func step() {
+        guard let t = target else { return }
+        let k: CGFloat = 0.16
+        offset.width += (t.offset.width - offset.width) * k
+        offset.height += (t.offset.height - offset.height) * k
+        scale += (t.scale - scale) * k
+        if abs(t.scale - scale) < 0.002, abs(t.offset.width - offset.width) < 0.5, abs(t.offset.height - offset.height) < 0.5 {
+            offset = t.offset
+            scale = t.scale
+            target = nil
+        }
+    }
+}
+
+/// Physics for the themes only. Each theme carries a fixed cluster of its
+/// links (`anchor` and `local`), so links never push each other around.
+/// Themes keep room for their cluster and label, connected themes pull
+/// together by how many sources they share, and a gentle pull to the middle
+/// keeps unconnected themes near. It cools down and stops.
 @MainActor
 final class GraphSimulation {
     enum Kind { case root, theme, group, leaf }
@@ -450,6 +469,9 @@ final class GraphSimulation {
         let count: Int
         var p: CGPoint = .zero
         var v: CGVector = .zero
+        /// For links and twigs: the theme node they move with, and where.
+        var anchor: Int?
+        var local: CGPoint = .zero
 
         init(kind: Kind, key: String, label: String, theme: String?, color: Color, size: CGFloat, count: Int) {
             self.kind = kind; self.key = key; self.label = label; self.theme = theme
@@ -457,78 +479,95 @@ final class GraphSimulation {
         }
     }
 
-    struct Edge { let a: Int; let b: Int; let length: CGFloat }
+    struct Edge {
+        let a: Int
+        let b: Int
+        /// Gap between two clusters for theme-to-theme edges; unused otherwise.
+        let length: CGFloat
+        var weight: Int = 0
+    }
 
     private(set) var nodes: [Node] = []
     private(set) var edges: [Edge] = []
+    private var themes: [Int] = []
+    private var extent: [Int: CGFloat] = [:]
+    private var labelHalf: [Int: CGFloat] = [:]
     private var alpha: CGFloat = 1
 
     var isMoving: Bool { alpha > 0.008 }
 
-    /// Kept for the link level, which tints chips by theme.
     static var palette: [Color] { GraphStyle.branchColors }
 
     func load(nodes new: [Node], edges newEdges: [Edge]) {
-        let old = Dictionary(nodes.map { ($0.key, $0.p) }, uniquingKeysWith: { a, _ in a })
+        let old = Dictionary(nodes.filter { $0.kind == .theme }.map { ($0.key, $0.p) }, uniquingKeysWith: { a, _ in a })
         nodes = new
         edges = newEdges
-        // New nodes start next to their parent so branches grow outward.
-        var parent: [Int: Int] = [:]
-        for e in edges { parent[e.b] = e.a }
-        for i in nodes.indices {
-            if let p = old[nodes[i].key] { nodes[i].p = p; continue }
-            let base = parent[i].map { nodes[$0].p } ?? .zero
-            let angle = Double(i) * 2.399963
-            let r: Double = nodes[i].kind == .theme ? 90 * sqrt(Double(i) + 1) : 14
-            nodes[i].p = CGPoint(x: base.x + cos(angle) * r, y: base.y + sin(angle) * r)
+        themes = nodes.indices.filter { nodes[$0].kind == .theme }
+        extent = [:]
+        for i in nodes.indices { if let t = nodes[i].anchor { extent[t] = max(extent[t] ?? 0, hypot(nodes[i].local.x, nodes[i].local.y)) } }
+        labelHalf = [:]
+        for t in themes { labelHalf[t] = CGFloat(nodes[t].label.count) * 3.4 + 8 }
+        for (k, t) in themes.enumerated() {
+            if let p = old[nodes[t].key] { nodes[t].p = p; continue }
+            let angle = Double(k) * 2.399963
+            let r = 70 * sqrt(Double(k) + 1)
+            nodes[t].p = CGPoint(x: cos(angle) * r * 1.3, y: sin(angle) * r)
         }
+        place()
         alpha = old.isEmpty ? 1 : 0.5
     }
 
+    private func radius(_ t: Int) -> CGFloat { (extent[t] ?? 0) + nodes[t].size + 4 }
+
+    /// How far a theme's cluster reaches from its center, in graph units.
+    func clusterRadius(_ t: Int) -> CGFloat { nodes.indices.contains(t) ? radius(t) : 0 }
+
+    /// Moves every link and twig with its theme.
+    private func place() {
+        for i in nodes.indices { if let t = nodes[i].anchor { nodes[i].p = CGPoint(x: nodes[t].p.x + nodes[i].local.x, y: nodes[t].p.y + nodes[i].local.y) } }
+    }
+
     func tick() {
-        guard isMoving, !nodes.isEmpty else { return }
-        let count = nodes.count
-        var fx = [CGFloat](repeating: 0, count: count)
-        var fy = [CGFloat](repeating: 0, count: count)
-        let charge: (Kind) -> CGFloat = { k in
-            switch k { case .root: 900; case .theme: 520; case .group: 90; case .leaf: 26 }
-        }
-        for i in 0..<count {
-            let pi = nodes[i].p, qi = charge(nodes[i].kind)
-            for j in (i + 1)..<count {
-                let dx = pi.x - nodes[j].p.x, dy = pi.y - nodes[j].p.y
-                let d2 = max(dx * dx + dy * dy, 9)
-                if d2 > 160_000 { continue }
-                let f = sqrt(qi * charge(nodes[j].kind)) / d2
-                let d = sqrt(d2)
-                let ux = dx / d * f, uy = dy / d * f
-                fx[i] += ux; fy[i] += uy
-                fx[j] -= ux; fy[j] -= uy
+        guard isMoving, !themes.isEmpty else { return }
+        var f: [Int: CGVector] = [:]
+        for t in themes { f[t] = .zero }
+        // Collision with room for labels: wider than tall.
+        for (x, i) in themes.enumerated() {
+            for j in themes[(x + 1)...] {
+                let dx = nodes[i].p.x - nodes[j].p.x, dy = nodes[i].p.y - nodes[j].p.y
+                let d = max(hypot(dx, dy), 0.5)
+                let ux = dx / d, uy = dy / d
+                let reachI = max(radius(i), abs(ux) * (labelHalf[i] ?? 0)) + abs(uy) * 18
+                let reachJ = max(radius(j), abs(ux) * (labelHalf[j] ?? 0)) + abs(uy) * 18
+                let gap = reachI + reachJ + 16
+                let push = d < gap ? (gap - d) * 0.35 : 900 / (d * d)
+                f[i]!.dx += ux * push; f[i]!.dy += uy * push
+                f[j]!.dx -= ux * push; f[j]!.dy -= uy * push
             }
         }
-        for e in edges {
+        // Shared sources pull themes together.
+        for e in edges where nodes[e.a].kind == .theme && nodes[e.b].kind == .theme {
             let a = nodes[e.a].p, b = nodes[e.b].p
             let dx = b.x - a.x, dy = b.y - a.y
-            let d = max(sqrt(dx * dx + dy * dy), 0.1)
-            let f = (d - e.length) * 0.08
-            let ux = f * dx / d, uy = f * dy / d
-            fx[e.a] += ux * 0.3; fy[e.a] += uy * 0.3
-            fx[e.b] -= ux; fy[e.b] -= uy
+            let d = max(hypot(dx, dy), 0.5)
+            let rest = radius(e.a) + radius(e.b) + e.length
+            let k = 0.015 * min(CGFloat(e.weight), 4)
+            let pull = (d - rest) * k
+            f[e.a]!.dx += pull * dx / d; f[e.a]!.dy += pull * dy / d
+            f[e.b]!.dx -= pull * dx / d; f[e.b]!.dy -= pull * dy / d
         }
-        for i in 0..<count {
-            let pull: CGFloat = nodes[i].kind == .theme ? 0.012 : 0.002
-            fx[i] -= nodes[i].p.x * pull
-            fy[i] -= nodes[i].p.y * pull
-            var v = nodes[i].v
-            v.dx = (v.dx + fx[i] * alpha) * 0.62
-            v.dy = (v.dy + fy[i] * alpha) * 0.62
+        for t in themes {
+            var v = nodes[t].v
+            v.dx = (v.dx + (f[t]!.dx - nodes[t].p.x * 0.02) * alpha) * 0.6
+            v.dy = (v.dy + (f[t]!.dy - nodes[t].p.y * 0.03) * alpha) * 0.6
             let speed = hypot(v.dx, v.dy)
-            if speed > 24 { v.dx *= 24 / speed; v.dy *= 24 / speed }
-            nodes[i].v = v
-            nodes[i].p.x += v.dx
-            nodes[i].p.y += v.dy
+            if speed > 20 { v.dx *= 20 / speed; v.dy *= 20 / speed }
+            nodes[t].v = v
+            nodes[t].p.x += v.dx
+            nodes[t].p.y += v.dy
         }
-        alpha *= 0.988
+        place()
+        alpha *= 0.985
     }
 }
 
