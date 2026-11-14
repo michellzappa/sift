@@ -19,6 +19,18 @@ video and reel transcripts, your notes and themes, in plain Markdown, JSON
 and SQLite. No Sift server, no account. Your own Claude can search it
 through the built-in MCP server, and you can open every file without Sift.
 
+<picture>
+  <source media="(prefers-color-scheme: dark)" srcset="docs/images/overview-dark.png">
+  <img alt="The overview: each theme is a cluster of its links, with lines where themes share links or sites." src="docs/images/overview-light.png">
+</picture>
+
+<picture>
+  <source media="(prefers-color-scheme: dark)" srcset="docs/images/theme-dark.png">
+  <img alt="A theme opened on the graph: its links as a list on the left, the cluster still in view." src="docs/images/theme-light.png">
+</picture>
+
+Screenshots use Sift's demo mode and made-up sample data.
+
 ## What it does
 
 ### Sources
@@ -84,6 +96,11 @@ one line of preview, then the theme and a send button. Click a link and the page
 right side. ↑↓ move through the list; Space opens and closes the browser.
 The browser has back, forward, reload, Open in Safari, Send and, for pages
 in the library, a reader view of the saved text.
+
+<picture>
+  <source media="(prefers-color-scheme: dark)" srcset="docs/images/list-dark.png">
+  <img alt="A list of links: thumbnail, title, source, date, what Sift saved, a line of preview, the theme and the send button." src="docs/images/list-light.png">
+</picture>
 
 ### Send
 
@@ -302,6 +319,16 @@ and publishes the ZIP and `SHA256SUMS`. It needs these repository secrets:
 `APPLE_API_ISSUER_ID` and `APPLE_API_PRIVATE_KEY_BASE64`.
 
 ## Settings
+
+<picture>
+  <source media="(prefers-color-scheme: dark)" srcset="docs/images/settings-library-dark.png">
+  <img alt="Settings, Library: switches and counts for page text, YouTube transcripts, Instagram images and reel transcripts." src="docs/images/settings-library-light.png" width="560">
+</picture>
+
+<picture>
+  <source media="(prefers-color-scheme: dark)" srcset="docs/images/settings-outputs-dark.png">
+  <img alt="Settings, Outputs: destinations to send to, and the exporters." src="docs/images/settings-outputs-light.png" width="560">
+</picture>
 
 **Inputs** lists every source with its status and actions: Safari tabs
 (devices and tab counts, the tab database, Full Disk Access), the Reading
