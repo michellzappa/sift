@@ -38,6 +38,8 @@ struct SiftState: Codable, Sendable {
     var closeAfterSend = true
     /// Background jobs a service refused (youtube, reels): when to try again.
     var blockedUntil: [String: Date] = [:]
+    /// When YouTube refuses captions, transcribe the video's audio on this Mac.
+    var youtubeAudio = true
     /// The current wait per job, in hours; it doubles on each refusal.
     var backoffHours: [String: Double] = [:]
     var xClientID: String = ""
@@ -82,6 +84,7 @@ struct SiftState: Codable, Sendable {
         sent = try c.decodeIfPresent([String: [SentRecord]].self, forKey: .sent) ?? [:]
         closeAfterSend = try c.decodeIfPresent(Bool.self, forKey: .closeAfterSend) ?? true
         blockedUntil = try c.decodeIfPresent([String: Date].self, forKey: .blockedUntil) ?? [:]
+        youtubeAudio = try c.decodeIfPresent(Bool.self, forKey: .youtubeAudio) ?? true
         backoffHours = try c.decodeIfPresent([String: Double].self, forKey: .backoffHours) ?? [:]
         xClientID = try c.decodeIfPresent(String.self, forKey: .xClientID) ?? ""
         xUserID = try c.decodeIfPresent(String.self, forKey: .xUserID)

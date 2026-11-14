@@ -125,6 +125,12 @@ transcripts), not only the link. Never add a Sift server or account.
   that file is off for the run. A save that shrinks a file over 64 KB to
   under a tenth is refused. Problems show in an alert. Never write these
   files directly.
+- YouTube audio route (2026-11-14, owner: "make it clean"): when YouTube
+  refuses captions (job "youtube" blocked), `AppModel.hear` fetches the
+  audio with yt-dlp (`-f ba[ext=m4a]`, gate "audio.youtube.com", own block
+  key "youtube-audio") and transcribes it on device only
+  (`onDeviceOnly`), skipping videos over 90 minutes; the file heading says
+  "from the audio". Switch: `state.youtubeAudio`.
 - Capture paces requests per site (`HostGate`: 4 s for YouTube, Instagram
   and X, 1 s elsewhere) and skips a site for an hour after 429/503. Never
   fetch one site in parallel bursts: YouTube rate-limited the owner's IP.

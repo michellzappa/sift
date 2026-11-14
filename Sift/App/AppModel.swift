@@ -450,7 +450,7 @@ final class AppModel {
 
     /// YouTube links without a transcript attempt, newest saves first.
     var videosNeedingTranscript: [ArchiveRecord] {
-        guard state.youtubeTranscripts, TranscriptTool.executable != nil, !isBlocked("youtube") else { return [] }
+        guard state.youtubeTranscripts, TranscriptTool.executable != nil, !isBlocked("youtube") || canHearYouTube else { return [] }
         return archive.values
             .filter { TranscriptTool.videoID($0.url) != nil && library[$0.url]?.transcript == nil && !transcriptTried.contains($0.url) }
             .sorted { $0.firstSeen > $1.firstSeen }
@@ -572,7 +572,13 @@ final class AppModel {
         for r in todo {
             guard state.youtubeTranscripts, let id = TranscriptTool.videoID(r.url) else { break }
             transcriptTried.insert(r.url)
-            switch await TranscriptTool.fetch(id) {
+            // Captions first; when YouTube refuses them, the audio.
+            var outcome = TranscriptTool.Outcome.throttled
+            if !isBlocked("youtube") {
+                outcome = await TranscriptTool.fetch(id)
+                if case .throttled = outcome { block("youtube") }
+            }
+            switch outcome {
             case .transcript(let text):
                 unblock("youtube")
                 library[r.url] = Library.addTranscript(text, to: r, existing: library[r.url])
@@ -581,13 +587,46 @@ final class AppModel {
                 e.transcript = false
                 library[r.url] = e
             case .throttled:
-                // Not tried: this video goes back in the queue.
-                transcriptTried.remove(r.url)
-                block("youtube")
-                return
+                switch await hear(r) {
+                case .some(let text?):
+                    library[r.url] = Library.addTranscript(text, to: r, existing: library[r.url], heard: true)
+                case .some(nil):
+                    var e = library[r.url] ?? Library.Entry(file: "", captured: .now, words: 0, kind: "video", status: "failed")
+                    e.transcript = false
+                    library[r.url] = e
+                case nil:
+                    // Neither captions nor audio now: the video goes back in the queue.
+                    transcriptTried.remove(r.url)
+                    return
+                }
             }
             transcriptProgress.done += 1
             if transcriptProgress.done % 10 == 0 { Library.saveIndex(library) }
+        }
+    }
+
+    /// Whether the audio route can run: yt-dlp is installed, the switch is
+    /// on and YouTube is not refusing audio either.
+    var canHearYouTube: Bool { state.youtubeAudio && ReelTool.executable != nil && !isBlocked("youtube-audio") }
+
+    /// Transcribes a video's audio on this Mac. nil: try again later (route
+    /// unavailable or refused); .some(nil): tried, no text (no speech, too
+    /// long, a language this Mac cannot do on device).
+    private func hear(_ r: ArchiveRecord) async -> String?? {
+        guard canHearYouTube, await ReelSpeech.authorize() else { return nil }
+        // Very long videos (over 90 minutes) are left to captions.
+        if let seconds = library[r.url]?.duration, seconds > 90 * 60 { return .some(nil) }
+        switch await ReelTool.audio(for: r.url, gate: ReelTool.youTubeGate) {
+        case .throttled:
+            block("youtube-audio")
+            return nil
+        case .none:
+            return .some(nil)
+        case .audio(let file):
+            defer { try? FileManager.default.removeItem(at: file.deletingLastPathComponent()) }
+            unblock("youtube-audio")
+            let text = await ReelSpeech.transcribe(file, hint: previews[r.url]?.title ?? r.title, onDeviceOnly: true)
+            return .some(text.flatMap { $0.count > 200 ? $0 : nil })
         }
     }
 

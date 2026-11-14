@@ -232,10 +232,13 @@ enum Library {
     /// Adds a transcript to the link's library file: appended under a
     /// "## Transcript" heading when the page was captured, otherwise a new
     /// file with the transcript alone.
-    static func addTranscript(_ text: String, to r: ArchiveRecord, existing: Entry?) -> Entry {
+    /// - Parameter heard: true when Sift transcribed the audio itself (no
+    ///   captions); the heading says so.
+    static func addTranscript(_ text: String, to r: ArchiveRecord, existing: Entry?, heard: Bool = false) -> Entry {
+        let heading = heard ? "## Transcript (from the audio, by macOS speech recognition)" : "## Transcript"
         if let existing, !existing.file.isEmpty,
            var raw = try? String(contentsOf: folder.appending(path: existing.file), encoding: .utf8) {
-            raw += "\n## Transcript\n\n" + text + "\n"
+            raw += "\n\(heading)\n\n" + text + "\n"
             try? raw.write(to: folder.appending(path: existing.file), atomically: true, encoding: .utf8)
             var e = existing
             e.words += text.split { $0 == " " || $0 == "\n" }.count
@@ -247,7 +250,7 @@ enum Library {
         }
         let site = URL(string: r.url)?.host() ?? ""
         var e = write(Capture(url: r.url, title: r.title, author: nil, site: site, published: nil, kind: "video",
-                              text: "## Transcript\n\n" + text), title: r.title, theme: r.theme, source: r.source)
+                              text: heading + "\n\n" + text), title: r.title, theme: r.theme, source: r.source)
         e.transcript = true
         return e
     }

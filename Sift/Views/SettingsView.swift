@@ -187,6 +187,9 @@ private struct LibrarySettings: View {
 
             Section {
                 Toggle("Save YouTube transcripts", isOn: $model.state.youtubeTranscripts)
+                Toggle("When YouTube refuses captions, transcribe the audio on this Mac", isOn: $model.state.youtubeAudio)
+                    .disabled(ReelTool.executable == nil)
+                    .help(ReelTool.executable == nil ? "Needs the reel tool (yt-dlp): install it under Instagram below." : "Downloads the audio, turns it into text with macOS speech recognition on this Mac, then deletes the audio. Videos over 90 minutes are skipped.")
                 LabeledContent("Transcripts", value: TranscriptTool.executable == nil ? "Tool not installed" : "\(model.transcriptCount) saved")
                 if let until = model.state.blockedUntil["youtube"], until > .now {
                     Text("YouTube is refusing requests from this network for now. Sift tries again at \(until.formatted(date: .omitted, time: .shortened)).")

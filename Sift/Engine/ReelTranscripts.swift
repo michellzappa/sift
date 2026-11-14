@@ -30,8 +30,12 @@ enum ReelTool {
 
     enum Outcome: Sendable { case audio(URL), none, throttled }
 
-    /// Downloads the audio track of one reel into a temporary folder.
-    static func audio(for url: String) async -> Outcome {
+    /// The gate key for YouTube audio, apart from YouTube's captions.
+    static let youTubeGate = "audio.youtube.com"
+
+    /// Downloads the audio track of one reel or video into a temporary
+    /// folder. M4A first: macOS speech recognition does not read WebM/Opus.
+    static func audio(for url: String, gate: String = gate) async -> Outcome {
         guard let exe = executable else { return .none }
         guard await HostGate.shared.admit(gate) else { return .throttled }
         let dir = FileManager.default.temporaryDirectory.appending(path: "sift-reel-\(UUID().uuidString)", directoryHint: .isDirectory)
@@ -39,7 +43,7 @@ enum ReelTool {
         let output: String = await Task.detached {
             let p = Process()
             p.executableURL = exe
-            p.arguments = ["--no-warnings", "--no-playlist", "--no-progress", "-f", "ba/b",
+            p.arguments = ["--no-warnings", "--no-playlist", "--no-progress", "-f", "ba[ext=m4a]/ba/b",
                            "-o", dir.appending(path: "audio.%(ext)s").path(percentEncoded: false), url]
             let out = Pipe(), err = Pipe()
             p.standardOutput = out
@@ -86,8 +90,11 @@ enum ReelSpeech {
     }
 
     @MainActor
-    static func transcribe(_ file: URL, hint: String?) async -> String? {
+    /// - Parameter onDeviceOnly: long audio (whole videos) needs recognition
+    ///   on this Mac; Apple's server recognition stops after about a minute.
+    static func transcribe(_ file: URL, hint: String?, onDeviceOnly: Bool = false) async -> String? {
         guard let recognizer = SFSpeechRecognizer(locale: locale(for: hint)), recognizer.isAvailable else { return nil }
+        if onDeviceOnly, !recognizer.supportsOnDeviceRecognition { return nil }
         let request = SFSpeechURLRecognitionRequest(url: file)
         request.shouldReportPartialResults = false
         request.addsPunctuation = true
