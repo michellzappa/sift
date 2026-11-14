@@ -149,7 +149,7 @@ private struct Sidebar: View {
                         .tag(SidebarItem.site(site.host))
                 }
             }
-            Section("Not for a project") {
+            Section("Outside your themes") {
                 ForEach(Project.buckets, id: \.self) { bucket in
                     HStack { Text(bucket); Spacer(); count(model.count(bucket)) }
                         .tag(SidebarItem.project(bucket))

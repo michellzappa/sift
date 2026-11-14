@@ -124,9 +124,12 @@ struct Sorter: Sendable {
             line of inquiry that several links feed, named the way the person would name it in a sentence \
             (short, concrete, lowercase except proper nouns). Aim for 12 to 20 themes. Prefer themes that cut \
             across tools and sources over themes that copy a product name. Put links with no lasting value \
-            (viral bait, home pages, search pages, one-off curiosities) in one theme named "noise" with kind \
-            noise, and the person's private life admin (housing, shopping, travel, TV) in one theme named \
-            "personal" with kind personal. Every id goes in exactly one theme.\(keepLine)
+            (viral bait, home pages, one-off curiosities) in one theme named "noise" with kind noise. Put \
+            transactional pages, open for a task and not out of curiosity (orders, accounts, carts, listings \
+            being compared, bookings, searches, dashboards, documents being edited), in one theme named \
+            "errands" with kind errand. Put the person's private life interests that are not work or a hobby \
+            (housing, travel, TV) in one theme named "personal" with kind personal. Every id goes in exactly \
+            one theme.\(keepLine)
 
             For each theme give a one-sentence description of the interest, a kind (work, research, personal, \
             hobby, noise), a suggested_destination (the best existing home from the list below, several joined \
@@ -146,7 +149,7 @@ struct Sorter: Sendable {
                 "required": ["name", "description", "kind", "suggested_destination", "why", "item_ids"],
                 "properties": [
                     "name": ["type": "string"], "description": ["type": "string"],
-                    "kind": ["type": "string", "enum": ["work", "research", "personal", "hobby", "noise"]],
+                    "kind": ["type": "string", "enum": ["work", "research", "personal", "hobby", "noise", "errand"]],
                     "suggested_destination": ["type": "string"], "why": ["type": "string"],
                     "item_ids": ["type": "array", "items": ["type": "integer"]],
                 ],
@@ -185,7 +188,9 @@ struct Sorter: Sendable {
             \(catalogue)
 
             Buckets that are not projects:
-            - personal: the person's own life (shopping, travel, recipes, news, entertainment).
+            - errands: transactional pages, open for a task and not out of curiosity (orders, accounts, carts, \
+              listings being compared, bookings, searches, dashboards, documents being edited).
+            - personal: the person's own life (travel, recipes, news, entertainment).
             - drop: no lasting value (home pages, search pages, engagement bait, viral claims).
             - unknown: the title, URL and preview do not say what the page is.
 

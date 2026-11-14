@@ -50,6 +50,9 @@ project and as an overview network (one hub per project, one dot per tab).
   passes the current themes as names to keep, so links do not reshuffle. The
   user accepts every proposal in `ThemeReview`. Sorting is disabled until
   themes exist.
+- Transactional tabs go to the `errands` bucket (`Sorting/Errands.swift`,
+  URL rules; Claude's "errand" kind for the rest). They are excluded from
+  theme discovery input, themes, the graph and exports. Hand moves win.
 - Exporters are plugins: one file per exporter in `Sift/Export/`, conforming
   to `Exporter`, registered in `Exporters.all`. They read only the
   `ExportSnapshot`: no network, keychain or app state. CONTRIBUTING.md is the

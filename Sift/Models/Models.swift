@@ -61,7 +61,9 @@ struct Project: Identifiable, Hashable, Codable, Sendable {
     static let personal = "personal"
     static let drop = "drop"
     static let unknown = "unknown"
-    static let buckets = [personal, drop, unknown]
+    /// Transactional tabs: open for a task, not out of curiosity. See `Errands`.
+    static let errands = "errands"
+    static let buckets = [errands, personal, drop, unknown]
 }
 
 /// Where a tab was sorted, and why it may matter there.

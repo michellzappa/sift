@@ -51,6 +51,7 @@ final class AppModel {
                 let stillOpen = state.closeQueue.filter(open.contains)
                 if stillOpen != state.closeQueue { state.closeQueue = stillOpen }
             }
+            separateErrands()
         } catch let failure as CloudTabsReader.Failure {
             loadError = failure
             devices = []
@@ -58,6 +59,20 @@ final class AppModel {
         } catch {
             loadError = .sqlite(error.localizedDescription)
         }
+    }
+
+    /// Moves transactional tabs to the errands bucket, except ones the user
+    /// sorted by hand.
+    private func separateErrands() {
+        var s = state
+        var changed = false
+        for tab in tabs where Errands.isErrand(tab.url) {
+            let a = s.assignments[tab.url]
+            guard a?.manual != true, a?.project != Project.errands else { continue }
+            s.assignments[tab.url] = Assignment(project: Project.errands, use: "", manual: false, action: .close)
+            changed = true
+        }
+        if changed { state = s }
     }
 
     func selectDevice(_ id: String) {
@@ -165,6 +180,9 @@ final class AppModel {
         }
         add(tabs)
 
+        // Transactional tabs are not curiosity: they skip Claude entirely.
+        corpus.removeAll { Errands.isErrand($0.url) }
+
         // Bare links (mostly X posts) say nothing without their text.
         await fetchPreviews(for: corpus.filter { !$0.hasUsefulTitle })
 
@@ -194,7 +212,12 @@ final class AppModel {
             }
         }
         for theme in accepted {
-            let bucket: String? = theme.kind == "noise" ? Project.drop : theme.kind == "personal" ? Project.personal : nil
+            let bucket: String? = switch theme.kind {
+            case "noise": Project.drop
+            case "personal": Project.personal
+            case "errand": Project.errands
+            default: nil
+            }
             let name = bucket ?? theme.name
             if bucket == nil {
                 s.extraProjects.append(Project(name: theme.name, summary: theme.description, destination: theme.destination))
@@ -397,7 +420,8 @@ final class AppModel {
     func exportSnapshot() -> ExportSnapshot {
         let source = isReadingList ? "reading-list" : (devices.first { $0.id == state.deviceID }?.name ?? "tabs")
         let items: [ExportItem] = tabs.compactMap { tab in
-            guard let a = state.assignments[tab.url], a.project != Project.drop, a.project != Project.unknown else { return nil }
+            guard let a = state.assignments[tab.url], a.project != Project.drop, a.project != Project.unknown,
+                  a.project != Project.errands else { return nil }
             let p = previews[tab.url]
             let usable = p?.failed == false ? p : nil
             let title = tab.hasUsefulTitle ? tab.title : (usable.map { $0.site == "x.com" ? "\($0.title) on X" : $0.title } ?? tab.url)

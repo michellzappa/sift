@@ -17,7 +17,7 @@ struct ThemeReview: View {
         VStack(alignment: .leading, spacing: 0) {
             VStack(alignment: .leading, spacing: 6) {
                 Text("Themes in your links").font(.title2.weight(.semibold))
-                Text("Claude read \(model.proposalURLs.count) links and found these themes. Rename any theme, untick the ones you do not want, then use them. Links in an unticked theme become unsorted. \"personal\" and \"noise\" go to the personal and drop buckets.")
+                Text("Claude read \(model.proposalURLs.count) links and found these themes. Rename any theme, untick the ones you do not want, then use them. Links in an unticked theme become unsorted. \"errands\", \"personal\" and \"noise\" go to their buckets.")
                     .foregroundStyle(.secondary)
                     .fixedSize(horizontal: false, vertical: true)
             }

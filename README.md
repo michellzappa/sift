@@ -36,8 +36,12 @@ how the link could be used, and picks a next action:
 | File    | Keep it as reference; nothing to do now |
 | Close   | Already used, outdated or not worth more time |
 
-Tabs that belong to no theme go to three buckets: personal, drop and
-unknown.
+Tabs that belong to no theme go to four buckets. **Errands** holds
+transactional tabs, pages open for a task rather than out of curiosity:
+orders, accounts, carts, bookings, searches, dashboards, documents being
+edited. Sift spots the clear ones by URL and never sends them to Claude for
+theme discovery; Claude catches the rest. Errands stay out of themes, the
+graph and exports. The other buckets are personal, drop and unknown.
 
 The sidebar has four ways in: by theme, by next action, by site (x.com,
 github.com and so on) and by bucket. Every list shows cards with the page's
