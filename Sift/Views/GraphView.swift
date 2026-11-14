@@ -354,22 +354,8 @@ enum GraphStyle {
             : AnyShapeStyle(Color(nsColor: .textBackgroundColor))
     }
 
-    private static func pair(_ light: (Double, Double, Double), _ dark: (Double, Double, Double)) -> Color {
-        Color(nsColor: NSColor(name: nil) { appearance in
-            let isDark = appearance.bestMatch(from: [.darkAqua, .aqua]) == .darkAqua
-            let c = isDark ? dark : light
-            return NSColor(srgbRed: c.0, green: c.1, blue: c.2, alpha: 1)
-        })
-    }
-
-    /// Warm to cool. Light-mode shades are deep enough for text on white.
-    static let branchColors: [Color] = [
-        pair((0.85, 0.42, 0.05), (1.00, 0.66, 0.30)), pair((0.72, 0.55, 0.00), (1.00, 0.82, 0.40)),
-        pair((0.82, 0.27, 0.20), (0.98, 0.52, 0.42)), pair((0.05, 0.50, 0.72), (0.56, 0.86, 0.98)),
-        pair((0.42, 0.30, 0.85), (0.70, 0.62, 1.00)), pair((0.08, 0.58, 0.40), (0.55, 0.95, 0.75)),
-        pair((0.82, 0.22, 0.48), (1.00, 0.60, 0.75)), pair((0.50, 0.50, 0.10), (0.95, 0.95, 0.70)),
-        pair((0.20, 0.38, 0.85), (0.62, 0.75, 1.00)), pair((0.70, 0.40, 0.18), (1.00, 0.74, 0.55)),
-    ]
+    /// System colors: they adapt to light and dark mode on their own.
+    static let branchColors: [Color] = [.blue, .orange, .green, .pink, .purple, .teal, .red, .indigo, .mint, .brown, .cyan, .yellow]
 }
 
 /// A link card around a focused theme: thumbnail (page image, author avatar or site icon),
@@ -527,7 +513,12 @@ final class GraphSimulation {
             nodes[t].p = CGPoint(x: cos(angle) * r * 1.3, y: sin(angle) * r)
         }
         place()
+        // Settle before the first frame, so the graph loads in place and
+        // does not move on screen.
         alpha = old.isEmpty ? 1 : 0.5
+        var steps = 0
+        while isMoving && steps < 1500 { step(); steps += 1 }
+        alpha = 0
     }
 
     private func radius(_ t: Int) -> CGFloat { (extent[t] ?? 0) + nodes[t].size + 4 }
@@ -540,8 +531,11 @@ final class GraphSimulation {
         for i in nodes.indices { if let t = nodes[i].anchor { nodes[i].p = CGPoint(x: nodes[t].p.x + nodes[i].local.x, y: nodes[t].p.y + nodes[i].local.y) } }
     }
 
-    func tick() {
-        guard isMoving, !themes.isEmpty else { return }
+    /// Called every frame; does nothing once the layout has settled.
+    func tick() { if isMoving { step() } }
+
+    private func step() {
+        guard !themes.isEmpty else { alpha = 0; return }
         var f: [Int: CGVector] = [:]
         for t in themes { f[t] = .zero }
         // Collision with room for labels: wider than tall.
