@@ -230,10 +230,6 @@ struct TabCard: View {
                     .font(.caption)
                     .help(out)
                 }
-                if let use = a?.use, !use.isEmpty {
-                    Text(use).font(.callout).foregroundStyle(.tint).lineLimit(2)
-                        .fixedSize(horizontal: false, vertical: true)
-                }
                 Spacer(minLength: 0)
                 // Footer: next action left, theme right (only where the
                 // theme is not already the page you are on).
@@ -279,9 +275,6 @@ struct TabCard: View {
                 model.exportMessage = TabActions.addToReadingList(tab.url, title: cardTitle(preview), preview: bodyText(preview) ?? "")
             }
             Button("Copy Link") { model.copy(tab.url) }
-            if a != nil, !Project.buckets.contains(a?.project ?? "") {
-                Button("Edit Use…") { draft = a?.use ?? ""; editingUse = true }
-            }
             if a != nil { Menu("Next Action") { actionMenu } }
             Divider()
             if !model.isSavedList {
@@ -452,7 +445,6 @@ struct PreviewPane: View {
                 if let a {
                     Divider()
                     LabeledContent("Project", value: a.project)
-                    if !a.use.isEmpty { Text(a.use).foregroundStyle(.tint) }
                 }
                 Divider()
                 Text(tab.url).font(.caption).foregroundStyle(.secondary).textSelection(.enabled).lineLimit(4)

@@ -46,9 +46,6 @@ struct WebPane: View {
 
             if a != nil {
                 HStack(spacing: 8) {
-                    if let use = a?.use, !use.isEmpty {
-                        Text(use).font(.caption).foregroundStyle(.tint).lineLimit(2)
-                    }
                     Spacer(minLength: 4)
                     Menu {
                         ForEach(NextAction.allCases, id: \.self) { action in

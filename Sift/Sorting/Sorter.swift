@@ -27,7 +27,8 @@ struct Sorter: Sendable {
     struct Result: Decodable, Sendable {
         let id: Int
         let project: String
-        let use: String
+        /// No longer requested (the owner removed use lines, 2026-11-14).
+        let use: String?
         let action: String
     }
 
@@ -55,10 +56,9 @@ struct Sorter: Sendable {
         var out: [String: Assignment] = [:]
         let valid = Set(names)
         for r in results where items.indices.contains(r.id) && valid.contains(r.project) {
-            let isBucket = Project.buckets.contains(r.project)
             var action = NextAction(rawValue: r.action)
             if r.project == Project.drop { action = .close }
-            out[items[r.id].url] = Assignment(project: r.project, use: isBucket ? "" : r.use, manual: false, action: action)
+            out[items[r.id].url] = Assignment(project: r.project, use: "", manual: false, action: action)
         }
         return out
     }
@@ -196,9 +196,7 @@ struct Sorter: Sendable {
             - unknown: the title, URL and preview do not say what the page is.
 
             For each tab, choose exactly one project or bucket. Choose a project only when the link could \
-            feed that project's work. For a project, write "use": one short sentence on how the link could \
-            be used in that project (a competitor, a reference, a data source, an argument, a feature idea). \
-            For a bucket, leave "use" empty.
+            feed that project's work.
 
             Also choose "action", what the person should do with the link next:
             \(actionGuide)
@@ -217,11 +215,10 @@ struct Sorter: Sendable {
                     "items": [
                         "type": "object",
                         "additionalProperties": false,
-                        "required": ["id", "project", "use", "action"],
+                        "required": ["id", "project", "action"],
                         "properties": [
                             "id": ["type": "integer"],
                             "project": ["type": "string", "enum": names],
-                            "use": ["type": "string"],
                             "action": ["type": "string", "enum": NextAction.allCases.map(\.rawValue)],
                         ],
                     ],
