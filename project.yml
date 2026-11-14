@@ -1,0 +1,56 @@
+name: Sift
+options:
+  bundleIdPrefix: app.sift
+  deploymentTarget:
+    macOS: "14.0"
+  createIntermediateGroups: true
+  groupSortPosition: top
+configs:
+  Debug: debug
+  Release: release
+settings:
+  base:
+    SWIFT_VERSION: "6.0"
+    MACOSX_DEPLOYMENT_TARGET: "14.0"
+    SWIFT_STRICT_CONCURRENCY: complete
+    # Real identity, not ad-hoc: TCC keys the Full Disk Access grant to the
+    # code signature, so an ad-hoc build loses the grant on every rebuild.
+    CODE_SIGN_STYLE: Manual
+    CODE_SIGN_IDENTITY: Apple Development
+    DEVELOPMENT_TEAM: 992N457T8D
+    PROVISIONING_PROFILE_SPECIFIER: ""
+    ENABLE_HARDENED_RUNTIME: YES
+    GENERATE_INFOPLIST_FILE: NO
+  configs:
+    Debug:
+      SWIFT_ACTIVE_COMPILATION_CONDITIONS: DEBUG
+      SWIFT_OPTIMIZATION_LEVEL: "-Onone"
+    Release:
+      SWIFT_OPTIMIZATION_LEVEL: "-O"
+targets:
+  Sift:
+    type: application
+    platform: macOS
+    sources:
+      - path: Sift
+        excludes:
+          - "Resources/Info.plist"
+          - "Resources/Sift.entitlements"
+    settings:
+      base:
+        PRODUCT_BUNDLE_IDENTIFIER: app.sift.Sift
+        PRODUCT_NAME: Sift
+        CODE_SIGN_ENTITLEMENTS: Sift/Resources/Sift.entitlements
+        INFOPLIST_FILE: Sift/Resources/Info.plist
+        ASSETCATALOG_COMPILER_APPICON_NAME: ""
+        COMBINE_HIDPI_IMAGES: YES
+        ENABLE_PREVIEWS: YES
+schemes:
+  Sift:
+    build:
+      targets:
+        Sift: all
+    run:
+      config: Debug
+    archive:
+      config: Release
