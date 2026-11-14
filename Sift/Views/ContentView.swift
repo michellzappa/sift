@@ -127,6 +127,26 @@ private struct Sidebar: View {
         List(selection: $selection) {
             Label { HStack { Text("Overview"); Spacer(); count(model.tabs.count) } } icon: { Image(systemName: "circle.hexagongrid") }
                 .tag(SidebarItem.overview)
+            // The sources behind the overview, with counts. Click one to show
+            // only that source; All Sources shows everything.
+            ForEach(sourceRows, id: \.id) { row in
+                Button {
+                    model.selectDevice(row.id)
+                    selection = .overview
+                } label: {
+                    HStack(spacing: 8) {
+                        Image(systemName: row.symbol).frame(width: 16).foregroundStyle(.secondary)
+                        Text(row.name).lineLimit(1)
+                        Spacer()
+                        count(row.count)
+                    }
+                    .font(.callout)
+                    .padding(.leading, 18)
+                    .foregroundStyle(model.state.deviceID == row.id ? Color.accentColor : Color.primary)
+                    .contentShape(Rectangle())
+                }
+                .buttonStyle(.plain)
+            }
             Label { HStack { Text("Unsorted"); Spacer(); count(model.unsortedCount) } } icon: { Image(systemName: "tray") }
                 .tag(SidebarItem.unsorted)
             Label { HStack { Text("Archive"); Spacer(); count(model.archivedTabs.count) } } icon: { Image(systemName: "archivebox") }
@@ -165,6 +185,22 @@ private struct Sidebar: View {
         }
         .listStyle(.sidebar)
         .safeAreaInset(edge: .bottom, spacing: 0) { LibraryStatus() }
+    }
+
+    private struct SourceRow { let id: String; let name: String; let symbol: String; let count: Int }
+
+    private var sourceRows: [SourceRow] {
+        var rows = [SourceRow(id: AppModel.allSourcesID, name: "All Sources", symbol: "square.stack.3d.up", count: model.allSourcesCount)]
+        for d in model.devices where d.tabCount > 0 {
+            rows.append(.init(id: d.id, name: d.name, symbol: "iphone", count: d.tabCount))
+        }
+        if model.readingListCount > 0 { rows.append(.init(id: ReadingListReader.sourceID, name: "Reading List", symbol: "eyeglasses", count: model.readingListCount)) }
+        if model.instagramCount > 0 { rows.append(.init(id: InstagramReader.sourceID, name: "Instagram Saved", symbol: "camera", count: model.instagramCount)) }
+        if model.xConnected { rows.append(.init(id: AppModel.xBookmarksSourceID, name: "X Bookmarks", symbol: "bookmark", count: model.xBookmarkIDs.count)) }
+        for i in model.state.importedSources {
+            rows.append(.init(id: LinkImporter.sourcePrefix + i.id, name: i.name, symbol: "tray.and.arrow.down", count: model.importCounts[i.id] ?? 0))
+        }
+        return rows
     }
 
     private func count(_ n: Int) -> some View {

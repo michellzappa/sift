@@ -594,10 +594,18 @@ final class AppModel {
         var s = state
         s.extraProjects.removeAll(where: \.isTheme)
         let acceptedIDs = Set(accepted.flatMap(\.itemIDs))
+        // Links the user placed by hand stay where they are, as long as that
+        // theme or bucket still exists after this run.
+        let keptNames = Set(accepted.filter { !["noise", "personal", "errand"].contains($0.kind) }.map(\.name)).union(Project.buckets)
+        func isKeptHandMove(_ url: String) -> Bool {
+            guard let a = s.assignments[url], a.manual else { return false }
+            return keptNames.contains(a.project)
+        }
         for proposal in themeProposal ?? [] {
             let isAccepted = accepted.contains { $0.itemIDs == proposal.itemIDs }
             if !isAccepted {
                 for id in proposal.itemIDs where proposalURLs.indices.contains(id) && !acceptedIDs.contains(id) {
+                    if isKeptHandMove(proposalURLs[id]) { continue }
                     s.assignments[proposalURLs[id]] = nil
                 }
             }
@@ -615,6 +623,7 @@ final class AppModel {
             }
             for id in theme.itemIDs where proposalURLs.indices.contains(id) {
                 let url = proposalURLs[id]
+                if isKeptHandMove(url) { continue }
                 var a = s.assignments[url] ?? Assignment(project: name, use: "", manual: false, action: nil)
                 a.project = name
                 a.manual = false
