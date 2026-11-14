@@ -61,7 +61,7 @@ struct TabList: View {
             ScrollView {
                 LazyVGrid(columns: [TabCard.column], spacing: 14) {
                     ForEach(rows) { tab in
-                        TabCard(tab: tab, isSelected: selected == tab.id)
+                        TabCard(tab: tab, isSelected: selected == tab.id, showTheme: project == nil || Project.buckets.contains(project ?? ""))
                             .onTapGesture(count: 2) { TabActions.openInSafari(tab.url) }
                             .onTapGesture { selected = tab.id; showInspector = true }
                     }
@@ -173,6 +173,8 @@ struct TabCard: View {
     @Environment(AppModel.self) private var model
     let tab: SafariTab
     let isSelected: Bool
+    /// Off inside a theme's own list, where the theme would repeat on every card.
+    var showTheme = true
     @State private var editingUse = false
     @State private var draft = ""
 
@@ -182,62 +184,82 @@ struct TabCard: View {
         let closing = model.isQueuedToClose(tab)
         VStack(alignment: .leading, spacing: 0) {
             header(preview)
-            VStack(alignment: .leading, spacing: 6) {
+            VStack(alignment: .leading, spacing: 8) {
+                // Source line: where it is from and when, one quiet line.
+                HStack(spacing: 5) {
+                    if model.isAll { Image(systemName: tab.sourceSymbol).help("From \(tab.source)") }
+                    Text(tab.host).lineLimit(1).truncationMode(.middle)
+                    if let d = tab.lastViewed {
+                        Text("·")
+                        Text(d, format: .dateTime.day().month(.abbreviated)).fixedSize()
+                    }
+                    Spacer(minLength: 0)
+                    if a?.manual == true { Image(systemName: "hand.point.up.left").help("Sorted by hand") }
+                    if closing { Image(systemName: "xmark.square").help("Closes on iPhone") }
+                }
+                .font(.caption).foregroundStyle(.secondary)
+
                 Text(cardTitle(preview))
-                    .font(.headline).lineLimit(5)
+                    .font(.system(.headline, design: .default).weight(.semibold))
+                    .lineLimit(4)
                     .fixedSize(horizontal: false, vertical: true)
                     .strikethrough(closing, color: .secondary)
+
                 if let text = bodyText(preview) {
-                    Text(text).font(.callout).foregroundStyle(.secondary).lineLimit(4)
+                    Text(text).font(.callout).foregroundStyle(.secondary).lineLimit(3)
+                        .fixedSize(horizontal: false, vertical: true)
                 } else if preview == nil {
                     Text("Loading preview…").font(.callout).foregroundStyle(.tertiary)
                 }
                 if let out = preview?.outboundURL, let url = URL(string: out) {
                     Button { TabActions.openInSafari(out) } label: {
-                        Label((url.host() ?? out).replacingOccurrences(of: "www.", with: "") + url.path(), systemImage: "arrow.up.right.square")
+                        Label((url.host() ?? out).replacingOccurrences(of: "www.", with: "") + url.path(), systemImage: "arrow.up.right")
                             .lineLimit(1).truncationMode(.middle)
                     }
                     .buttonStyle(.link)
-                    .font(.callout)
+                    .font(.caption)
                     .help(out)
                 }
                 if let use = a?.use, !use.isEmpty {
-                    Text(use).font(.callout).foregroundStyle(.tint).lineLimit(3)
+                    Text(use).font(.callout).foregroundStyle(.tint).lineLimit(2)
+                        .fixedSize(horizontal: false, vertical: true)
                 }
                 Spacer(minLength: 0)
+                // Footer: next action left, theme right (only where the
+                // theme is not already the page you are on).
                 if a != nil {
-                    Menu {
-                        actionMenu
-                    } label: {
-                        Label(a?.action?.label ?? "Next action…", systemImage: a?.action?.symbol ?? "arrow.forward.circle")
-                            .font(.caption.weight(.medium))
-                    }
-                    .menuStyle(.borderlessButton)
-                    .fixedSize()
-                    .help(a?.action?.meaning ?? "Choose what to do with this link next.")
-                }
-                HStack(spacing: 5) {
-                    if model.isAll { Image(systemName: tab.sourceSymbol).help("From \(tab.source)") }
-                    Text(tab.host).lineLimit(1)
-                    if let d = tab.lastViewed { Text("·"); Text(d, format: .dateTime.day().month(.abbreviated)) }
-                    if a?.manual == true { Image(systemName: "hand.point.up.left").help("Sorted by hand") }
-                    if closing { Image(systemName: "xmark.square").help("Closes on iPhone") }
-                    Spacer(minLength: 4)
-                    Menu { moveMenu } label: { Text(a?.project ?? "Move to…") }
-                        .menuStyle(.borderlessButton)
+                    HStack(spacing: 8) {
+                        Menu { actionMenu } label: {
+                            Label(a?.action?.label ?? "Action", systemImage: a?.action?.symbol ?? "plus.circle")
+                        }
+                        .menuStyle(.button)
+                        .buttonStyle(.bordered)
+                        .controlSize(.small)
                         .fixedSize()
+                        .help(a?.action?.meaning ?? "Choose what to do with this link next.")
+                        Spacer(minLength: 0)
+                        if showTheme {
+                            Menu { moveMenu } label: { Text(a?.project ?? "Move to…").lineLimit(1) }
+                                .menuStyle(.button)
+                                .buttonStyle(.borderless)
+                                .controlSize(.small)
+                                .foregroundStyle(.secondary)
+                                .frame(maxWidth: 150, alignment: .trailing)
+                                .help("Theme: \(a?.project ?? "")")
+                        }
+                    }
                 }
-                .font(.caption).foregroundStyle(.secondary)
             }
-            .padding(12)
+            .padding(14)
         }
-        .frame(maxWidth: .infinity, minHeight: 250, alignment: .topLeading)
-        .background(.background, in: RoundedRectangle(cornerRadius: 10))
+        .frame(maxWidth: .infinity, minHeight: 230, alignment: .topLeading)
+        .background(.background, in: RoundedRectangle(cornerRadius: 12))
         .overlay(
-            RoundedRectangle(cornerRadius: 10)
-                .strokeBorder(isSelected ? Color.accentColor : Color.primary.opacity(0.1), lineWidth: isSelected ? 2 : 1)
+            RoundedRectangle(cornerRadius: 12)
+                .strokeBorder(isSelected ? Color.accentColor : Color.primary.opacity(0.08), lineWidth: isSelected ? 2 : 1)
         )
-        .clipShape(RoundedRectangle(cornerRadius: 10))
+        .clipShape(RoundedRectangle(cornerRadius: 12))
+        .shadow(color: .black.opacity(0.05), radius: 4, y: 2)
         .opacity(closing ? 0.6 : 1)
         .contentShape(RoundedRectangle(cornerRadius: 10))
         .task(id: tab.url) { await model.preview(for: tab) }
@@ -303,13 +325,17 @@ struct TabCard: View {
 
     private func headerImage(_ url: URL) -> some View {
         Color.clear
-            .frame(height: 130)
+            .frame(height: 150)
             .overlay {
                 AsyncImage(url: url) { phase in
                     if let image = phase.image {
                         image.resizable().aspectRatio(contentMode: .fill)
                     } else {
-                        Rectangle().fill(.quaternary)
+                        // Loading or failed: a quiet panel, not a grey block.
+                        ZStack {
+                            Color.primary.opacity(0.035)
+                            Text(tab.host).font(.caption).foregroundStyle(.tertiary)
+                        }
                     }
                 }
             }

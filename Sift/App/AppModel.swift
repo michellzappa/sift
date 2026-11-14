@@ -32,12 +32,21 @@ final class AppModel {
     func reload() {
         do {
             devices = try CloudTabsReader.devices()
-            readingListCount = (try? ReadingListReader.items().count) ?? 0
+            let readingItems = (try? ReadingListReader.items()) ?? []
+            readingListCount = readingItems.count
             // Instagram Saved: read the export once per reload. Without a
             // readable export the source falls back to the phone.
             let instagram = instagramItems()
             instagramCount = instagram.count
             if isInstagram && instagram.isEmpty { state.deviceID = nil }
+            // Unique links across every source, for the All Sources label.
+            var everyURL = Set(readingItems.map(\.tab.url))
+            everyURL.formUnion(instagram.map(\.tab.url))
+            everyURL.formUnion(xBookmarkTabs().map(\.url))
+            if let phone = devices.first, let phoneTabs = try? CloudTabsReader.tabs(deviceID: phone.id) {
+                everyURL.formUnion(phoneTabs.map(\.url))
+            }
+            allSourcesCount = everyURL.count
             loadError = nil
             if state.deviceID == nil {
                 state.deviceID = Self.allSourcesID
@@ -223,6 +232,7 @@ final class AppModel {
     /// True when the source is a saved list (Reading List, Instagram Saved),
     /// not a device's open tabs. Saved lists have nothing to close on the iPhone.
     static let allSourcesID = "all-sources"
+    private(set) var allSourcesCount = 0
     /// Phone tabs, Reading List, Instagram Saved and X Bookmarks together.
     var isAll: Bool { state.deviceID == Self.allSourcesID }
 

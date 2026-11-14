@@ -52,7 +52,7 @@ struct ContentView: View {
     private var toolbar: some ToolbarContent {
         ToolbarItem(placement: .navigation) {
             Picker("Source", selection: .init(get: { model.state.deviceID ?? "" }, set: { model.selectDevice($0) })) {
-                Text("All Sources").tag(AppModel.allSourcesID)
+                Text("All Sources (\(model.allSourcesCount))").tag(AppModel.allSourcesID)
                 Divider()
                 ForEach(model.devices) { d in Text("\(d.name) (\(d.tabCount))").tag(d.id) }
                 if model.readingListCount > 0 || model.instagramCount > 0 { Divider() }

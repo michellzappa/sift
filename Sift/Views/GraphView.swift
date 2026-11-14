@@ -107,6 +107,8 @@ struct GraphView: View {
         }
         .onContinuousHover { phase in
             if case .active(let p) = phase { hover = hit(p, size: size) } else { hover = nil }
+            let theme = focusTheme ?? hover.flatMap { sim.nodes.indices.contains($0) ? sim.nodes[$0].theme : nil }
+            if cam.fade(to: theme) { redraw += 1 }
         }
         .overlay(alignment: .bottomLeading) {
             if focusTheme == nil {
@@ -155,7 +157,10 @@ struct GraphView: View {
     // MARK: Drawing
 
     private func drawGraph(_ ctx: inout GraphicsContext, size: CGSize) {
-        let lit = focusTheme ?? hover.flatMap { sim.nodes.indices.contains($0) ? sim.nodes[$0].theme : nil }
+        // Hover and focus fade in and out over a few frames (see GraphCamera).
+        let lit = cam.fadeTheme
+        let f = Double(cam.fade)
+        func blend(_ normal: Double, _ dimmed: Double, _ isDim: Bool) -> Double { isDim ? normal + (dimmed - normal) * f : normal }
         let dotScale = max(0.7, min(cam.scale, 2.2))
         // Focused: the theme's own links are drawn as cards, not dots.
         let hidden: (GraphSimulation.Node) -> Bool = { n in
@@ -169,7 +174,12 @@ struct GraphView: View {
             var path = Path(); path.move(to: pa); path.addLine(to: pb)
             let bridge = a.kind == .theme && b.kind == .theme
             let dim = lit != nil && b.theme != lit && !(bridge && a.theme == lit)
-            let opacity = bridge ? (dim ? 0.04 : (lit != nil ? 0.5 : 0.16)) : (dim ? 0.07 : (b.kind == .leaf ? 0.4 : 0.6))
+            let opacity: Double
+            if bridge {
+                opacity = dim ? blend(0.16, 0.04, true) : (lit != nil ? 0.16 + (0.5 - 0.16) * f : 0.16)
+            } else {
+                opacity = blend(b.kind == .leaf ? 0.4 : 0.6, 0.07, dim)
+            }
             ctx.stroke(path, with: .linearGradient(Gradient(colors: [a.color.opacity(opacity), b.color.opacity(opacity)]), startPoint: pa, endPoint: pb),
                        lineWidth: (b.kind == .leaf ? 0.7 : b.kind == .group ? 1.1 : 1.2) * dotScale)
         }
@@ -178,14 +188,14 @@ struct GraphView: View {
             let p = screen(n.p, size: size)
             let r = n.size * dotScale
             ctx.fill(Path(ellipseIn: CGRect(x: p.x - r, y: p.y - r, width: r * 2, height: r * 2)),
-                     with: .color(n.color.opacity(dim ? 0.18 : (n.kind == .leaf ? 0.75 : 1))))
+                     with: .color(n.color.opacity(blend(n.kind == .leaf ? 0.75 : 1, 0.18, dim))))
         }
         for (i, n) in sim.nodes.enumerated() where n.kind == .theme {
             let dim = lit != nil && n.theme != lit
             let p = screen(n.p, size: size)
             let focused = n.key == focusTheme
             let below = focused ? n.size * dotScale : sim.clusterRadius(i) * cam.scale
-            let text = Text(n.label).font(.system(size: focused ? 15 : 11.5, weight: .semibold)).foregroundStyle(n.color.opacity(dim ? 0.3 : 1))
+            let text = Text(n.label).font(.system(size: focused ? 15 : 11.5, weight: .semibold)).foregroundStyle(n.color.opacity(blend(1, 0.3, dim)))
             ctx.draw(text, at: CGPoint(x: p.x, y: p.y + below + 6), anchor: .top)
         }
     }
@@ -224,7 +234,7 @@ struct GraphView: View {
 
     /// The same card the lists use: image, full title, summary, use, action.
     private func chipCell(_ tab: SafariTab, color: Color) -> some View {
-        TabCard(tab: tab, isSelected: picked == tab.url)
+        TabCard(tab: tab, isSelected: picked == tab.url, showTheme: focusTheme == Self.unsortedKey)
             .onTapGesture(count: 2) { TabActions.openInSafari(tab.url) }
             .onTapGesture { withAnimation(.snappy) { picked = picked == tab.url ? nil : tab.url } }
     }
@@ -461,7 +471,24 @@ final class GraphCamera {
     var scale: CGFloat = 1
     private var target: (offset: CGSize, scale: CGFloat)?
 
-    var isAnimating: Bool { target != nil }
+    /// The theme that stays bright while the others fade, and how far the
+    /// fade has gone (0 = all bright, 1 = others dimmed).
+    private(set) var fadeTheme: String?
+    private(set) var fade: CGFloat = 0
+    private var fadeTarget: CGFloat = 0
+    private var pendingTheme: String?
+
+    var isAnimating: Bool { target != nil || abs(fade - fadeTarget) > 0.01 || pendingTheme != fadeTheme }
+
+    /// Starts a fade toward `theme` (nil: everything bright). A change of
+    /// theme first fades back out, then in again. Returns true if it changed.
+    func fade(to theme: String?) -> Bool {
+        guard theme != pendingTheme else { return false }
+        pendingTheme = theme
+        if fadeTheme == nil { fadeTheme = theme }
+        fadeTarget = theme == nil || theme != fadeTheme ? 0 : 1
+        return true
+    }
 
     func center(in size: CGSize) -> CGPoint {
         CGPoint(x: size.width / 2 + offset.width, y: size.height / 2 + offset.height)
@@ -469,10 +496,22 @@ final class GraphCamera {
 
     func animate(to offset: CGSize, scale: CGFloat) { target = (offset, scale) }
 
+    /// About 120 ms each way at 60 fps.
+    private func stepFade() {
+        fade += (fadeTarget - fade) * 0.3
+        if abs(fadeTarget - fade) < 0.01 { fade = fadeTarget }
+        // Faded out: switch to the next theme and fade it in.
+        if fade == 0, fadeTheme != pendingTheme {
+            fadeTheme = pendingTheme
+            fadeTarget = pendingTheme == nil ? 0 : 1
+        }
+    }
+
     func stop() { target = nil }
 
     /// Eases a little closer to the target each frame.
     func step() {
+        stepFade()
         guard let t = target else { return }
         let k: CGFloat = 0.16
         offset.width += (t.offset.width - offset.width) * k
