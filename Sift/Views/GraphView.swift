@@ -52,21 +52,10 @@ struct GraphView: View {
         .overlay {
             if model.tabs.isEmpty {
                 ContentUnavailableView("No tabs in this source", systemImage: "safari")
-            } else if model.themes.isEmpty {
-                ContentUnavailableView {
-                    Label("What do you keep coming back to?", systemImage: "point.3.connected.trianglepath.dotted")
-                } description: {
-                    Text("Sift sends your tabs and Reading List to your Claude, which finds the themes in them. You review the themes before anything changes.")
-                } actions: {
-                    Button("Discover Themes") { Task { await model.discoverThemes() } }
-                        .buttonStyle(.borderedProminent)
-                        .disabled(model.isDiscovering)
-                }
-                .background(.background)
             }
         }
         .navigationTitle(focusTheme ?? "Overview")
-        .navigationSubtitle(focusTheme.map { "\(model.count($0)) links" } ?? "\(model.tabs.count) links · \(model.themes.count) themes")
+        .navigationSubtitle(focusTheme.map { "\(links(in: $0).count) links" } ?? "\(model.tabs.count) links · \(model.themes.count) themes")
         .onAppear { rebuild() }
         .onChange(of: dataKey) { rebuild() }
     }
@@ -206,7 +195,7 @@ struct GraphView: View {
     /// Every link of the focused theme as a card, in a grid that fits the
     /// view and scrolls when the theme is large, so no card hides another.
     private func chips(theme: String, node: Int, size: CGSize) -> some View {
-        let tabs = model.tabs(in: theme)
+        let tabs = links(in: theme)
         let color = sim.nodes[node].color
         let summary = model.projects.first(where: { $0.name == theme })?.summary ?? ""
         let fade = min(1.0, max(0.0, Double(cam.scale - 1.1) / 0.6))
@@ -258,11 +247,23 @@ struct GraphView: View {
         "\(model.tabs.count)-\(model.state.assignments.count)-\(model.themes.map(\.name).joined())"
     }
 
+    /// Links in no theme yet form their own grey cluster, so the graph is
+    /// never empty: you always see your data, sorted or not.
+    static let unsortedKey = "Not in a Theme Yet"
+
     private var themeNames: [String] {
-        model.projects.map(\.name).filter { model.count($0) > 0 }
+        var names = model.projects.map(\.name).filter { model.count($0) > 0 }
+        if model.unsortedCount > 0 { names.append(Self.unsortedKey) }
+        return names
+    }
+
+    /// The links behind a cluster; the unsorted cluster holds unsorted links.
+    private func links(in name: String) -> [SafariTab] {
+        name == Self.unsortedKey ? model.tabs(in: nil) : model.tabs(in: name)
     }
 
     private func color(for theme: String) -> Color {
+        if theme == Self.unsortedKey { return .gray }
         let names = model.projects.map(\.name)
         let i = names.firstIndex(of: theme) ?? 0
         return GraphStyle.branchColors[i % GraphStyle.branchColors.count]
@@ -282,7 +283,7 @@ struct GraphView: View {
         var edges: [GraphSimulation.Edge] = []
         for name in themeNames {
             // Links sorted by site, so each site's links sit together.
-            let tabs = model.tabs(in: name).sorted { ($0.host, $0.url) < ($1.host, $1.url) }
+            let tabs = links(in: name).sorted { ($0.host, $0.url) < ($1.host, $1.url) }
             let tint = color(for: name)
             let t = nodes.count
             let size = 5 + sqrt(CGFloat(tabs.count)) * 0.8
@@ -341,6 +342,8 @@ struct GraphView: View {
         }
         sim.load(nodes: nodes, edges: edges)
         if let f = focusTheme, !themeNames.contains(f) { focusTheme = nil }
+        // The layout is settled already; draw it now.
+        redraw += 1
     }
 }
 

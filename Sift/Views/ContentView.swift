@@ -209,7 +209,7 @@ private struct UnsortedBanner: View {
 
     var body: some View {
         let count = model.unsortedCount
-        if !model.themes.isEmpty, count > 0 || model.isSorting || model.isDiscovering {
+        if count > 0 || model.isSorting || model.isDiscovering {
             HStack(spacing: 10) {
                 if model.isSorting {
                     ProgressView().controlSize(.small)
@@ -218,14 +218,21 @@ private struct UnsortedBanner: View {
                     ProgressView().controlSize(.small)
                     Text("Claude is reading all your links to find themes…")
                 } else {
-                    Image(systemName: "tray.full").foregroundStyle(.tint)
-                    Text("\(count) link\(count == 1 ? " is" : "s are") not in a theme yet.")
-                    Spacer()
-                    Button("Sort into Themes") { Task { await model.sortUnsorted() } }
-                        .buttonStyle(.borderedProminent)
-                        .help("Claude puts each link into one of your current themes.")
-                    Button("Discover Themes Again") { Task { await model.discoverThemes() } }
-                        .help("Claude reads every link again, this source included, and may propose new themes. You review them first.")
+                    Image(systemName: "circle.dotted").foregroundStyle(.tint)
+                    if model.themes.isEmpty {
+                        Text("\(count) links, no themes yet. Claude reads them and proposes the themes you keep coming back to.")
+                        Spacer()
+                        Button("Discover Themes") { Task { await model.discoverThemes() } }
+                            .buttonStyle(.borderedProminent)
+                    } else {
+                        Text("\(count) link\(count == 1 ? " is" : "s are") not in a theme yet (the grey cluster).")
+                        Spacer()
+                        Button("Discover Themes Again") { Task { await model.discoverThemes() } }
+                            .buttonStyle(.borderedProminent)
+                            .help("Claude reads every source together and may propose new themes. You review them first.")
+                        Button("Sort into Current Themes") { Task { await model.sortUnsorted() } }
+                            .help("Cheaper: Claude puts each link into one of the themes you have.")
+                    }
                 }
                 if model.isSorting || model.isDiscovering { Spacer() }
             }
