@@ -406,10 +406,11 @@ final class AppModel {
     /// has links, adds it as a source and switches to it.
     func importLinksFile() {
         let panel = NSOpenPanel()
-        panel.allowedContentTypes = [.commaSeparatedText, .json, .html, .plainText]
+        panel.allowedContentTypes = [.commaSeparatedText, .json, .html, .plainText, .zip, .folder]
+        panel.canChooseDirectories = true
         panel.allowsMultipleSelection = false
         panel.prompt = "Import"
-        panel.message = "Choose an export from Instapaper, Pocket, Readwise, Raindrop, Pinboard, or a bookmarks file."
+        panel.message = "Choose an export from Instapaper, Pocket, Readwise, Raindrop, Pinboard, a bookmarks file, or a Google Takeout zip with YouTube playlists."
         guard panel.runModal() == .OK, let url = panel.url else { return }
         let path = url.path(percentEncoded: false)
         do {

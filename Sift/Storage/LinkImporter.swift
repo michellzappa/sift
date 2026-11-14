@@ -30,6 +30,12 @@ enum LinkImporter {
 
     static func items(at path: String) throws -> [Item] {
         let url = URL(filePath: path)
+        // A Google Takeout zip or folder: YouTube playlists, Watch Later first.
+        if url.pathExtension.lowercased() == "zip" || (try? url.resourceValues(forKeys: [.isDirectoryKey]).isDirectory) == true {
+            let items = try YouTubeTakeout.items(at: path)
+            guard !items.isEmpty else { throw Failure(message: "No YouTube playlists found in \(url.lastPathComponent). Export \"YouTube and YouTube Music\" from Google Takeout with playlists included.") }
+            return items
+        }
         guard let data = FileManager.default.contents(atPath: path) else {
             throw Failure(message: "Sift cannot read \(url.lastPathComponent). Move it, then choose it again.")
         }
@@ -55,6 +61,7 @@ enum LinkImporter {
     /// "Instapaper".
     static func suggestedName(for path: String) -> String {
         let base = URL(filePath: path).deletingPathExtension().lastPathComponent.lowercased()
+        if base.contains("takeout") || base.contains("youtube") { return "YouTube" }
         let known = ["instapaper", "pocket", "readwise", "raindrop", "pinboard", "matter", "omnivore", "chrome", "firefox", "safari", "arc", "bookmarks"]
         if let hit = known.first(where: { base.contains($0) }) { return hit.prefix(1).uppercased() + hit.dropFirst() }
         let words = base.replacingOccurrences(of: #"[_\-]+"#, with: " ", options: .regularExpression)
@@ -148,5 +155,71 @@ enum LinkImporter {
             if let d = f.date(from: v) { return d }
         }
         return nil
+    }
+}
+
+/// Reads YouTube playlists from a Google Takeout export ("YouTube and YouTube
+/// Music"): Watch Later and every other playlist CSV under `playlists/`. Each
+/// video becomes a link; the playlist name becomes its note. The YouTube API
+/// cannot read Watch Later, so Takeout is the only way in.
+enum YouTubeTakeout {
+    static func items(at path: String) throws -> [LinkImporter.Item] {
+        var files: [(name: String, text: String)] = []
+        let url = URL(filePath: path)
+        if url.pathExtension.lowercased() == "zip" {
+            for member in try zipMembers(path) where member.lowercased().contains("/playlists/") && member.lowercased().hasSuffix(".csv") {
+                if let text = try? unzipText(path, member) { files.append((URL(filePath: member).deletingPathExtension().lastPathComponent, text)) }
+            }
+        } else if let walker = FileManager.default.enumerator(at: url, includingPropertiesForKeys: nil) {
+            for case let file as URL in walker where file.path.lowercased().contains("/playlists/") && file.pathExtension.lowercased() == "csv" {
+                if let text = try? String(contentsOf: file, encoding: .utf8) { files.append((file.deletingPathExtension().lastPathComponent, text)) }
+            }
+        }
+        // Watch Later first, then the other playlists.
+        files.sort { a, b in a.name.lowercased().hasPrefix("watch later") && !b.name.lowercased().hasPrefix("watch later") }
+        var out: [LinkImporter.Item] = []
+        for file in files {
+            let playlist = file.name.replacingOccurrences(of: "-videos", with: "").trimmingCharacters(in: .whitespaces)
+            var rows = CSV.parse(file.text)
+            // Older exports put playlist metadata above a blank line; find the video header.
+            if let start = rows.firstIndex(where: { $0.first?.lowercased().replacingOccurrences(of: " ", with: "") == "videoid" }) {
+                rows = Array(rows[start...])
+            }
+            guard let header = rows.first?.map({ $0.lowercased() }), let idColumn = header.firstIndex(where: { $0.replacingOccurrences(of: " ", with: "") == "videoid" }) else { continue }
+            let timeColumn = header.firstIndex { $0.contains("time") || $0.contains("added") }
+            for row in rows.dropFirst() where row.indices.contains(idColumn) {
+                let id = row[idColumn].trimmingCharacters(in: .whitespaces)
+                guard id.count >= 8 else { continue }
+                let date = timeColumn.flatMap { row.indices.contains($0) ? row[$0] : nil }.flatMap { ISO8601DateFormatter().date(from: $0.trimmingCharacters(in: .whitespaces)) ?? ISO8601DateFormatter.withFractions.date(from: $0.trimmingCharacters(in: .whitespaces)) }
+                let tab = SafariTab(url: "https://www.youtube.com/watch?v=\(id)", title: "", lastViewed: date)
+                let preview = Preview(title: "", text: "In \(playlist) on YouTube.", imageURL: "https://i.ytimg.com/vi/\(id)/hqdefault.jpg", site: "youtube.com", fetched: date ?? .now)
+                out.append(.init(tab: tab, preview: preview))
+            }
+        }
+        return out
+    }
+
+    private static func zipMembers(_ zip: String) throws -> [String] {
+        String(decoding: try run(["-Z1", zip]), as: UTF8.self).split(separator: "\n").map(String.init)
+    }
+
+    private static func unzipText(_ zip: String, _ member: String) throws -> String {
+        String(decoding: try runUnzip(["-p", zip, member]), as: UTF8.self)
+    }
+
+    private static func run(_ args: [String]) throws -> Data { try runTool("/usr/bin/zipinfo", args) }
+    private static func runUnzip(_ args: [String]) throws -> Data { try runTool("/usr/bin/unzip", args) }
+
+    private static func runTool(_ tool: String, _ args: [String]) throws -> Data {
+        let p = Process()
+        p.executableURL = URL(filePath: tool)
+        p.arguments = args
+        let out = Pipe()
+        p.standardOutput = out
+        p.standardError = FileHandle.nullDevice
+        try p.run()
+        let data = out.fileHandleForReading.readDataToEndOfFile()
+        p.waitUntilExit()
+        return data
     }
 }

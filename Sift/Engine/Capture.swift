@@ -44,6 +44,7 @@ enum Capturer {
         }
         guard type.isEmpty || type.contains("html") || type.contains("xml") || type.contains("text") else { return nil }
         let html = String(decoding: data.prefix(3_000_000), as: UTF8.self)
+        if site.hasSuffix("youtube.com") || site == "youtu.be" { return YouTubePage.capture(html: html, url: urlString) }
         return Readable.extract(html: html, url: urlString, site: site)
     }
 }
@@ -176,7 +177,7 @@ enum Library {
         lines += ["source: \(y(source))", "captured: \(ISO8601DateFormatter().string(from: .now))", "words: \(c.words)", "---", "", c.text, ""]
         try? lines.joined(separator: "\n").write(to: folder.appending(path: file), atomically: true, encoding: .utf8)
         // Posts are short by nature; only articles and PDFs can be "thin".
-        let thin = c.kind != "post" && c.words < 150
+        let thin = c.kind != "post" && c.kind != "video" && c.words < 150
         return Entry(file: file, captured: .now, words: c.words, kind: c.kind, status: thin ? "thin" : "ok")
     }
 
@@ -185,5 +186,36 @@ enum Library {
         guard let raw = try? String(contentsOf: folder.appending(path: fileName(for: url)), encoding: .utf8) else { return nil }
         guard raw.hasPrefix("---"), let end = raw.range(of: "\n---\n", range: raw.index(raw.startIndex, offsetBy: 3)..<raw.endIndex) else { return raw }
         return String(raw[end.upperBound...]).trimmingCharacters(in: .whitespacesAndNewlines)
+    }
+}
+
+/// A YouTube video page: title, channel, publish date and the full
+/// description (which usually carries the chapter list) from the page's own
+/// player data. Transcripts are not captured: YouTube serves captions only to
+/// its own player and to a video's owner.
+enum YouTubePage {
+    static func capture(html: String, url: String) -> Capture? {
+        func field(_ key: String) -> String? {
+            guard let r = html.range(of: "\"\(key)\":\"") else { return nil }
+            var out = ""
+            var escaped = false
+            for ch in html[r.upperBound...] {
+                if escaped { out.append(ch == "n" ? "\n" : ch); escaped = false; continue }
+                if ch == "\\" { escaped = true; continue }
+                if ch == "\"" { break }
+                out.append(ch)
+            }
+            return out.isEmpty ? nil : out
+        }
+        // The page title from Open Graph; the player JSON has many "title" keys.
+        let og = html.range(of: #"<meta property="og:title" content="([^"]*)""#, options: .regularExpression).map { String(html[$0]) }
+        let title = og.flatMap { $0.components(separatedBy: "content=\"").last?.dropLast().description }.map(PreviewFetcher.plain) ?? field("title") ?? ""
+        let channel = field("ownerChannelName") ?? field("author")
+        let published = field("publishDate")
+        guard let description = field("shortDescription") ?? (title.isEmpty ? nil : "") else { return nil }
+        var text = ""
+        if let channel { text += "Video by \(channel).\n\n" }
+        text += description.replacingOccurrences(of: "\\u0026", with: "&")
+        return Capture(url: url, title: title, author: channel, site: "youtube.com", published: published, kind: "video", text: text)
     }
 }

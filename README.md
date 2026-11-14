@@ -30,6 +30,9 @@ The source picker in the toolbar reads, all read-only:
   CSV, Readwise Reader and Raindrop CSV, Pinboard JSON, and the bookmarks
   HTML that browsers and most tools export. Sift finds the URL, title,
   folder or tags and date by name. Each file is its own source.
+- **YouTube Watch Later and playlists**, from a Google Takeout export of
+  "YouTube and YouTube Music" (the YouTube API cannot read Watch Later).
+  Import the Takeout zip with File > Import Links File.
 - **All Sources**: everything above together, each link once, newest first,
   with a small icon for where it came from.
 
@@ -101,7 +104,10 @@ Sift saves the readable text of every link into a library on your Mac: one
 Markdown file per link, with the URL, title, author, site, theme and date at
 the top, in `~/Library/Application Support/Sift/Library/`. Articles keep
 their headings, paragraphs and lists; PDFs keep their text; posts keep their
-text (Instagram posts their caption). Errands are skipped. Capture runs on
+text (Instagram posts their caption); YouTube videos keep their title,
+channel and full description, which usually includes the chapters. Video
+transcripts are not saved: YouTube serves captions only to its own player
+and to a video's owner. Errands are skipped. Capture runs on
 its own in the background, with a progress bar at the foot of the sidebar,
 and does not use Claude. When a tab closes, its text stays.
 
