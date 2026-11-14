@@ -1,39 +1,83 @@
 # Sift
 
-A native macOS app for the hundreds of Safari tabs you keep open "for later".
+A native macOS app for everything you saved "for later": open tabs on all
+your devices, your Reading List, Instagram saves, X bookmarks and exports
+from read-later tools.
 
-Most of those tabs are not junk. Each one is a link you kept because it might
-help with something you are working on. Safari keeps the link and forgets why
-you kept it. Sift reads your tabs, sorts each one into the theme it belongs
-to, writes one line on how you could use it, and suggests what to do with it
-next. Then you can close it.
+Most of those links are not junk. Each one is a small promise to yourself:
+this could matter. The browser keeps the link and forgets the promise. Sift
+reads the pile back to you as the themes you keep coming back to, gives each
+link an honest next step, keeps the text of every page in a library on your
+Mac, and remembers what a link was about after the tab is gone.
 
-The principle: a tab is a decision you have not made yet. Sift makes the
-decision cheap, so the tab can leave the browser.
+The principle: your sprawl is not a problem to fix. It is a record of your
+curiosity, and Sift makes it legible.
 
-## How it works
+## What it does
 
-Sift reads the tabs that Safari syncs to your Mac through iCloud, so your
-iPhone and iPad tabs show up too. It also reads your Reading List. You pick
-the source in the toolbar.
+### Sources
 
-Sift can also read the posts you saved on Instagram. In Instagram's Accounts
-Center, open Download your information and ask for your information in JSON
-format (an HTML export does not work). When the export arrives, choose the zip
-or its unpacked folder in Settings > Sorting > Sources. **Instagram Saved**
-then shows in the source picker. Each saved post becomes a link with its
-author, caption and collection, and Discover Themes includes them. Sift reads
-the export and never changes it.
+The source picker in the toolbar reads, all read-only:
+
+- **Open tabs** that Safari syncs from your iPhone, iPad and other Macs
+  through iCloud.
+- **Safari's Reading List.**
+- **Instagram Saved**, from Instagram's data export. In Instagram's Accounts
+  Center, open Download your information and ask for JSON (HTML does not
+  work), then choose the zip in Settings > Sorting > Sources.
+- **X Bookmarks**, with the optional X API connection.
+- **Imported files**: File > Import Links File reads Instapaper and Pocket
+  CSV, Readwise Reader and Raindrop CSV, Pinboard JSON, and the bookmarks
+  HTML that browsers and most tools export. Sift finds the URL, title,
+  folder or tags and date by name. Each file is its own source.
+- **All Sources**: everything above together, each link once, newest first,
+  with a small icon for where it came from.
+
+### Themes
 
 There is no folder structure to set up. **Discover Themes** sends every link
-Sift can see (your phone's tabs, the Reading List and Instagram Saved) to your own Claude in
-one call and asks what you keep coming back to. You get 12 to 20 themes, each
-with a description, the links behind it and a suggested home. You rename,
-untick or accept them; nothing changes before you do. Run it again later and
-Claude keeps the theme names that still fit, so your links do not reshuffle.
+to your own Claude in one call and asks what you keep coming back to. You get
+12 to 20 themes in Title Case, each with a description, the links behind it
+and a suggested home. You rename, untick or accept them; nothing changes
+before you do. Run it again later and Claude keeps the names that still fit,
+so links do not reshuffle. There is one set of themes for every source.
 
-After that, **Sort with Claude** handles new tabs: it picks a theme, writes
-how the link could be used, and picks a next action:
+New links that are in no theme yet show as a grey cluster, and a banner
+always offers the next step: **Discover Themes Again** to read everything
+together, or **Sort into Current Themes**, which is cheaper.
+
+Tabs that are open for a task rather than out of curiosity (orders,
+accounts, carts, searches, dashboards, documents being edited) go to an
+**errands** bucket. Sift spots the clear ones by URL and never sends them to
+Claude; they stay out of themes, the graph and exports. The other buckets
+are personal, drop and unknown. You can move any link by hand, and Sift
+never overwrites a choice you made.
+
+### Graph
+
+The overview is a graph that loads in place. Each theme is a node with its
+links around it as dots, and lines join themes that draw on the same sources
+(the same site, or posts that link to the same domain). Colors are spread
+evenly around the color wheel for however many themes you have, at equal
+lightness, in light and dark mode. Hover a theme and the others fade.
+
+Click a theme and the camera glides onto it: its links appear as cards in a
+grid. Pinch or two-finger scroll to zoom the map; inside a theme, scrolling
+moves the cards. Esc or a click on empty space zooms back out.
+
+### Cards and the browser
+
+Every link is a card: the page image, where it is from and when, the full
+title, a short summary, how you could use it, and its next action. Click a
+card and the page opens in a browser that slides in over the right side, so
+the grid never moves. The browser has back, forward, reload, Open in Safari,
+Add to Reading List and, for pages in the library, a reader view of the
+saved text. The sidebar also lists links by next action, by site and by
+bucket.
+
+### Next actions
+
+Each link gets one of six next steps, set by Claude or by you:
 
 | Action  | Meaning |
 | ------- | ------- |
@@ -44,85 +88,55 @@ how the link could be used, and picks a next action:
 | File    | Keep it as reference; nothing to do now |
 | Close   | Already used, outdated or not worth more time |
 
-Tabs that belong to no theme go to four buckets. **Errands** holds
-transactional tabs, pages open for a task rather than out of curiosity:
-orders, accounts, carts, bookings, searches, dashboards, documents being
-edited. Sift spots the clear ones by URL and never sends them to Claude for
-theme discovery; Claude catches the rest. Errands stay out of themes, the
-graph and exports. The other buckets are personal, drop and unknown.
+### Archive
 
-The sidebar has four ways in: by theme, by next action, by site (x.com,
-github.com and so on) and by bucket. Every list shows cards with the page's
-image, title and description; select one and it opens in the browser on the
-right. The overview is a graph: each theme is a cluster with one dot per link,
-and lines join themes that draw on the same sources. Click a theme to zoom in
-to its links; click a link to read it beside the graph. Pinch or two-finger
-scroll to zoom.
+Sift keeps a record of every link it has seen: title, theme, use, next
+action, preview and dates. When a link leaves its source (a tab closed on
+the phone, an item removed from the Reading List or an export), the record
+moves to **Archive** instead of being forgotten.
 
-### X posts, natively (optional)
+### Library
 
-With your own X developer app connected, Sift draws X posts as native views,
-with no web page: author, full text including long posts, images, video,
-quoted posts and real links. It can also bring in your bookmarks as a source.
-X bills your developer account per post read (about half a cent), so Sift
-reads posts in batches of 100, caches them, and refreshes a post only when
-its copy is older than a week. Posts that X no longer returns lose their
-content, as X's policy requires.
+Sift saves the readable text of every link into a library on your Mac: one
+Markdown file per link, with the URL, title, author, site, theme and date at
+the top, in `~/Library/Application Support/Sift/Library/`. Articles keep
+their headings, paragraphs and lists; PDFs keep their text; posts keep their
+text (Instagram posts their caption). Errands are skipped. Capture runs on
+its own in the background, with a progress bar at the foot of the sidebar,
+and does not use Claude. When a tab closes, its text stays.
+
+### X posts
+
+Without setup, X posts show their text through X's public oEmbed endpoint.
+An opt-in setting uses X's embed data for images, avatars and the real URLs
+behind t.co links (unofficial, may stop working).
+
+With your own X developer app connected (optional, and X bills your
+developer account per post read), Sift draws posts natively with no web
+page: author, full text, images, video, quoted posts and links, following
+X's display requirements. It reads posts in batches of 100, caches them,
+refreshes a post only when its copy is older than a week, and drops posts
+that X no longer returns. It can also bring in your 800 most recent
+bookmarks.
 
 To connect: create a Native App in the X Developer Console with callback URL
 `http://127.0.0.1:53682/callback` and the scopes `tweet.read`, `users.read`,
 `bookmark.read` and `offline.access`. Paste its Client ID in Settings >
-Sorting > X API and click Connect. Without it, X posts use the free oEmbed
-preview as before.
+Sorting > X API and click Connect.
 
-### Archive
+### Closing tabs on the iPhone
 
-Sift keeps a record of every link it has seen: title, theme, use, next
-action, preview text, and when it arrived. When a link leaves its source (a
-tab closed on the phone, an item removed from the Reading List or from an
-export), its record moves to **Archive** in the sidebar instead of being
-forgotten. Records live in `archive.json` in Application Support.
-
-### Library
-
-Sift saves the readable text of every link it has seen into a
-library on your Mac: one Markdown file per link, with the URL, title,
-author, site, theme and date at the top, in
-`~/Library/Application Support/Sift/Library/`. Articles keep their headings,
-paragraphs and lists; PDFs keep their text; X posts keep the post. Errands
-are skipped. Capture runs on its own in the background (a progress bar sits
-at the foot of the sidebar; Settings can turn it off), locally, and does not
-use Claude. When a tab closes,
-its text stays. In the browser pane, the page button switches to a reader
-view of the captured text.
-
-### Importing from other tools
-
-File > Import Links File (or Settings > Sorting > Sources) turns an export
-from another tool into a source: Instapaper or Pocket CSV, Readwise Reader or
-Raindrop CSV, Pinboard JSON, or the bookmarks HTML that browsers and most
-tools export. Sift finds the URL, title, folder or tags and date columns by
-name, and keeps folders and notes as preview text so Claude can sort them.
-Each file is its own source; pick a newer export to update it.
-
-### All sources, one set of themes
-
-**All Sources**, at the top of the source picker, shows your phone's tabs,
-the Reading List, Instagram Saved and X Bookmarks together, each link once,
-newest first, with a small icon for where it came from. Themes are not per
-source: there is one set, and a link keeps its theme in every view. When a
-new source arrives, a banner counts the links that are in no theme yet and
-offers two ways in: **Sort into Themes** puts them into the themes you have,
-and **Discover Themes Again** reads every source together and may propose
-new themes, keeping the names that still fit.
+A Mac cannot close tabs on another device. Sift writes the tabs you mark to
+`iCloud Drive/Sift/close.txt`, and a Shortcut on the iPhone closes them. The
+app shows the steps to build the Shortcut once (iOS 17 or later).
 
 ### Export
 
-The Export menu (toolbar and File menu) writes your themes and links out:
+The Export menu writes your themes and links out:
 
 | Exporter | What you get |
 | --- | --- |
-| Obsidian Vault | One note per link and per theme with frontmatter and [[wikilinks]], so Obsidian's graph view shows themes as hubs. Your text under "## Notes" survives re-exports. |
+| Obsidian Vault | One note per link and per theme with front matter and [[wikilinks]], so Obsidian's graph view shows themes as hubs. Your text under "## Notes" survives re-exports. |
 | Markdown File | One file, a section per theme |
 | Copy as Markdown | The same, on the clipboard |
 | CSV File | One row per link; File > Import Sorted CSV reads it back |
@@ -131,113 +145,110 @@ The Export menu (toolbar and File menu) writes your themes and links out:
 Each exporter is one Swift file. Adding one is the easiest way to
 contribute; see [CONTRIBUTING.md](CONTRIBUTING.md).
 
-You can move any tab by hand. Sift never overwrites a choice you made.
-
-### Closing tabs on the iPhone
-
-A Mac cannot close tabs on another device. Sift writes the tabs you mark to
-`iCloud Drive/Sift/close.txt`, and a Shortcut on the iPhone closes them. The
-app shows the steps to build the Shortcut once (Safari's Shortcut actions need
-iOS 17 or later). When you reload, closed tabs leave the list.
-
 ### What Sift sends where
 
-Sorting sends each tab's title, URL and preview text, plus your theme names
-and descriptions, to Claude. It never sends page contents.
-
-To build previews, Sift requests each page once from its own site. For posts on
-X it uses X's public oEmbed endpoint, which returns the post text without a
-login.
-
-An opt-in setting (Settings > Sorting > Previews, off by default) makes Sift ask
-X's syndication endpoint (cdn.syndication.twimg.com) first, which also returns
-post images. The endpoint is unofficial and can stop working at any time.
-
-Sift reads Safari's files and never writes to them.
+- **To Claude**, through your Claude Code login or your own API key: for
+  theme discovery, sorting and next actions, each link's title, URL and short
+  preview text, plus your theme names. Never whole pages. Errands never go
+  to Claude.
+- **To each site**, once: a request for its page, for the preview and the
+  library. X posts go to X's oEmbed endpoint, and to its embed data or API
+  only if you turn those on.
+- **Nowhere else.** Sift has no account and no server. It reads Safari's
+  files and never writes to them. Add to Reading List asks Safari through its
+  own scripting command, and macOS asks you to allow that once.
 
 ## Requirements
 
 - macOS 14 (Sonoma) or later
-- Safari with iCloud Tabs on, for tabs from other devices
-- Full Disk Access, to read Safari's tab database and Reading List
-- One of:
-  - [Claude Code](https://claude.com/claude-code), signed in (the default; Sift runs `claude -p`)
-  - an Anthropic API key, stored in your login keychain
+- Full Disk Access, to read Safari's synced tabs and Reading List
+- One of: [Claude Code](https://claude.com/claude-code) signed in (the
+  default; Sift runs `claude -p` with tools, MCP servers and settings turned
+  off), or an Anthropic API key in your keychain
+- Optional: iCloud Tabs on, for tabs from other devices
 
 ## Install
 
-There is no notarized release yet. Build it yourself:
+Download the latest `Sift-x.y.z.zip` from
+[Releases](https://github.com/michellzappa/sift/releases), unzip it and move
+Sift to Applications. Releases are signed with a Developer ID, notarized by
+Apple, and carry a build provenance attestation. To check that a download
+came from this repository's release workflow:
 
 ```sh
-./scripts/build-app.sh      # builds, signs and copies to /Applications/Sift.app
+gh attestation verify Sift-0.2.0.zip -R michellzappa/sift
 ```
 
-You need `xcodegen` and Xcode. Set your own `DEVELOPMENT_TEAM` in
-`project.yml` first. To work in Xcode instead, run
-`xcodegen generate && open Sift.xcodeproj`.
+Each release also has a `SHA256SUMS` file.
 
 On first launch Sift asks for Full Disk Access. macOS does not list the app
 until you add it: in System Settings, open Privacy & Security, then Full Disk
 Access, click +, and choose Sift.
 
-### A note on signing
-
-`project.yml` signs with an Apple Development identity, not ad hoc. macOS ties
-the Full Disk Access grant to the code signature, so an ad hoc build loses the
-grant on every rebuild. Find your identity with:
+### Build it yourself
 
 ```sh
-security find-identity -v -p codesigning
+./scripts/build-app.sh      # builds, signs and copies to /Applications/Sift.app
 ```
 
-The build script signs with `Apple Development` by default. Set
-`SIGN_IDENTITY` to use another one.
+You need Xcode and `xcodegen`. Set your own `DEVELOPMENT_TEAM` in
+`project.yml` first. The build number is the git commit count.
 
-The app icon comes from the `sift` glyph in HouseKit, the small package that
-Sift shares with Tessellate, Cargo and Clip. If HouseKit is not checked out
-next to this repo, the script uses the committed `AppIcon.icns`.
+`project.yml` signs with an Apple Development identity, not ad hoc, because
+macOS ties the Full Disk Access grant to the code signature: an ad hoc build
+loses the grant on every rebuild. Set `SIGN_IDENTITY` to use another
+identity. The app icon comes from the `sift` glyph in HouseKit, the small
+package Sift shares with Tessellate, Cargo and Clip; without HouseKit next to
+this repo, the script uses the committed `AppIcon.icns`.
 
-## Configuration
+### Releases
 
-Settings has two pages.
+Push a tag that matches `CFBundleShortVersionString`, for example `v0.2.0`.
+The workflow in `.github/workflows/release.yml` builds a universal app,
+signs it with Developer ID, notarizes and staples it, attests its provenance,
+and publishes the ZIP and `SHA256SUMS`. It needs these repository secrets:
+`APPLE_TEAM_ID`, `APPLE_DEVELOPER_CERTIFICATE_P12_BASE64`,
+`APPLE_DEVELOPER_CERTIFICATE_PASSWORD`, `APPLE_API_KEY_ID`,
+`APPLE_API_ISSUER_ID` and `APPLE_API_PRIVATE_KEY_BASE64`.
 
-**Sorting** chooses between Claude Code and an API key. With Claude Code, Sift
-runs `claude -p` with tools, MCP servers, skills and settings turned off, so
-each call costs about as many tokens as the tab list itself. With an API key,
-Sift calls the Messages API with `claude-opus-5-5` at low effort.
+## Settings
+
+**Sorting** chooses Claude Code or an API key (`claude-opus-5-5` at low
+effort), sets the X preview options and the X API connection, and lists your
+sources: the Instagram export, imported link files, and whether new links
+are captured automatically.
 
 **Themes** lists your themes. You can rename or delete one, add one by hand,
 or run Discover Themes again.
 
-File > Import Sorted CSV loads a sorting from a CSV with `project`, `url` and
-`possible use` columns. Imported rows count as sorted by hand.
-
 ## Architecture
 
-About 2,800 lines of SwiftUI. No dependencies.
+About 5,500 lines of SwiftUI. No dependencies.
 
 | | |
 | --- | --- |
-| `Storage/CloudTabsReader` | Reads `CloudTabs.db` (SQLite, read-only): devices and their tabs |
-| `Storage/ReadingListReader` | Reads the Reading List from `Bookmarks.plist` |
-| `Storage/Previews` | Page previews (Open Graph, X oEmbed) and the iPhone close list |
-| `Storage/StateFile` | Everything Sift remembers, as one JSON file in Application Support |
-| `Sorting/Sorter` | Theme discovery and sorting; runs through `claude -p` or the Messages API |
+| `Storage/CloudTabsReader` | Safari's synced tabs (`CloudTabs.db`, SQLite, read-only) |
+| `Storage/ReadingListReader`, `InstagramReader`, `LinkImporter` | The other sources |
+| `Storage/Previews` | Page previews (Open Graph, X oEmbed and embed data) and the iPhone close list |
+| `Storage/Archive` | Every link Sift has seen, and what it knows about it |
+| `Storage/StateFile` | Settings, themes and assignments, as one JSON file |
+| `Engine/Capture` | Page capture, text extraction and the Markdown library |
+| `Sorting/Sorter` | Theme discovery, sorting and next actions through `claude -p` or the Messages API |
+| `Sorting/Errands` | Rules for transactional tabs |
+| `X/*` | Optional X API: sign-in, client, cache and the native post view |
 | `Export/*` | The exporter protocol, the registry and one file per exporter |
-| `App/AppModel` | Loading, sorting, actions and the close list |
-| `Views/*` | Sidebar, card grid, overview network, preview pane, settings |
+| `Views/*` | Sidebar, graph, cards, browser pane, theme review, settings |
 
 Swift has no official Anthropic SDK, so the API backend uses plain HTTP.
 
 ## Limitations
 
-- Sift cannot close tabs from the Mac. Closing goes through the iPhone
+- Sift cannot close tabs from the Mac; closing goes through the iPhone
   Shortcut.
-- Sift cannot remove items from the Reading List. Safari rewrites
-  `Bookmarks.plist` while it runs, and editing it from outside is not safe.
-- Previews for X posts have text but no image. Pages behind a login have no
-  preview.
-- One tab belongs to one theme.
+- Sift cannot remove items from the Reading List or from imported files.
+- Pages behind a login have no preview and only thin text in the library.
+- Instagram posts show the caption from your export, not the image.
+- One link belongs to one theme.
 
 ## License
 

@@ -13,6 +13,9 @@ settings:
     SWIFT_VERSION: "6.0"
     MACOSX_DEPLOYMENT_TARGET: "14.0"
     SWIFT_STRICT_CONCURRENCY: complete
+    # The release workflow and scripts/build-app.sh set this to the git
+    # commit count.
+    CURRENT_PROJECT_VERSION: "1"
     # Real identity, not ad-hoc: TCC keys the Full Disk Access grant to the
     # code signature, so an ad-hoc build loses the grant on every rebuild.
     CODE_SIGN_STYLE: Manual
