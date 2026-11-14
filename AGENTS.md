@@ -110,6 +110,14 @@ transcripts), not only the link. Never add a Sift server or account.
   recognition has a deadline (3x the audio length, at least 90 s) so one
   silent reel cannot stall the queue. Pass "--" before a YouTube id: ids
   can start with "-".
+- YouTube metadata (2026-11-14): titles and channel from YouTube's public
+  oEmbed (`PreviewFetcher.youTube`, 1 request a second, job
+  `fetchVideoTitles`); length (`lengthSeconds`) and description from the
+  watch page at capture (`Library.Entry.duration`, front matter
+  `duration:`), which also refreshes the preview. Videos captured without a
+  length are read again once, unless a transcript is in the file.
+- Sidebar: Overview is the graph; a source or theme picked in the sidebar
+  opens its list (a theme picked on the graph keeps the graph panel).
 - Capture paces requests per site (`HostGate`: 4 s for YouTube, Instagram
   and X, 1 s elsewhere) and skips a site for an hour after 429/503. Never
   fetch one site in parallel bursts: YouTube rate-limited the owner's IP.

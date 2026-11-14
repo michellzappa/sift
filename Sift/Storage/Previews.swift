@@ -68,6 +68,23 @@ enum PreviewFetcher {
         return await html(url) ?? failed(urlString)
     }
 
+    /// Title, channel and thumbnail of a YouTube video from YouTube's public
+    /// oEmbed endpoint: one light request, no page, no login.
+    static func youTube(_ urlString: String) async -> Preview? {
+        guard let id = TranscriptTool.videoID(urlString) else { return nil }
+        var c = URLComponents(string: "https://www.youtube.com/oembed")!
+        c.queryItems = [.init(name: "url", value: "https://www.youtube.com/watch?v=\(id)"), .init(name: "format", value: "json")]
+        guard let (data, response) = try? await URLSession.shared.data(from: c.url!),
+              (response as? HTTPURLResponse)?.statusCode == 200,
+              let json = try? JSONSerialization.jsonObject(with: data) as? [String: Any],
+              let title = json["title"] as? String, !title.isEmpty
+        else { return nil }
+        let channel = json["author_name"] as? String ?? ""
+        return Preview(title: title, text: channel.isEmpty ? "" : "By \(channel)",
+                       imageURL: json["thumbnail_url"] as? String ?? "https://i.ytimg.com/vi/\(id)/hqdefault.jpg",
+                       site: "youtube.com", fetched: .now)
+    }
+
     static func isXPost(_ url: URL) -> Bool {
         let host = url.host() ?? ""
         return ["x.com", "twitter.com", "mobile.twitter.com", "www.x.com"].contains(host) && url.path().contains("/status/")

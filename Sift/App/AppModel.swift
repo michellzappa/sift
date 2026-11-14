@@ -375,6 +375,9 @@ final class AppModel {
         archive.values.filter { r in
             guard r.theme != Project.errands, r.theme != Project.drop, !Errands.isErrand(r.url) else { return false }
             guard let e = library[r.url] else { return true }
+            // Videos captured before Sift read their length: read the page again
+            // (not when a transcript was appended to the file).
+            if e.kind == "video", e.status == "ok", e.duration == nil, e.transcript != true { return true }
             // Posts captured as thin before posts were exempt: redo once.
             if e.status == "thin", Self.isPostURL(r.url) { return true }
             // Failed posts that now have known text (an Instagram caption) retry now.
@@ -391,7 +394,7 @@ final class AppModel {
         guard !todo.isEmpty else { return }
         isCapturing = true
         captureProgress = (0, todo.count)
-        defer { isCapturing = false; Library.saveIndex(library); scheduleSearchIndex() }
+        defer { isCapturing = false; Library.saveIndex(library); PreviewFetcher.saveCache(previews); scheduleSearchIndex() }
         // Posts (X, Instagram) are captured from the text Sift already has:
         // their pages need a login or JavaScript.
         let jobs: [(ArchiveRecord, String?)] = todo.map { r in
@@ -410,6 +413,14 @@ final class AppModel {
                 switch outcome {
                 case .captured(let capture):
                     library[r.url] = Library.write(capture, title: r.title, theme: r.theme, source: r.source)
+                    // A video's page gives its real title and description.
+                    if capture.kind == "video" {
+                        var p = previews[r.url] ?? Preview(title: "", text: "", imageURL: nil, site: "youtube.com", fetched: .now)
+                        if !capture.title.isEmpty { p.title = capture.title }
+                        let body = capture.text.replacingOccurrences(of: "\n", with: " ").trimmingCharacters(in: .whitespaces)
+                        if !body.isEmpty { p.text = String(body.prefix(400)) }
+                        previews[r.url] = p
+                    }
                 case .gone:
                     library[r.url] = Library.Entry(file: "", captured: .now, words: 0, kind: "page", status: "gone")
                 case .failed:
@@ -457,10 +468,58 @@ final class AppModel {
         if !isTranscribingReels, !reelsNeedingTranscript.isEmpty { Task { await fetchReelTranscripts() } }
         // Instagram posts get their image.
         if state.instagramImages, !isFetchingInstagramImages, !instagramPostsWithoutImage.isEmpty { Task { await fetchInstagramImages() } }
+        // YouTube links with no title get one from YouTube's oEmbed.
+        if !isFetchingVideoTitles, !videosWithoutTitle.isEmpty { Task { await fetchVideoTitles() } }
         // New links go into the library.
         if state.autoCapture, !isCapturing, !linksToCapture.isEmpty { Task { await captureAll() } }
         // Saved pages and transcripts get a short summary on this Mac.
         Task { await summarizeLibrary() }
+    }
+
+    /// A source's name for titles: "Safari · MZ Air", "Instagram Saved".
+    func sourceTitle(_ id: String) -> String {
+        if let d = devices.first(where: { $0.id == id }) { return "Safari · \(d.name)" }
+        if let p = chromeProfiles.first(where: { $0.id == id }) { return [p.browser, chromeProfileName(p)].compactMap { $0 }.joined(separator: " · ") }
+        if id == ReadingListReader.sourceID { return "Reading List" }
+        if id == InstagramReader.sourceID { return "Instagram Saved" }
+        if id == AppModel.xBookmarksSourceID { return "X Bookmarks" }
+        if let i = state.importedSources.first(where: { LinkImporter.sourcePrefix + $0.id == id }) { return i.name }
+        return "Links"
+    }
+
+    var isFetchingVideoTitles = false
+    private var videoTitleTried = Set<String>()
+
+    /// YouTube links that show their URL because the import had no title.
+    var videosWithoutTitle: [String] {
+        archive.values.filter { r in
+            TranscriptTool.videoID(r.url) != nil && !videoTitleTried.contains(r.url)
+                && (previews[r.url]?.title ?? "").isEmpty && (r.title.isEmpty || r.title.hasPrefix("http"))
+        }
+        .sorted { $0.firstSeen > $1.firstSeen }
+        .map(\.url)
+    }
+
+    /// One oEmbed request a second, newest first.
+    func fetchVideoTitles() async {
+        guard !isFetchingVideoTitles else { return }
+        let todo = videosWithoutTitle
+        guard !todo.isEmpty else { return }
+        isFetchingVideoTitles = true
+        defer { isFetchingVideoTitles = false; PreviewFetcher.saveCache(previews); recordArchive(); scheduleSearchIndex() }
+        for (i, url) in todo.enumerated() {
+            videoTitleTried.insert(url)
+            guard await HostGate.shared.admit("oembed.youtube") else { return }
+            guard let p = await PreviewFetcher.youTube(url) else { continue }
+            var merged = previews[url] ?? p
+            merged.title = p.title
+            if merged.text.isEmpty || merged.text.hasPrefix("In Watch later") || merged.text.hasPrefix("In ") { merged.text = p.text }
+            if merged.imageURL == nil { merged.imageURL = p.imageURL }
+            merged.failed = false
+            previews[url] = merged
+            if archive[url] != nil { archive[url]?.title = p.title }
+            if i % 25 == 24 { PreviewFetcher.saveCache(previews); ArchiveStore.save(archive) }
+        }
     }
 
     /// Jobs also restart on their own, every 15 minutes, so a job that

@@ -12,6 +12,8 @@ struct Capture: Sendable {
     var published: String?
     var kind: String            // article, pdf, post, page
     var text: String            // Markdown
+    /// Videos: length in seconds.
+    var duration: Int? = nil
     var words: Int { text.split { $0 == " " || $0 == "\n" }.count }
 }
 
@@ -181,6 +183,8 @@ enum Library {
         /// front matter as `summary:`. Nil: not tried yet; "": the model
         /// declined this text.
         var summary: String?
+        /// Videos: length in seconds.
+        var duration: Int?
     }
 
     static var folder: URL {
@@ -215,12 +219,15 @@ enum Library {
         var lines = ["---", "url: \(y(c.url))", "title: \(y(title.isEmpty ? c.title : title))", "site: \(y(c.site))", "kind: \(c.kind)"]
         if let a = c.author, !a.isEmpty { lines.append("author: \(y(a))") }
         if let p = c.published, !p.isEmpty { lines.append("published: \(y(p))") }
+        if let d = c.duration { lines.append("duration: \(d)") }
         if let theme { lines.append("theme: \(y(theme))") }
         lines += ["source: \(y(source))", "captured: \(ISO8601DateFormatter().string(from: .now))", "words: \(c.words)", "---", "", c.text, ""]
         try? lines.joined(separator: "\n").write(to: folder.appending(path: file), atomically: true, encoding: .utf8)
         // Posts are short by nature; only articles and PDFs can be "thin".
         let thin = c.kind != "post" && c.kind != "video" && c.words < 150
-        return Entry(file: file, captured: .now, words: c.words, kind: c.kind, status: thin ? "thin" : "ok")
+        var entry = Entry(file: file, captured: .now, words: c.words, kind: c.kind, status: thin ? "thin" : "ok")
+        entry.duration = c.duration
+        return entry
     }
 
     /// Adds a transcript to the link's library file: appended under a
@@ -297,7 +304,8 @@ enum YouTubePage {
         var text = ""
         if let channel { text += "Video by \(channel).\n\n" }
         text += description.replacingOccurrences(of: "\\u0026", with: "&")
-        return Capture(url: url, title: title, author: channel, site: "youtube.com", published: published, kind: "video", text: text)
+        return Capture(url: url, title: title, author: channel, site: "youtube.com", published: published, kind: "video", text: text,
+                       duration: field("lengthSeconds").flatMap(Int.init))
     }
 }
 

@@ -82,7 +82,7 @@ struct ContentView: View {
     /// The overview, a source, or the theme the graph is zoomed into.
     private func showsGraph(_ item: SidebarItem) -> Bool {
         switch item {
-        case .overview, .source: true
+        case .overview: true
         case .project(let p): p == model.graphTheme
         default: false
         }

@@ -23,7 +23,8 @@ struct TabList: View {
 
     private var title: String {
         switch item {
-        case .overview, .source: "Overview"
+        case .overview: "Overview"
+        case .source(let id): model.sourceTitle(id)
         case .unsorted: "Unsorted"
         case .closeQueue: "To Close"
         case .archive: "Archive"
@@ -351,6 +352,10 @@ struct TabCard: View {
                         Text("·")
                         Text(d, format: Self.dateFormat(d)).fixedSize()
                     }
+                    if let seconds = model.library[tab.url]?.duration {
+                        Text("·")
+                        Text(Self.length(seconds)).monospacedDigit().fixedSize()
+                    }
                     if let saved = savedSymbol {
                         Image(systemName: saved.symbol).help(saved.help)
                     }
@@ -414,6 +419,12 @@ struct TabCard: View {
     private func xText(_ p: Preview?) -> String? {
         guard p?.site == "x.com", let t = p?.title, !t.isEmpty else { return nil }
         return t
+    }
+
+    /// 6055 seconds as "1:40:55", 754 as "12:34".
+    static func length(_ seconds: Int) -> String {
+        let h = seconds / 3600, m = (seconds % 3600) / 60, s = seconds % 60
+        return h > 0 ? String(format: "%d:%02d:%02d", h, m, s) : String(format: "%d:%02d", m, s)
     }
 
     static func dateFormat(_ d: Date) -> Date.FormatStyle {
