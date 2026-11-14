@@ -33,16 +33,26 @@ final class AppModel {
         repoProjects = ProjectScanner.scan(root: URL(filePath: state.projectsRoot, directoryHint: .isDirectory))
         do {
             devices = try CloudTabsReader.devices()
+            readingListCount = (try? ReadingListReader.items().count) ?? 0
             loadError = nil
-            if state.deviceID == nil || !devices.contains(where: { $0.id == state.deviceID }) {
+            if state.deviceID == nil || (!isReadingList && !devices.contains(where: { $0.id == state.deviceID })) {
                 // The device with the most tabs is almost always the phone.
                 state.deviceID = devices.first?.id
             }
-            tabs = try state.deviceID.map { try CloudTabsReader.tabs(deviceID: $0) } ?? []
-            // Tabs closed on the phone drop out of the close list.
-            let open = Set(tabs.map(\.url))
-            let stillOpen = state.closeQueue.filter(open.contains)
-            if stillOpen != state.closeQueue { state.closeQueue = stillOpen }
+            if isReadingList {
+                let items = try ReadingListReader.items()
+                tabs = items.map(\.tab)
+                // Safari stores preview text for Reading List items; use it until Sift fetches its own.
+                for item in items where previews[item.tab.url] == nil {
+                    if let p = item.preview { previews[item.tab.url] = p }
+                }
+            } else {
+                tabs = try state.deviceID.map { try CloudTabsReader.tabs(deviceID: $0) } ?? []
+                // Tabs closed on the phone drop out of the close list.
+                let open = Set(tabs.map(\.url))
+                let stillOpen = state.closeQueue.filter(open.contains)
+                if stillOpen != state.closeQueue { state.closeQueue = stillOpen }
+            }
         } catch let failure as CloudTabsReader.Failure {
             loadError = failure
             devices = []
@@ -55,6 +65,68 @@ final class AppModel {
     func selectDevice(_ id: String) {
         state.deviceID = id
         reload()
+    }
+
+    /// True when the source is Safari's Reading List, not a device's open tabs.
+    var isReadingList: Bool { state.deviceID == ReadingListReader.sourceID }
+
+    private(set) var readingListCount = 0
+
+    // MARK: Sites and actions
+
+    /// Sites with at least three tabs, biggest first. The rest count as "other".
+    var sites: [(host: String, count: Int)] {
+        var counts: [String: Int] = [:]
+        for tab in tabs { counts[tab.host, default: 0] += 1 }
+        return counts.filter { $0.value >= 3 }.map { ($0.key, $0.value) }
+            .sorted { $0.1 == $1.1 ? $0.0 < $1.0 : $0.1 > $1.1 }
+    }
+
+    func tabs(onSite host: String) -> [SafariTab] { tabs.filter { $0.host == host } }
+
+    func tabs(withAction action: NextAction) -> [SafariTab] {
+        tabs.filter { state.assignments[$0.url]?.action == action }
+    }
+
+    func setAction(_ action: NextAction?, for tab: SafariTab) {
+        guard var a = state.assignments[tab.url] else { return }
+        a.action = action
+        state.assignments[tab.url] = a
+    }
+
+    /// Sorted tabs that have no next action yet (for example from a CSV import).
+    var tabsWithoutAction: [SafariTab] {
+        tabs.filter { tab in
+            guard let a = state.assignments[tab.url] else { return false }
+            return a.action == nil && a.project != Project.unknown
+        }
+    }
+
+    func suggestActions() async {
+        guard !isSorting else { return }
+        let todo = tabsWithoutAction
+        guard !todo.isEmpty else { return }
+        isSorting = true
+        sortError = nil
+        sortProgress = (0, todo.count)
+        defer { isSorting = false }
+        let sorter = Sorter(backend: state.backend)
+        for start in stride(from: 0, to: todo.count, by: Sorter.batchSize) {
+            let batch = Array(todo[start..<min(start + Sorter.batchSize, todo.count)])
+            let rows = batch.map { tab in
+                (item: sortItem(tab), project: state.assignments[tab.url]?.project ?? "", use: state.assignments[tab.url]?.use ?? "")
+            }
+            do {
+                let result = try await sorter.suggestActions(rows)
+                for (url, action) in result where state.assignments[url]?.action == nil {
+                    state.assignments[url]?.action = action
+                }
+                sortProgress.done = min(start + batch.count, todo.count)
+            } catch {
+                sortError = error.localizedDescription
+                return
+            }
+        }
     }
 
     // MARK: Projects
@@ -91,7 +163,8 @@ final class AppModel {
     func move(_ tab: SafariTab, to project: String) {
         let old = state.assignments[tab.url]
         let use = Project.buckets.contains(project) ? "" : (old?.use ?? "")
-        state.assignments[tab.url] = Assignment(project: project, use: use, manual: true)
+        let action = project == Project.drop ? .close : old?.action
+        state.assignments[tab.url] = Assignment(project: project, use: use, manual: true, action: action)
     }
 
     func setUse(_ use: String, for tab: SafariTab) {
@@ -228,7 +301,7 @@ final class AppModel {
                 addProject(name: project, summary: "")
             }
             let use = useIndex.flatMap { row.indices.contains($0) ? row[$0] : nil } ?? ""
-            state.assignments[row[u]] = Assignment(project: project, use: use, manual: true)
+            state.assignments[row[u]] = Assignment(project: project, use: use, manual: true, action: project == Project.drop ? .close : nil)
             count += 1
         }
         return count

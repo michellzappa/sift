@@ -9,6 +9,7 @@ struct TabList: View {
     @State private var selected: SafariTab.ID?
     @State private var showInspector = false
     @State private var showShortcutGuide = false
+    @State private var siteFilter: String?
 
     private var project: String? {
         if case .project(let p) = item { return p }
@@ -21,6 +22,8 @@ struct TabList: View {
         case .unsorted: "Unsorted"
         case .closeQueue: "To close on iPhone"
         case .project(let p): p
+        case .site(let host): host
+        case .action(let a): "Next: \(a.label)"
         }
     }
 
@@ -30,12 +33,22 @@ struct TabList: View {
         case .unsorted: model.tabs(in: nil)
         case .closeQueue: model.closeQueueTabs
         case .project(let p): model.tabs(in: p)
+        case .site(let host): model.tabs(onSite: host)
+        case .action(let a): model.tabs(withAction: a)
         }
     }
 
+    /// Sites in this list, for the site filter.
+    private var listSites: [(host: String, count: Int)] {
+        var counts: [String: Int] = [:]
+        for tab in all { counts[tab.host, default: 0] += 1 }
+        return counts.map { ($0.key, $0.value) }.sorted { $0.1 == $1.1 ? $0.0 < $1.0 : $0.1 > $1.1 }
+    }
+
     private var rows: [SafariTab] {
-        guard !search.isEmpty else { return all }
-        return all.filter {
+        let base = siteFilter.map { host in all.filter { $0.host == host } } ?? all
+        guard !search.isEmpty else { return base }
+        return base.filter {
             $0.title.localizedCaseInsensitiveContains(search) || $0.url.localizedCaseInsensitiveContains(search)
                 || (model.assignment(for: $0)?.use.localizedCaseInsensitiveContains(search) ?? false)
                 || (model.previews[$0.url]?.text.localizedCaseInsensitiveContains(search) ?? false)
@@ -82,6 +95,18 @@ struct TabList: View {
     @ToolbarContentBuilder
     private var listToolbar: some ToolbarContent {
         ToolbarItemGroup {
+            if listSites.count > 1 {
+                Menu {
+                    Button("All sites") { siteFilter = nil }
+                    Divider()
+                    ForEach(listSites.prefix(30), id: \.host) { s in
+                        Button("\(s.host) (\(s.count))") { siteFilter = s.host }
+                    }
+                } label: {
+                    Label(siteFilter ?? "All sites", systemImage: "globe")
+                }
+                .help("Show only tabs from one site.")
+            }
             if model.fetchingPreviews > 0 {
                 HStack(spacing: 4) { ProgressView().controlSize(.small); Text("\(model.fetchingPreviews)").monospacedDigit() }
             } else {
@@ -97,7 +122,7 @@ struct TabList: View {
                 .help("Fetch previews for these tabs, then sort them again with the preview text.")
                 .disabled(model.isSorting)
             }
-            if item != .closeQueue, !rows.isEmpty {
+            if item != .closeQueue, !rows.isEmpty, !model.isReadingList {
                 Button { model.queueClose(rows) } label: {
                     Label("Close All on iPhone", systemImage: "xmark.square")
                 }
@@ -165,6 +190,17 @@ struct TabCard: View {
                     Text(use).font(.callout).foregroundStyle(.tint).lineLimit(3)
                 }
                 Spacer(minLength: 0)
+                if a != nil {
+                    Menu {
+                        actionMenu
+                    } label: {
+                        Label(a?.action?.label ?? "Next action…", systemImage: a?.action?.symbol ?? "arrow.forward.circle")
+                            .font(.caption.weight(.medium))
+                    }
+                    .menuStyle(.borderlessButton)
+                    .fixedSize()
+                    .help(a?.action?.meaning ?? "Choose what to do with this link next.")
+                }
                 HStack(spacing: 5) {
                     Text(tab.host).lineLimit(1)
                     if let d = tab.lastViewed { Text("·"); Text(d, format: .dateTime.day().month(.abbreviated)) }
@@ -195,8 +231,11 @@ struct TabCard: View {
             if a != nil, !Project.buckets.contains(a?.project ?? "") {
                 Button("Edit Use…") { draft = a?.use ?? ""; editingUse = true }
             }
+            if a != nil { Menu("Next Action") { actionMenu } }
             Divider()
-            Button(closing ? "Keep Open on iPhone" : "Close on iPhone") { model.toggleClose(tab) }
+            if !model.isReadingList {
+                Button(closing ? "Keep Open on iPhone" : "Close on iPhone") { model.toggleClose(tab) }
+            }
             Menu("Move to") { moveMenu }
             Button("Drop") { model.move(tab, to: Project.drop) }
         }
@@ -272,6 +311,15 @@ struct TabCard: View {
         ForEach(Project.buckets, id: \.self) { b in
             Button(b) { model.move(tab, to: b) }
         }
+    }
+
+    @ViewBuilder
+    private var actionMenu: some View {
+        ForEach(NextAction.allCases, id: \.self) { action in
+            Button { model.setAction(action, for: tab) } label: { Label(action.label, systemImage: action.symbol) }
+        }
+        Divider()
+        Button("No Action") { model.setAction(nil, for: tab) }
     }
 }
 

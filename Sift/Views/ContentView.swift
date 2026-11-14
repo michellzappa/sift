@@ -4,6 +4,8 @@ enum SidebarItem: Hashable {
     case overview
     case unsorted
     case closeQueue
+    case site(String)
+    case action(NextAction)
     case project(String)
 }
 
@@ -38,8 +40,12 @@ struct ContentView: View {
     @ToolbarContentBuilder
     private var toolbar: some ToolbarContent {
         ToolbarItem(placement: .navigation) {
-            Picker("Device", selection: .init(get: { model.state.deviceID ?? "" }, set: { model.selectDevice($0) })) {
+            Picker("Source", selection: .init(get: { model.state.deviceID ?? "" }, set: { model.selectDevice($0) })) {
                 ForEach(model.devices) { d in Text("\(d.name) (\(d.tabCount))").tag(d.id) }
+                if model.readingListCount > 0 {
+                    Divider()
+                    Text("Reading List (\(model.readingListCount))").tag(ReadingListReader.sourceID)
+                }
             }
             .pickerStyle(.menu)
             .disabled(model.devices.isEmpty)
@@ -61,6 +67,16 @@ struct ContentView: View {
             }
         }
         ToolbarItem(placement: .primaryAction) {
+            if !model.isSorting, !model.tabsWithoutAction.isEmpty {
+                Button {
+                    Task { await model.suggestActions() }
+                } label: {
+                    Label("Suggest Next Actions", systemImage: "arrow.forward.circle")
+                }
+                .help("Ask Claude what to do next with \(model.tabsWithoutAction.count) sorted tabs that have no next action.")
+            }
+        }
+        ToolbarItem(placement: .primaryAction) {
             Button { model.reload() } label: { Label("Reload", systemImage: "arrow.clockwise") }
         }
     }
@@ -75,13 +91,28 @@ private struct Sidebar: View {
             Label("Overview", systemImage: "circle.hexagongrid").tag(SidebarItem.overview)
             Label { HStack { Text("Unsorted"); Spacer(); count(model.unsortedCount) } } icon: { Image(systemName: "tray") }
                 .tag(SidebarItem.unsorted)
-            Label { HStack { Text("To close on iPhone"); Spacer(); count(model.state.closeQueue.count) } } icon: { Image(systemName: "xmark.square") }
-                .tag(SidebarItem.closeQueue)
+            if !model.isReadingList {
+                Label { HStack { Text("To close on iPhone"); Spacer(); count(model.state.closeQueue.count) } } icon: { Image(systemName: "xmark.square") }
+                    .tag(SidebarItem.closeQueue)
+            }
 
             Section("Projects") {
                 ForEach(model.activeProjects, id: \.project) { item in
                     HStack { Text(item.project); Spacer(); count(item.count) }
                         .tag(SidebarItem.project(item.project))
+                }
+            }
+            Section("Next action") {
+                ForEach(NextAction.allCases, id: \.self) { action in
+                    Label { HStack { Text(action.label); Spacer(); count(model.tabs(withAction: action).count) } } icon: { Image(systemName: action.symbol) }
+                        .help(action.meaning)
+                        .tag(SidebarItem.action(action))
+                }
+            }
+            Section("Sites") {
+                ForEach(model.sites, id: \.host) { site in
+                    HStack { Text(site.host).lineLimit(1); Spacer(); count(site.count) }
+                        .tag(SidebarItem.site(site.host))
                 }
             }
             Section("Not for a project") {

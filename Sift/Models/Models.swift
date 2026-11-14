@@ -50,4 +50,45 @@ struct Assignment: Codable, Hashable, Sendable {
     var use: String
     /// True when the user moved the tab by hand. The sorter never overwrites it.
     var manual: Bool
+    /// What to do with the link next. Nil until sorted or suggested.
+    var action: NextAction?
+}
+
+/// What to do with a link, so a sorted tab can leave the browser.
+enum NextAction: String, Codable, CaseIterable, Hashable, Sendable {
+    case read, `try`, cite, contact, file, close
+
+    var label: String {
+        switch self {
+        case .read: "Read"
+        case .try: "Try"
+        case .cite: "Cite"
+        case .contact: "Contact"
+        case .file: "File"
+        case .close: "Close"
+        }
+    }
+
+    var symbol: String {
+        switch self {
+        case .read: "book"
+        case .try: "hammer"
+        case .cite: "quote.opening"
+        case .contact: "person.crop.circle.badge.plus"
+        case .file: "archivebox"
+        case .close: "xmark.circle"
+        }
+    }
+
+    /// The definition Claude sorts by, and the help text in the app.
+    var meaning: String {
+        switch self {
+        case .read: "read or watch it properly: a long article, paper, talk or book"
+        case .try: "install, test or prototype with it: a tool, repo, app or method"
+        case .cite: "quote or reference it in writing, a deck, a pitch or a spec"
+        case .contact: "reach out to the person, company or community behind it"
+        case .file: "keep it as reference for the project; nothing to do now"
+        case .close: "already used, outdated or not worth more time"
+        }
+    }
 }

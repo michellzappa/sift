@@ -11,18 +11,23 @@ housekit="${HOUSEKIT_PATH:-$here/../../housekit}"
 config=Release
 [[ "${1:-}" == "--debug" ]] && config=Debug
 
-swift build -c release --package-path "$housekit" >/dev/null
-"$(swift build -c release --package-path "$housekit" --show-bin-path)/housekit-icon" sift "$here/Sift/Resources/AppIcon.icns" >/dev/null
+# The committed AppIcon.icns is used as is when HouseKit is not next to the repo.
+if [[ -d "$housekit" ]]; then
+  swift build -c release --package-path "$housekit" >/dev/null
+  "$(swift build -c release --package-path "$housekit" --show-bin-path)/housekit-icon" sift "$here/Sift/Resources/AppIcon.icns" >/dev/null
+fi
 
 cd "$here"
 xcodegen generate --quiet
 build="$(git rev-list --count HEAD 2>/dev/null || echo 1)"
-build-lock "sift build-app" xcodebuild -project Sift.xcodeproj -scheme Sift -configuration "$config" \
+lock=()
+command -v build-lock >/dev/null && lock=(build-lock "sift build-app")
+"${lock[@]}" xcodebuild -project Sift.xcodeproj -scheme Sift -configuration "$config" \
   -derivedDataPath build/DerivedData CURRENT_PROJECT_VERSION="$build" \
   CODE_SIGNING_ALLOWED=NO -quiet build
 app="build/DerivedData/Build/Products/$config/Sift.app"
 /usr/libexec/PlistBuddy -c "Set :CFBundleVersion $build" "$app/Contents/Info.plist"
-codesign --force --sign "Apple Development" --entitlements Sift/Resources/Sift.entitlements --options runtime "$app"
+codesign --force --sign "${SIGN_IDENTITY:-Apple Development}" --entitlements Sift/Resources/Sift.entitlements --options runtime "$app"
 
 target=/Applications/Sift.app
 if pgrep -xq Sift; then osascript -e 'tell application "Sift" to quit' >/dev/null 2>&1 || true; sleep 0.5; fi

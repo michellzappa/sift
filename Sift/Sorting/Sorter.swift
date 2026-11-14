@@ -28,6 +28,7 @@ struct Sorter: Sendable {
         let id: Int
         let project: String
         let use: String
+        let action: String
     }
 
     /// One tab as the sorter sees it: title, URL and any preview text.
@@ -49,21 +50,63 @@ struct Sorter: Sendable {
         }.joined(separator: "\n")
         let schema = Self.schema(names: names)
 
-        let results: [Result]
-        switch backend {
-        case .claudeCode: results = try await ClaudeCodeRunner.run(system: system, user: user, schema: schema)
-        case .api:
-            guard let key = Keychain.readKey() else { throw Failure(message: "Add an Anthropic API key in Settings, or switch to Claude Code.") }
-            results = try await APIRunner.run(key: key, system: system, user: user, schema: schema)
-        }
+        let results = try await Self.ask(backend: backend, system: system, user: user, schema: schema, as: Envelope.self).items
 
         var out: [String: Assignment] = [:]
         let valid = Set(names)
         for r in results where items.indices.contains(r.id) && valid.contains(r.project) {
             let isBucket = Project.buckets.contains(r.project)
-            out[items[r.id].url] = Assignment(project: r.project, use: isBucket ? "" : r.use, manual: false)
+            var action = NextAction(rawValue: r.action)
+            if r.project == Project.drop { action = .close }
+            out[items[r.id].url] = Assignment(project: r.project, use: isBucket ? "" : r.use, manual: false, action: action)
         }
         return out
+    }
+
+    /// Suggests a next action for tabs that are already sorted.
+    func suggestActions(_ items: [(item: Item, project: String, use: String)]) async throws -> [String: NextAction] {
+        let system = """
+            A person sorted their open browser tabs into projects. For each tab, choose what they should \
+            do with it next, so the tab can be closed:
+            \(Self.actionGuide)
+            Return every id.
+            """
+        let user = "Tabs (id, project, title, URL, use):\n" + items.enumerated().map { index, row in
+            "\(index)\t\(row.project)\t\(row.item.title.isEmpty ? "(no title)" : row.item.title)\t\(row.item.url)\t\(row.use.isEmpty ? row.item.preview.prefix(200) : Substring(row.use))"
+        }.joined(separator: "\n")
+        let schema: [String: Any] = [
+            "type": "object", "additionalProperties": false, "required": ["items"],
+            "properties": ["items": ["type": "array", "items": [
+                "type": "object", "additionalProperties": false, "required": ["id", "action"],
+                "properties": ["id": ["type": "integer"], "action": ["type": "string", "enum": NextAction.allCases.map(\.rawValue)]],
+            ]]],
+        ]
+        struct Row: Decodable { let id: Int; let action: String }
+        struct Rows: Decodable { let items: [Row] }
+        let rows = try await Self.ask(backend: backend, system: system, user: user, schema: schema, as: Rows.self).items
+        var out: [String: NextAction] = [:]
+        for r in rows where items.indices.contains(r.id) {
+            if let a = NextAction(rawValue: r.action) { out[items[r.id].item.url] = a }
+        }
+        return out
+    }
+
+    static var actionGuide: String {
+        NextAction.allCases.map { "- \($0.rawValue): \($0.meaning)" }.joined(separator: "\n")
+    }
+
+    private static func ask<T: Decodable>(backend: Backend, system: String, user: String, schema: [String: Any], as: T.Type) async throws -> T {
+        let data: Data
+        switch backend {
+        case .claudeCode: data = try await ClaudeCodeRunner.run(system: system, user: user, schema: schema)
+        case .api:
+            guard let key = Keychain.readKey() else { throw Failure(message: "Add an Anthropic API key in Settings, or switch to Claude Code.") }
+            data = try await APIRunner.run(key: key, system: system, user: user, schema: schema)
+        }
+        guard let value = try? JSONDecoder().decode(T.self, from: data) else {
+            throw Failure(message: "Claude's answer did not match the expected format.")
+        }
+        return value
     }
 
     static func systemPrompt(projects: [Project]) -> String {
@@ -84,7 +127,11 @@ struct Sorter: Sendable {
             For each tab, choose exactly one project or bucket. Choose a project only when the link could \
             feed that project's work. For a project, write "use": one short sentence on how the link could \
             be used in that project (a competitor, a reference, a data source, an argument, a feature idea). \
-            For a bucket, leave "use" empty. Return every id.
+            For a bucket, leave "use" empty.
+
+            Also choose "action", what the person should do with the link next:
+            \(actionGuide)
+            Return every id.
             """
     }
 
@@ -99,11 +146,12 @@ struct Sorter: Sendable {
                     "items": [
                         "type": "object",
                         "additionalProperties": false,
-                        "required": ["id", "project", "use"],
+                        "required": ["id", "project", "use", "action"],
                         "properties": [
                             "id": ["type": "integer"],
                             "project": ["type": "string", "enum": names],
                             "use": ["type": "string"],
+                            "action": ["type": "string", "enum": NextAction.allCases.map(\.rawValue)],
                         ],
                     ],
                 ],
@@ -129,7 +177,8 @@ enum ClaudeCodeRunner {
         return candidates.first { FileManager.default.isExecutableFile(atPath: $0.path(percentEncoded: false)) }
     }
 
-    static func run(system: String, user: String, schema: [String: Any]) async throws -> [Sorter.Result] {
+    /// Returns the structured output as JSON data.
+    static func run(system: String, user: String, schema: [String: Any]) async throws -> Data {
         guard let exe = executable else {
             throw Sorter.Failure(message: "Claude Code was not found. Install it, or switch to an API key in Settings.")
         }
@@ -154,10 +203,9 @@ enum ClaudeCodeRunner {
             throw Sorter.Failure(message: "Claude Code: \(message)")
         }
         guard let structured = json["structured_output"],
-              let data = try? JSONSerialization.data(withJSONObject: structured),
-              let envelope = try? JSONDecoder().decode(Sorter.Envelope.self, from: data)
+              let data = try? JSONSerialization.data(withJSONObject: structured)
         else { throw Sorter.Failure(message: "Claude Code's answer did not match the expected format.") }
-        return envelope.items
+        return data
     }
 
     private static func launch(_ exe: URL, args: [String], stdin: String) async throws -> Data {
@@ -209,7 +257,8 @@ private final class DataCollector: @unchecked Sendable {
 /// Messages API over HTTP. Model claude-opus-5-5, low effort, structured
 /// output, server-side fallback on refusal.
 enum APIRunner {
-    static func run(key: String, system: String, user: String, schema: [String: Any]) async throws -> [Sorter.Result] {
+    /// Returns the structured output as JSON data.
+    static func run(key: String, system: String, user: String, schema: [String: Any]) async throws -> Data {
         let body: [String: Any] = [
             "model": "claude-opus-5-5",
             "max_tokens": 16000,
@@ -245,9 +294,6 @@ enum APIRunner {
             .filter { $0["type"] as? String == "text" }
             .compactMap { $0["text"] as? String }
             .joined()
-        guard let envelope = try? JSONDecoder().decode(Sorter.Envelope.self, from: Data(text.utf8)) else {
-            throw Sorter.Failure(message: "Claude's answer did not match the expected format.")
-        }
-        return envelope.items
+        return Data(text.utf8)
     }
 }

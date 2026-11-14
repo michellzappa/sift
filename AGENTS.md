@@ -2,7 +2,7 @@
 
 Sift is a native macOS app that turns open Safari tabs into project material.
 It reads the iCloud Tabs database that Safari syncs to this Mac, sorts each tab
-into one of mz's projects with Claude, and shows the result as a list per
+into one of the user's projects with Claude, and shows the result as a list per
 project and as an overview network (one hub per project, one dot per tab).
 
 ## Commands
