@@ -45,8 +45,11 @@ graph and exports. The other buckets are personal, drop and unknown.
 
 The sidebar has four ways in: by theme, by next action, by site (x.com,
 github.com and so on) and by bucket. Every list shows cards with the page's
-image, title and description. The overview draws one hub per theme with a dot
-for each tab, so you can see where your attention went.
+image, title and description; select one and it opens in the browser on the
+right. The overview is a graph: each theme is a cluster with one dot per link,
+and lines join themes that draw on the same sources. Click a theme to zoom in
+to its links; click a link to read it beside the graph. Pinch or two-finger
+scroll to zoom.
 
 ### Export
 

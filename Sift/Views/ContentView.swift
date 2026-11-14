@@ -23,7 +23,7 @@ struct ContentView: View {
                         .navigationSplitViewColumnWidth(min: 200, ideal: 240)
                 } detail: {
                     switch selection ?? .overview {
-                    case .overview: OverviewView(selection: $selection)
+                    case .overview: GraphView(selection: $selection)
                     case let other: TabList(item: other).id(other)
                     }
                 }
@@ -187,27 +187,5 @@ private struct AccessView: View {
         }
         .padding(40)
         .frame(maxWidth: .infinity, maxHeight: .infinity)
-    }
-}
-
-/// The overview: the hub layout or the force-directed graph.
-private struct OverviewView: View {
-    @Binding var selection: SidebarItem?
-    @AppStorage("overview.style") private var style = "graph"
-
-    var body: some View {
-        Group {
-            if style == "graph" { GraphView(selection: $selection) } else { NetworkView(selection: $selection) }
-        }
-        .toolbar {
-            ToolbarItem(placement: .principal) {
-                Picker("View", selection: $style) {
-                    Label("Graph", systemImage: "point.3.connected.trianglepath.dotted").tag("graph")
-                    Label("Hubs", systemImage: "circle.hexagongrid").tag("hubs")
-                }
-                .pickerStyle(.segmented)
-                .help("Graph: themes, links and sites as a network. Hubs: one circle per theme.")
-            }
-        }
     }
 }

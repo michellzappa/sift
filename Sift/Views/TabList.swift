@@ -63,7 +63,7 @@ struct TabList: View {
                     ForEach(rows) { tab in
                         TabCard(tab: tab, isSelected: selected == tab.id)
                             .onTapGesture(count: 2) { TabActions.openInSafari(tab.url) }
-                            .onTapGesture { selected = tab.id }
+                            .onTapGesture { selected = tab.id; showInspector = true }
                     }
                 }
                 .padding(16)
@@ -81,12 +81,12 @@ struct TabList: View {
         .inspector(isPresented: $showInspector) {
             Group {
                 if let tab = rows.first(where: { $0.id == selected }) {
-                    PreviewPane(tab: tab)
+                    WebPane(tab: tab)
                 } else {
-                    ContentUnavailableView("Select a tab", systemImage: "sidebar.right", description: Text("Its preview shows here."))
+                    ContentUnavailableView("Select a link", systemImage: "safari", description: Text("It opens here, next to your cards."))
                 }
             }
-            .inspectorColumnWidth(min: 260, ideal: 320, max: 460)
+            .inspectorColumnWidth(min: 380, ideal: 560, max: 900)
         }
         .toolbar { listToolbar }
         .sheet(isPresented: $showShortcutGuide) { ShortcutGuide() }
@@ -134,7 +134,7 @@ struct TabList: View {
                 }
                 .help("Copy this project's links and uses as a Markdown list.")
             }
-            Button { showInspector.toggle() } label: { Label("Preview", systemImage: "sidebar.right") }
+            Button { showInspector.toggle() } label: { Label("Browser", systemImage: "sidebar.right") }
         }
     }
 

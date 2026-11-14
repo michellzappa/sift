@@ -46,6 +46,24 @@ struct GraphView: View {
                 .accessibilityLabel("Back to all themes from \(theme)")
             }
         }
+        .overlay {
+            if model.tabs.isEmpty {
+                ContentUnavailableView("No tabs in this source", systemImage: "safari")
+            } else if model.themes.isEmpty {
+                ContentUnavailableView {
+                    Label("What do you keep coming back to?", systemImage: "point.3.connected.trianglepath.dotted")
+                } description: {
+                    Text("Sift sends your tabs and Reading List to your Claude, which finds the themes in them. You review the themes before anything changes.")
+                } actions: {
+                    Button("Discover Themes") { Task { await model.discoverThemes() } }
+                        .buttonStyle(.borderedProminent)
+                        .disabled(model.isDiscovering)
+                }
+                .background(.background)
+            }
+        }
+        .navigationTitle("Overview")
+        .navigationSubtitle("\(model.tabs.count) links · \(model.themes.count) themes")
         .onAppear { rebuild() }
         .onChange(of: dataKey) { rebuild() }
     }
@@ -143,16 +161,17 @@ struct GraphView: View {
             let p = screen(n.p, center: center)
             let r = n.radius * scale
             let dim = hover != nil && hover != i && !neighbours.contains(i)
-            let title = Text(n.label).font(.system(size: 12, weight: .semibold))
-                .foregroundStyle(dim ? Color.secondary.opacity(0.5) : Color.primary)
-            + Text("  \(n.count)").font(.system(size: 11).monospacedDigit()).foregroundStyle(.secondary)
-            var resolved = ctx.resolve(title)
-            resolved.shading = .color(.primary)
-            let maxWidth = GraphSimulation.labelWidth
-            let size = resolved.measure(in: CGSize(width: maxWidth, height: 60))
-            let box = CGRect(x: p.x - size.width / 2, y: p.y + r + 6, width: size.width, height: size.height)
-            ctx.fill(Path(roundedRect: box.insetBy(dx: -5, dy: -2), cornerRadius: 5), with: .color(Color(nsColor: .textBackgroundColor).opacity(0.85)))
+            let ink = dim ? n.color.opacity(0.35) : n.color
+            let title = Text(n.label).font(.system(size: 12.5, weight: .bold)).foregroundStyle(ink)
+            + Text("  \(n.count)").font(.system(size: 11, weight: .medium).monospacedDigit()).foregroundStyle(ink.opacity(0.7))
+            let size = ctx.resolve(title).measure(in: CGSize(width: GraphSimulation.labelWidth, height: 60))
+            // Centered on the cluster, above the dots, on a soft pill.
+            let box = CGRect(x: p.x - size.width / 2, y: p.y - size.height / 2, width: size.width, height: size.height)
+            let pill = Path(roundedRect: box.insetBy(dx: -7, dy: -3), cornerRadius: (size.height + 6) / 2)
+            ctx.fill(pill, with: .color(Color(nsColor: .textBackgroundColor).opacity(dim ? 0.5 : 0.92)))
+            ctx.stroke(pill, with: .color(n.color.opacity(dim ? 0.15 : 0.5)), lineWidth: 1)
             ctx.draw(title, in: box)
+            _ = r
         }
     }
 
@@ -234,9 +253,23 @@ private struct LinkLevel: View {
 
     var body: some View {
         let tabs = model.tabs(in: theme)
+        let browserWidth = min(max(size.width * 0.46, 420), size.width - 320)
+        HStack(spacing: 0) {
+            ring(tabs, size: picked == nil ? size : CGSize(width: size.width - browserWidth, height: size.height))
+            if let url = picked, let tab = tabs.first(where: { $0.url == url }) {
+                Divider()
+                WebPane(tab: tab) { withAnimation(.snappy) { picked = nil } }
+                    .frame(width: browserWidth)
+                    .transition(.move(edge: .trailing))
+            }
+        }
+        .frame(width: size.width, height: size.height)
+    }
+
+    private func ring(_ tabs: [SafariTab], size: CGSize) -> some View {
         let positions = Self.rings(count: tabs.count, size: size)
         let center = CGPoint(x: size.width / 2, y: size.height / 2)
-        ZStack {
+        return ZStack {
             Canvas { ctx, _ in
                 for p in positions {
                     var path = Path()
@@ -263,7 +296,7 @@ private struct LinkLevel: View {
                         .frame(width: Self.chip.width, height: Self.chip.height)
                         .position(x: center.x + positions[index].x, y: center.y + positions[index].y)
                         .onTapGesture(count: 2) { TabActions.openInSafari(tab.url) }
-                        .onTapGesture { picked = picked == tab.url ? nil : tab.url }
+                        .onTapGesture { withAnimation(.snappy) { picked = picked == tab.url ? nil : tab.url } }
                 }
             }
         }
@@ -282,7 +315,6 @@ private struct LinkLevel: View {
             zoomBase = zoom
         })
         .clipped()
-        .overlay(alignment: .bottom) { pickedCard(tabs) }
     }
 
     /// Positions on rings around the center, sized so chips do not overlap.
@@ -304,42 +336,6 @@ private struct LinkLevel: View {
             ring += 1
         }
         return out
-    }
-
-    @ViewBuilder
-    private func pickedCard(_ tabs: [SafariTab]) -> some View {
-        if let url = picked, let tab = tabs.first(where: { $0.url == url }) {
-            let a = model.assignment(for: tab)
-            let p = model.previews[tab.url]
-            HStack(alignment: .top, spacing: 12) {
-                if let s = p?.imageURL ?? p?.avatarURL, let image = URL(string: s) {
-                    AsyncImage(url: image) { $0.resizable().aspectRatio(contentMode: .fill) } placeholder: { Color.secondary.opacity(0.1) }
-                        .frame(width: 120, height: 80)
-                        .clipShape(RoundedRectangle(cornerRadius: 6))
-                }
-                VStack(alignment: .leading, spacing: 4) {
-                    Text(LinkChip.title(tab, p)).font(.headline).lineLimit(3)
-                    if let use = a?.use, !use.isEmpty { Text(use).font(.callout).foregroundStyle(.tint) }
-                    HStack(spacing: 6) {
-                        Text(tab.host)
-                        if let action = a?.action { Text("·"); Label(action.label, systemImage: action.symbol) }
-                        if let out = p?.outboundURL, let u = URL(string: out) { Text("·"); Text("→ \(u.host() ?? out)") }
-                    }
-                    .font(.caption).foregroundStyle(.secondary)
-                    HStack {
-                        Button("Open in Safari") { TabActions.openInSafari(tab.url) }
-                        if let out = p?.outboundURL { Button("Open Linked Page") { TabActions.openInSafari(out) } }
-                    }
-                    .controlSize(.small)
-                }
-                Spacer(minLength: 0)
-                Button { picked = nil } label: { Image(systemName: "xmark") }.buttonStyle(.borderless)
-            }
-            .padding(12)
-            .frame(maxWidth: 560)
-            .background(.regularMaterial, in: RoundedRectangle(cornerRadius: 12))
-            .padding(16)
-        }
     }
 }
 
@@ -473,7 +469,7 @@ final class GraphSimulation {
                 let d = max(sqrt(dx * dx + dy * dy), 1)
                 // Room for both clusters and their labels underneath.
                 let horizontal = abs(dx) > abs(dy)
-                let reach = { (n: Node) in horizontal ? max(n.radius, Self.labelWidth / 2) : n.radius + 34 }
+                let reach = { (n: Node) in horizontal ? max(n.radius, Self.labelWidth / 2) : max(n.radius, 16) }
                 let minGap = reach(nodes[i]) + reach(nodes[j]) + 18
                 // Strong push inside the gap, soft charge outside it.
                 let f = d < minGap ? (minGap - d) * 0.5 : 2400 / (d * d)
