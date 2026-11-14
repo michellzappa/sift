@@ -312,6 +312,59 @@ final class AppModel {
 
     func archiveRecord(for url: String) -> ArchiveRecord? { archive[url] }
 
+    // MARK: Capture (the library engine, step 1)
+
+    var library: [String: Library.Entry] = Library.loadIndex()
+    var isCapturing = false
+    var captureProgress: (done: Int, total: Int) = (0, 0)
+
+    /// Links worth capturing: everything Sift has seen, minus errands, drop,
+    /// and links captured already (failed ones retry after a week).
+    var linksToCapture: [ArchiveRecord] {
+        archive.values.filter { r in
+            guard r.theme != Project.errands, r.theme != Project.drop, !Errands.isErrand(r.url) else { return false }
+            guard let e = library[r.url] else { return true }
+            return e.status == "failed" && Date().timeIntervalSince(e.captured) > 7 * 24 * 3600
+        }
+    }
+
+    /// Fetches and extracts the text of every link not yet in the library,
+    /// four at a time, and writes it as Markdown. Local only: no Claude.
+    func captureAll() async {
+        guard !isCapturing else { return }
+        let todo = linksToCapture
+        guard !todo.isEmpty else { return }
+        isCapturing = true
+        captureProgress = (0, todo.count)
+        defer { isCapturing = false; Library.saveIndex(library) }
+        // X posts are captured from the text Sift already has.
+        let jobs: [(ArchiveRecord, String?)] = todo.map { r in
+            guard XClient.statusID(r.url) != nil else { return (r, nil) }
+            let text = xPost(for: r.url).map { XPostView.attributed($0).characters.map(String.init).joined() } ?? previews[r.url]?.text
+            return (r, text)
+        }
+        await withTaskGroup(of: (ArchiveRecord, Capture?).self) { group in
+            var iterator = jobs.makeIterator()
+            func next(_ job: (ArchiveRecord, String?)) {
+                let (r, known) = job
+                group.addTask { (r, await Capturer.capture(r.url, knownText: known)) }
+            }
+            for _ in 0..<4 { if let j = iterator.next() { next(j) } }
+            for await (r, capture) in group {
+                if let capture {
+                    library[r.url] = Library.write(capture, title: r.title, theme: r.theme, source: r.source)
+                } else {
+                    library[r.url] = Library.Entry(file: "", captured: .now, words: 0, kind: "page", status: "failed")
+                }
+                captureProgress.done += 1
+                if captureProgress.done % 25 == 0 { Library.saveIndex(library) }
+                if let j = iterator.next() { next(j) }
+            }
+        }
+    }
+
+    var capturedCount: Int { library.values.filter { $0.status != "failed" }.count }
+
     static let allSourcesID = "all-sources"
     private(set) var allSourcesCount = 0
     /// Phone tabs, Reading List, Instagram Saved and X Bookmarks together.

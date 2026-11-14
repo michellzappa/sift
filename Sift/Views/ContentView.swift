@@ -104,6 +104,15 @@ struct ContentView: View {
             .disabled(model.tabsWithoutAction.isEmpty || model.isSorting || model.isDiscovering)
         }
         ToolbarItem(placement: .primaryAction) {
+            Button {
+                Task { await model.captureAll() }
+            } label: {
+                Label("Capture Pages", systemImage: "books.vertical")
+            }
+            .help("Save the readable text of every link into your library on this Mac. No Claude involved.")
+            .disabled(model.isCapturing || model.linksToCapture.isEmpty)
+        }
+        ToolbarItem(placement: .primaryAction) {
             Menu {
                 ForEach(Exporters.all, id: \.id) { exporter in
                     Button(exporter.name) { model.runExport(exporter) }
@@ -205,9 +214,12 @@ private struct UnsortedBanner: View {
 
     var body: some View {
         let count = model.unsortedCount
-        if count > 0 || model.isSorting || model.isDiscovering {
+        if count > 0 || model.isSorting || model.isDiscovering || model.isCapturing {
             HStack(spacing: 10) {
-                if model.isSorting {
+                if model.isCapturing {
+                    ProgressView().controlSize(.small)
+                    Text("Capturing pages into your library: \(model.captureProgress.done) of \(model.captureProgress.total)")
+                } else if model.isSorting {
                     ProgressView().controlSize(.small)
                     Text("Sorting with Claude: \(model.sortProgress.done) of \(model.sortProgress.total)")
                 } else if model.isDiscovering {
@@ -230,7 +242,7 @@ private struct UnsortedBanner: View {
                             .help("Cheaper: Claude puts each link into one of the themes you have.")
                     }
                 }
-                if model.isSorting || model.isDiscovering { Spacer() }
+                if model.isSorting || model.isDiscovering || model.isCapturing { Spacer() }
             }
             .font(.callout)
             .padding(.horizontal, 14).padding(.vertical, 8)

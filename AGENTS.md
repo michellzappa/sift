@@ -60,6 +60,12 @@ project and as an overview network (one hub per project, one dot per tab).
 - Transactional tabs go to the `errands` bucket (`Sorting/Errands.swift`,
   URL rules; Claude's "errand" kind for the rest). They are excluded from
   theme discovery input, themes, the graph and exports. Hand moves win.
+- Engine step 1, capture (2026-11-14): `Sift/Engine/Capture.swift`.
+  `Capturer` fetches each archived link once (4 at a time) and `Readable`
+  extracts the main text with regular expressions (no dependencies); PDFs
+  via PDFKit; X posts from the text Sift has. `Library` writes one Markdown
+  file per link (front matter + text) and `index.json`. Next steps: digests
+  by the user's Claude, theme memory, local search (SQLite FTS5).
 - Exporters are plugins: one file per exporter in `Sift/Export/`, conforming
   to `Exporter`, registered in `Exporters.all`. They read only the
   `ExportSnapshot`: no network, keychain or app state. CONTRIBUTING.md is the

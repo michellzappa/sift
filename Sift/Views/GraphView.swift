@@ -195,8 +195,15 @@ struct GraphView: View {
             let p = screen(n.p, size: size)
             let focused = n.key == focusTheme
             let below = focused ? n.size * dotScale : sim.clusterRadius(i) * cam.scale
+            _ = below
+            // The title sits on the node's center, on a pill so it reads over the dots.
             let text = Text(n.label).font(.system(size: focused ? 15 : 11.5, weight: .semibold)).foregroundStyle(n.color.opacity(blend(1, 0.3, dim)))
-            ctx.draw(text, at: CGPoint(x: p.x, y: p.y + below + 6), anchor: .top)
+            let size = ctx.resolve(text).measure(in: CGSize(width: 400, height: 40))
+            let box = CGRect(x: p.x - size.width / 2, y: p.y - size.height / 2, width: size.width, height: size.height)
+            let pill = Path(roundedRect: box.insetBy(dx: -8, dy: -3), cornerRadius: (size.height + 6) / 2)
+            ctx.fill(pill, with: .color(Color(nsColor: .textBackgroundColor).opacity(blend(0.94, 0.6, dim))))
+            ctx.stroke(pill, with: .color(n.color.opacity(blend(0.45, 0.12, dim))), lineWidth: 1)
+            ctx.draw(text, in: box)
         }
     }
 
