@@ -108,9 +108,10 @@ transcripts), not only the link. Never add a Sift server or account.
   Contents/MacOS) that reads the same file read-only: tools search,
   get_link, list_themes, theme_links. Keep both schemas in step.
   `scripts/build-app.sh` signs sift-mcp before the app.
-- Theme memory (2026-11-14): `Project.notes` (the user's words, sent to
-  Claude when sorting and rediscovering) and `Project.history` (dated lines).
-  Discovery returns `continues` so notes follow a renamed or merged theme.
+- Theme memory (2026-11-14): `Project.history` (dated lines) and
+  `continues` from discovery so history follows a renamed or merged theme.
+  The notes field was removed from the UI at the owner's request;
+  `Project.notes` still decodes and still reaches prompts if set.
 - Connections (2026-11-14): `Sorter.connections` asks, 60 links at a time,
   which other themes a link feeds (`Assignment.also`, max 2; nil = not
   checked). The graph weighs shared links 3x a shared site and draws a dashed

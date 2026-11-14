@@ -1,12 +1,10 @@
 import SwiftUI
 
-/// A theme's memory at the top of its links: what Claude found it to be,
-/// the user's own notes (Claude reads them when it sorts and rediscovers),
-/// and what happened to the theme over time.
+/// A theme's header extras: where its links are sent, and what happened to
+/// the theme over time. (No notes field: the owner removed it, 2026-11-14.)
 struct ThemeMemory: View {
     @Environment(AppModel.self) private var model
     let theme: String
-    @State private var draft = ""
     @State private var showHistory = false
 
     var body: some View {
@@ -30,14 +28,6 @@ struct ThemeMemory: View {
                 }
                 .controlSize(.small)
             }
-            TextField("Your notes on this theme: why it matters, what you want from it", text: $draft, axis: .vertical)
-                .textFieldStyle(.plain)
-                .lineLimit(1...6)
-                .font(.callout)
-                .padding(8)
-                .background(.quaternary.opacity(0.5), in: RoundedRectangle(cornerRadius: 8))
-                .onSubmit { model.setNotes(draft, for: theme) }
-                .onChange(of: draft) { _, new in model.setNotes(new, for: theme) }
             if let history = project?.history, !history.isEmpty {
                 DisclosureGroup("History", isExpanded: $showHistory) {
                     VStack(alignment: .leading, spacing: 2) {
@@ -50,7 +40,5 @@ struct ThemeMemory: View {
                 .font(.caption)
             }
         }
-        .onAppear { draft = project?.notes ?? "" }
-        .onChange(of: theme) { _, _ in draft = model.themes.first { $0.name == theme }?.notes ?? "" }
     }
 }

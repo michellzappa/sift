@@ -276,9 +276,9 @@ parameters) show under Duplicates, with Merge All. Pages that are gone
 keeps what it saved. Each link can carry your own note (right-click > Add
 Note), which search and Claude see. Any search can be saved to the sidebar.
 
-**Theme memory.** Each theme has your own notes (Claude reads them when it
-sorts and rediscovers themes) and a dated history. Notes follow a theme when
-Discover Themes renames or merges it.
+**Theme memory.** Each theme keeps a dated history (found, renamed,
+rediscovered with how many links), and the theme header picks where its
+links are sent.
 
 **Connections.** After sorting, Claude marks links that feed a second
 theme. The graph pulls those themes closer and draws a dashed line from the
