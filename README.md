@@ -24,7 +24,7 @@ The source picker in the toolbar reads, all read-only:
 - **Safari's Reading List.**
 - **Instagram Saved**, from Instagram's data export. In Instagram's Accounts
   Center, open Download your information and ask for JSON (HTML does not
-  work), then choose the zip in Settings > Sorting > Sources.
+  work), then choose the zip in Settings > Inputs.
 - **X Bookmarks**, with the optional X API connection.
 - **Imported files**: File > Import Links File reads Instapaper and Pocket
   CSV, Readwise Reader and Raindrop CSV, Pinboard JSON, and the bookmarks
@@ -122,7 +122,7 @@ bookmarks.
 To connect: create a Native App in the X Developer Console with callback URL
 `http://127.0.0.1:53682/callback` and the scopes `tweet.read`, `users.read`,
 `bookmark.read` and `offline.access`. Paste its Client ID in Settings >
-Sorting > X API and click Connect.
+Inputs > X and click Connect.
 
 ### Closing tabs on the iPhone
 
@@ -213,10 +213,18 @@ and publishes the ZIP and `SHA256SUMS`. It needs these repository secrets:
 
 ## Settings
 
-**Sorting** chooses Claude Code or an API key (`claude-opus-5-5` at low
-effort), sets the X preview options and the X API connection, and lists your
-sources: the Instagram export, imported link files, and whether new links
-are captured automatically.
+**Inputs** lists every source with its status and actions: Safari tabs
+(devices and tab counts, the tab database, Full Disk Access), the Reading
+List, the Instagram export, X (preview options and the optional X API
+connection with Sync Bookmarks), imported link files, and library capture
+(automatic capture, saved, thin and failed counts, Show Library in Finder).
+
+**Outputs** runs each exporter and shows its last folder or file, shows the
+iPhone close list and the Shortcut guide, and explains Add to Reading List
+(Safari asks once for Automation permission).
+
+**Claude** chooses Claude Code or an API key (`claude-opus-5-5` at low
+effort) and stores the key in the keychain.
 
 **Themes** lists your themes. You can rename or delete one, add one by hand,
 or run Discover Themes again.
