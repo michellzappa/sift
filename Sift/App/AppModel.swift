@@ -43,6 +43,12 @@ final class AppModel {
             var everyURL = Set(readingItems.map(\.tab.url))
             everyURL.formUnion(instagram.map(\.tab.url))
             everyURL.formUnion(xBookmarkTabs().map(\.url))
+            importCounts = [:]
+            for source in state.importedSources {
+                let urls = importedItems(source).map(\.tab.url)
+                importCounts[source.id] = urls.count
+                everyURL.formUnion(urls)
+            }
             if let phone = devices.first, let phoneTabs = try? CloudTabsReader.tabs(deviceID: phone.id) {
                 everyURL.formUnion(phoneTabs.map(\.url))
             }
@@ -50,7 +56,7 @@ final class AppModel {
             loadError = nil
             if state.deviceID == nil {
                 state.deviceID = Self.allSourcesID
-            } else if !isAll, !isSavedList, !devices.contains(where: { $0.id == state.deviceID }) {
+            } else if !isAll, !isSavedList, currentImport == nil, !devices.contains(where: { $0.id == state.deviceID }) {
                 // The device with the most tabs is almost always the phone.
                 state.deviceID = devices.first?.id
             }
@@ -69,7 +75,20 @@ final class AppModel {
                 add(reading.map(\.tab), "reading-list")
                 add(instagram.map(\.tab), "instagram")
                 add(xBookmarkTabs(), "x")
+                for source in state.importedSources {
+                    let items = importedItems(source)
+                    for item in items where previews[item.tab.url] == nil {
+                        if let p = item.preview { previews[item.tab.url] = p }
+                    }
+                    add(items.map(\.tab), "import")
+                }
                 tabs = all.sorted { ($0.lastViewed ?? .distantPast) > ($1.lastViewed ?? .distantPast) }
+            } else if let source = currentImport {
+                let items = importedItems(source)
+                tabs = items.map(\.tab)
+                for item in items where previews[item.tab.url] == nil {
+                    if let p = item.preview { previews[item.tab.url] = p }
+                }
             } else if isXBookmarks {
                 tabs = xBookmarkTabs()
             } else if isInstagram {
@@ -237,7 +256,50 @@ final class AppModel {
     var isAll: Bool { state.deviceID == Self.allSourcesID }
 
     /// Sources that are lists, not open tabs: nothing to close on a phone.
-    var isSavedList: Bool { isReadingList || isInstagram || isXBookmarks }
+    var isSavedList: Bool { isReadingList || isInstagram || isXBookmarks || currentImport != nil }
+
+    // MARK: Imported link files
+
+    private(set) var importCounts: [String: Int] = [:]
+    var importError: String?
+
+    var currentImport: LinkImporter.Source? {
+        guard let id = state.deviceID, id.hasPrefix(LinkImporter.sourcePrefix) else { return nil }
+        return state.importedSources.first { LinkImporter.sourcePrefix + $0.id == id }
+    }
+
+    private func importedItems(_ source: LinkImporter.Source) -> [LinkImporter.Item] {
+        (try? LinkImporter.items(at: source.path)) ?? []
+    }
+
+    /// Asks for an export file (CSV, JSON or bookmark HTML), checks that it
+    /// has links, adds it as a source and switches to it.
+    func importLinksFile() {
+        let panel = NSOpenPanel()
+        panel.allowedContentTypes = [.commaSeparatedText, .json, .html, .plainText]
+        panel.allowsMultipleSelection = false
+        panel.prompt = "Import"
+        panel.message = "Choose an export from Instapaper, Pocket, Readwise, Raindrop, Pinboard, or a bookmarks file."
+        guard panel.runModal() == .OK, let url = panel.url else { return }
+        let path = url.path(percentEncoded: false)
+        do {
+            _ = try LinkImporter.items(at: path)
+            let source = LinkImporter.Source(id: UUID().uuidString, name: LinkImporter.suggestedName(for: path), path: path, added: .now)
+            state.importedSources.append(source)
+            importError = nil
+            state.deviceID = LinkImporter.sourcePrefix + source.id
+            reload()
+        } catch {
+            importError = error.localizedDescription
+            sortError = error.localizedDescription
+        }
+    }
+
+    func removeImport(_ source: LinkImporter.Source) {
+        state.importedSources.removeAll { $0.id == source.id }
+        if currentImport == nil, state.deviceID?.hasPrefix(LinkImporter.sourcePrefix) == true { state.deviceID = Self.allSourcesID }
+        reload()
+    }
 
     private(set) var instagramCount = 0
     /// Why the chosen export could not be read, for Settings.
@@ -371,6 +433,11 @@ final class AppModel {
         for item in instagram where previews[item.tab.url] == nil { if let p = item.preview { previews[item.tab.url] = p } }
         add(instagram.map(\.tab))
         add(xBookmarkTabs())
+        for source in state.importedSources {
+            let items = importedItems(source)
+            for item in items where previews[item.tab.url] == nil { if let p = item.preview { previews[item.tab.url] = p } }
+            add(items.map(\.tab))
+        }
         add(tabs)
 
         // Transactional tabs are not curiosity: they skip Claude entirely.

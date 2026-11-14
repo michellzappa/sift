@@ -14,6 +14,8 @@ struct SiftState: Codable, Sendable {
     /// Last folder or file each exporter wrote to, keyed by exporter id.
     var exportTargets: [String: String] = [:]
     /// The Client ID of the user's own X app (not a secret). Empty: X API off.
+    /// Link exports the user imported (Instapaper, Pocket, Pinboard, bookmarks).
+    var importedSources: [LinkImporter.Source] = []
     var xClientID: String = ""
     var xUserID: String?
     var xUsername: String?
@@ -33,6 +35,7 @@ struct SiftState: Codable, Sendable {
         backend = try c.decodeIfPresent(Sorter.Backend.self, forKey: .backend) ?? .claudeCode
         closeQueue = try c.decodeIfPresent([String].self, forKey: .closeQueue) ?? []
         exportTargets = try c.decodeIfPresent([String: String].self, forKey: .exportTargets) ?? [:]
+        importedSources = try c.decodeIfPresent([LinkImporter.Source].self, forKey: .importedSources) ?? []
         xClientID = try c.decodeIfPresent(String.self, forKey: .xClientID) ?? ""
         xUserID = try c.decodeIfPresent(String.self, forKey: .xUserID)
         xUsername = try c.decodeIfPresent(String.self, forKey: .xUsername)

@@ -15,8 +15,10 @@ struct SiftApp: App {
             CommandGroup(after: .newItem) {
                 Button("Reload Tabs") { model.reload() }
                     .keyboardShortcut("r")
-                Button("Import Sorted CSV…") { importCSV() }
+                Button("Import Links File…") { model.importLinksFile() }
                     .keyboardShortcut("i")
+                Button("Import Sorted CSV…") { importCSV() }
+                    .keyboardShortcut("i", modifiers: [.command, .shift])
                 Divider()
                 Menu("Export") {
                     ForEach(Exporters.all, id: \.id) { exporter in

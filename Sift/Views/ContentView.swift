@@ -65,51 +65,42 @@ struct ContentView: View {
                 if model.state.instagramExportPath != nil, model.instagramCount > 0 {
                     Text("Instagram Saved (\(model.instagramCount))").tag(InstagramReader.sourceID)
                 }
+                ForEach(model.state.importedSources) { source in
+                    Text("\(source.name) (\(model.importCounts[source.id] ?? 0))").tag(LinkImporter.sourcePrefix + source.id)
+                }
             }
             .pickerStyle(.menu)
             .disabled(model.devices.isEmpty)
         }
+        // Toolbar items keep one size: their content must not change while
+        // Claude works (AppKit aborts when toolbar layout changes every
+        // frame). Progress shows in the banner instead.
         ToolbarItem(placement: .primaryAction) {
-            if model.isDiscovering {
-                HStack(spacing: 6) {
-                    ProgressView().controlSize(.small)
-                    Text("Finding themes…")
-                }
-            } else {
-                Button {
-                    Task { await model.discoverThemes() }
-                } label: {
-                    Label("Discover Themes", systemImage: "circle.hexagongrid.circle")
-                }
-                .help("Ask Claude to find the themes in all your tabs and Reading List. You review them before anything changes.")
-                .disabled(model.isSorting)
+            Button {
+                Task { await model.discoverThemes() }
+            } label: {
+                Label("Discover Themes", systemImage: "circle.hexagongrid.circle")
             }
+            .help("Ask Claude to find the themes in all your links. You review them before anything changes.")
+            .disabled(model.isSorting || model.isDiscovering)
         }
         ToolbarItem(placement: .primaryAction) {
-            if model.isSorting {
-                HStack(spacing: 6) {
-                    ProgressView().controlSize(.small)
-                    Text("\(model.sortProgress.done)/\(model.sortProgress.total)").monospacedDigit()
-                }
-            } else {
-                Button {
-                    Task { await model.sortUnsorted() }
-                } label: {
-                    Label("Sort \(model.unsortedCount) with Claude", systemImage: "sparkles")
-                }
-                .help(model.themes.isEmpty ? "Discover your themes first." : "Sort unsorted tabs into your themes with Claude.")
-                .disabled(model.unsortedCount == 0 || model.themes.isEmpty)
+            Button {
+                Task { await model.sortUnsorted() }
+            } label: {
+                Label("Sort with Claude", systemImage: "sparkles")
             }
+            .help(model.themes.isEmpty ? "Discover your themes first." : "Sort the links that are in no theme yet into your themes.")
+            .disabled(model.unsortedCount == 0 || model.themes.isEmpty || model.isSorting || model.isDiscovering)
         }
         ToolbarItem(placement: .primaryAction) {
-            if !model.isSorting, !model.tabsWithoutAction.isEmpty {
-                Button {
-                    Task { await model.suggestActions() }
-                } label: {
-                    Label("Suggest Next Actions", systemImage: "arrow.forward.circle")
-                }
-                .help("Ask Claude what to do next with \(model.tabsWithoutAction.count) sorted tabs that have no next action.")
+            Button {
+                Task { await model.suggestActions() }
+            } label: {
+                Label("Suggest Next Actions", systemImage: "arrow.forward.circle")
             }
+            .help("Ask Claude what to do next with sorted links that have no next action.")
+            .disabled(model.tabsWithoutAction.isEmpty || model.isSorting || model.isDiscovering)
         }
         ToolbarItem(placement: .primaryAction) {
             Menu {

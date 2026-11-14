@@ -16,6 +16,7 @@ struct SafariTab: Identifiable, Hashable, Sendable {
         case "reading-list": "eyeglasses"
         case "instagram": "camera"
         case "x": "bookmark"
+        case "import": "tray.and.arrow.down"
         default: "iphone"
         }
     }

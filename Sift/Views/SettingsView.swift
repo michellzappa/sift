@@ -90,6 +90,18 @@ private struct SortingSettings: View {
                         }
                     }
                 }
+                ForEach(model.state.importedSources) { source in
+                    LabeledContent(source.name) {
+                        HStack {
+                            Text("\(model.importCounts[source.id] ?? 0) links · \(URL(filePath: source.path).lastPathComponent)")
+                                .lineLimit(1).truncationMode(.middle)
+                                .foregroundStyle(.secondary)
+                            Button("Remove") { model.removeImport(source) }
+                        }
+                    }
+                }
+                Button("Import Links File…") { model.importLinksFile() }
+                    .help("Instapaper or Pocket CSV, Readwise or Raindrop CSV, Pinboard JSON, or a bookmarks HTML file.")
             } header: {
                 Text("Sources")
             } footer: {

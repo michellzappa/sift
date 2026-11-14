@@ -75,6 +75,15 @@ To connect: create a Native App in the X Developer Console with callback URL
 Sorting > X API and click Connect. Without it, X posts use the free oEmbed
 preview as before.
 
+### Importing from other tools
+
+File > Import Links File (or Settings > Sorting > Sources) turns an export
+from another tool into a source: Instapaper or Pocket CSV, Readwise Reader or
+Raindrop CSV, Pinboard JSON, or the bookmarks HTML that browsers and most
+tools export. Sift finds the URL, title, folder or tags and date columns by
+name, and keeps folders and notes as preview text so Claude can sort them.
+Each file is its own source; pick a newer export to update it.
+
 ### All sources, one set of themes
 
 **All Sources**, at the top of the source picker, shows your phone's tabs,
