@@ -230,19 +230,34 @@ final class AppModel {
         let todo = list.map(\.url).filter { force || previews[$0] == nil }
         guard !todo.isEmpty else { return }
         fetchingPreviews += todo.count
+        let xSyndication = state.xSyndication
         await withTaskGroup(of: (String, Preview).self) { group in
             var iterator = todo.makeIterator()
             for _ in 0..<6 {
                 guard let url = iterator.next() else { break }
-                group.addTask { (url, await PreviewFetcher.fetch(url)) }
+                group.addTask { (url, await PreviewFetcher.fetch(url, xSyndication: xSyndication)) }
             }
             for await (url, preview) in group {
                 previews[url] = preview
                 fetchingPreviews -= 1
-                if let next = iterator.next() { group.addTask { (next, await PreviewFetcher.fetch(next)) } }
+                if let next = iterator.next() { group.addTask { (next, await PreviewFetcher.fetch(next, xSyndication: xSyndication)) } }
             }
         }
         PreviewFetcher.saveCache(previews)
+    }
+
+    /// Turns the X syndication previews on or off. Turning them on drops the
+    /// cached X previews that have no image (oEmbed never returns one) and
+    /// fetches them again for the loaded tabs.
+    func setXSyndication(_ on: Bool) {
+        state.xSyndication = on
+        guard on else { return }
+        let stale = Set(previews.filter { $0.value.site == "x.com" && $0.value.imageURL == nil }.keys)
+        guard !stale.isEmpty else { return }
+        for url in stale { previews[url] = nil }
+        PreviewFetcher.saveCache(previews)
+        let refetch = tabs.filter { stale.contains($0.url) }
+        Task { await fetchPreviews(for: refetch) }
     }
 
     func preview(for tab: SafariTab) async {

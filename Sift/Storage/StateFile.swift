@@ -14,6 +14,9 @@ struct SiftState: Codable, Sendable {
     var backend: Sorter.Backend = .claudeCode
     /// URLs marked to close on the iPhone. Written to iCloud Drive/Sift/close.txt.
     var closeQueue: [String] = []
+    /// Opt-in: X post previews from X's unofficial syndication endpoint, which
+    /// returns images. Off by default because the endpoint can stop working.
+    var xSyndication: Bool = false
 
     init() {}
 
@@ -27,6 +30,7 @@ struct SiftState: Codable, Sendable {
         deviceID = try c.decodeIfPresent(String.self, forKey: .deviceID)
         backend = try c.decodeIfPresent(Sorter.Backend.self, forKey: .backend) ?? .claudeCode
         closeQueue = try c.decodeIfPresent([String].self, forKey: .closeQueue) ?? []
+        xSyndication = try c.decodeIfPresent(Bool.self, forKey: .xSyndication) ?? false
     }
 }
 
