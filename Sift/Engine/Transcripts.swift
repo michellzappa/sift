@@ -36,20 +36,21 @@ enum TranscriptTool {
     static func fetch(_ videoID: String) async -> Outcome {
         guard let exe = executable else { return .none }
         guard await HostGate.shared.admit("transcripts.youtube.com") else { return .throttled }
-        let output: String = await withCheckedContinuation { c in
+        // Read the pipes while the tool writes: a transcript is often larger
+        // than the pipe buffer, and reading only after exit would deadlock.
+        let output: String = await Task.detached {
             let p = Process()
             p.executableURL = exe
             p.arguments = [videoID, "--languages", "en", "pt", "es", "de", "nl", "fr", "it", "--format", "text"]
             let out = Pipe(), err = Pipe()
             p.standardOutput = out
             p.standardError = err
-            p.terminationHandler = { _ in
-                let text = String(decoding: out.fileHandleForReading.readDataToEndOfFile(), as: UTF8.self)
-                let errors = String(decoding: err.fileHandleForReading.readDataToEndOfFile(), as: UTF8.self)
-                c.resume(returning: text + "\n" + errors)
-            }
-            do { try p.run() } catch { c.resume(returning: "") }
-        }
+            do { try p.run() } catch { return "" }
+            let errors = Task.detached { String(decoding: err.fileHandleForReading.readDataToEndOfFile(), as: UTF8.self) }
+            let text = String(decoding: out.fileHandleForReading.readDataToEndOfFile(), as: UTF8.self)
+            p.waitUntilExit()
+            return text + "\n" + (await errors.value)
+        }.value
         let lower = output.lowercased()
         if lower.contains("too many requests") || lower.contains("ipblocked") || lower.contains("requestblocked") || lower.contains("429") {
             await HostGate.shared.pause("transcripts.youtube.com", seconds: 3600)
