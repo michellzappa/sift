@@ -52,6 +52,11 @@ struct SiftState: Codable, Sendable {
     /// the guide (AppModel decides between first run and an existing
     /// install). Set it to [] to see the first run again.
     var onboardingSeen: [String]?
+    /// Apple's on-device model (`LocalModel`), per feature. Used only when the
+    /// model is available on this Mac.
+    var localFirstPass = true
+    var localSorting = true
+    var localSummaries = true
 
     init() {}
 
@@ -82,6 +87,9 @@ struct SiftState: Codable, Sendable {
         xSyndication = try c.decodeIfPresent(Bool.self, forKey: .xSyndication) ?? false
         instagramExportPath = try c.decodeIfPresent(String.self, forKey: .instagramExportPath)
         onboardingSeen = try c.decodeIfPresent([String].self, forKey: .onboardingSeen)
+        localFirstPass = try c.decodeIfPresent(Bool.self, forKey: .localFirstPass) ?? true
+        localSorting = try c.decodeIfPresent(Bool.self, forKey: .localSorting) ?? true
+        localSummaries = try c.decodeIfPresent(Bool.self, forKey: .localSummaries) ?? true
     }
 }
 

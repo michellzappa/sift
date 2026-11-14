@@ -28,8 +28,9 @@ enum Tools {
                 "title": "Search the Sift library",
                 "description": libraryNote + " Full-text search over titles, captured page text, "
                     + "transcripts and theme names. All words must match; when nothing matches, any word may match. "
-                    + "Returns the best hits with title, URL, theme, source, saved date and a text snippet "
-                    + "(matches in **bold**). Use get_link with a URL to read the whole text.",
+                    + "Returns the best hits with title, URL, theme, source, saved date, a one-paragraph summary "
+                    + "when Sift has one, and a text snippet (matches in **bold**). "
+                    + "Use get_link with a URL to read the whole text.",
                 "inputSchema": [
                     "type": "object",
                     "properties": [
@@ -46,7 +47,8 @@ enum Tools {
                 "name": "get_link",
                 "title": "Read one saved link",
                 "description": libraryNote + " Returns one link's metadata (title, theme, related themes, "
-                    + "source, kind, saved date) and the captured page text or transcript as Markdown, "
+                    + "source, kind, saved date), a one-paragraph summary when Sift has one, "
+                    + "and the captured page text or transcript as Markdown, "
                     + "up to 40,000 characters. Pass the URL exactly as search or theme_links returned it.",
                 "inputSchema": [
                     "type": "object",
@@ -122,7 +124,7 @@ enum Tools {
         var sql = """
             SELECT coalesce(links.title, fts.title) AS title, fts.url AS url,
                    coalesce(links.theme, fts.theme) AS theme, links.source AS source, links.saved AS saved,
-                   snippet(fts, 2, '**', '**', ' … ', 24) AS snippet
+                   snippet(fts, 2, '**', '**', ' … ', 24) AS snippet\(summaryColumn(index))
             FROM fts LEFT JOIN links ON links.url = fts.url
             WHERE fts MATCH ?
             """
@@ -150,6 +152,8 @@ enum Tools {
             lines.append("\(number + 1). **\(title(hit))**")
             lines.append("   \(hit["url"] ?? "")")
             lines.append("   " + facts([hit["theme"], hit["source"], day(hit["saved"])]))
+            let summary = oneLine(hit["summary"] ?? "")
+            if !summary.isEmpty { lines.append("   Summary: \(summary)") }
             let snippet = oneLine(hit["snippet"] ?? "")
             if !snippet.isEmpty { lines.append("   \(snippet)") }
         }
@@ -162,7 +166,7 @@ enum Tools {
         let url = string(arguments["url"])
         guard !url.isEmpty else { return Outcome(text: "Give the link's url.", isError: true) }
         let index = try Index()
-        let sql = "SELECT url, title, theme, source, kind, saved, file, also FROM links WHERE url = ? LIMIT 1"
+        let sql = "SELECT url, title, theme, source, kind, saved, file, also\(summaryColumn(index)) FROM links WHERE url = ? LIMIT 1"
         var rows = try index.rows(sql, [url])
         if rows.isEmpty {
             let other = url.hasSuffix("/") ? String(url.dropLast()) : url + "/"
@@ -180,6 +184,8 @@ enum Tools {
         if let kind = link["kind"], !kind.isEmpty { lines.append("- Kind: \(kind)") }
         if let saved = day(link["saved"]) { lines.append("- Saved: \(saved)") }
         lines.append("")
+        let summary = oneLine(link["summary"] ?? "")
+        if !summary.isEmpty { lines += ["Summary: \(summary)", ""] }
 
         let file = link["file"] ?? ""
         guard !file.isEmpty, let body = libraryText(file) else {
@@ -273,6 +279,13 @@ enum Tools {
     }
 
     // MARK: - helpers
+
+    /// ", links.summary AS summary" when the index has the column. An index
+    /// built by an older Sift has none; the tools then leave the summary out.
+    private static func summaryColumn(_ index: Index) -> String {
+        let columns = (try? index.rows("PRAGMA table_info(links)")) ?? []
+        return columns.contains { $0["name"] == "summary" } ? ", links.summary AS summary" : ""
+    }
 
     /// A link is in a theme when it is its main theme or one of its related
     /// themes (`also`, joined by newlines). Case-insensitive. Binds the theme twice.

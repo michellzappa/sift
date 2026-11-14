@@ -115,6 +115,10 @@ struct Assignment: Codable, Hashable, Sendable {
     var action: NextAction?
     /// Other themes this link also feeds. Nil until checked; empty when none.
     var also: [String]? = nil
+    /// Who sorted it: "device" (Apple's on-device model) or "claude". Nil for
+    /// URL rules and links sorted before this was kept. Kept on a hand move,
+    /// so the owner can compare the device's picks with their own.
+    var sortedBy: String? = nil
 }
 
 /// What to do with a link, so a sorted tab can leave the browser.

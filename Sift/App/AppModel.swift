@@ -22,6 +22,8 @@ final class AppModel {
     var loadError: CloudTabsReader.Failure?
 
     var isSorting = false
+    /// True while Apple's on-device model sorts, before Claude gets the rest.
+    var sortingOnDevice = false
     var sortProgress: (done: Int, total: Int) = (0, 0)
     var sortError: String?
 
@@ -346,6 +348,9 @@ final class AppModel {
     var library: [String: Library.Entry] = Library.loadIndex()
     var isCapturing = false
     var captureProgress: (done: Int, total: Int) = (0, 0)
+    /// On-device summaries (see AppModel+LocalModel.swift).
+    var isSummarizing = false
+    var summaryProgress: (done: Int, total: Int) = (0, 0)
 
     /// Links worth capturing: everything Sift has seen, minus errands, drop,
     /// and links captured already (failed ones retry after a week).
@@ -400,6 +405,7 @@ final class AppModel {
                 if let j = iterator.next() { next(j) }
             }
         }
+        Task { await summarizeLibrary() }
     }
 
     static func isPostURL(_ url: String) -> Bool {
@@ -436,6 +442,8 @@ final class AppModel {
         if state.instagramImages, !isFetchingInstagramImages, !instagramPostsWithoutImage.isEmpty { Task { await fetchInstagramImages() } }
         // New links go into the library.
         if state.autoCapture, !isCapturing, !linksToCapture.isEmpty { Task { await captureAll() } }
+        // Saved pages and transcripts get a short summary on this Mac.
+        Task { await summarizeLibrary() }
     }
 
     /// Jobs also restart on their own, every 15 minutes, so a job that
@@ -927,6 +935,7 @@ final class AppModel {
                 var a = s.assignments[url] ?? Assignment(project: name, use: "", manual: false, action: nil)
                 a.project = name
                 a.manual = false
+                a.sortedBy = "claude"
                 if bucket != nil { a.use = "" }
                 s.assignments[url] = a
             }
@@ -976,7 +985,7 @@ final class AppModel {
         let old = state.assignments[tab.url]
         let use = Project.buckets.contains(project) ? "" : (old?.use ?? "")
         let action = old?.action
-        state.assignments[tab.url] = Assignment(project: project, use: use, manual: true, action: action)
+        state.assignments[tab.url] = Assignment(project: project, use: use, manual: true, action: action, sortedBy: old?.sortedBy)
     }
 
     func setUse(_ use: String, for tab: SafariTab) {
@@ -1016,13 +1025,17 @@ final class AppModel {
     /// Sorts every tab that has no assignment yet. Hand-sorted tabs stay as they are.
     func sortUnsorted() async {
         guard !isSorting else { return }
-        let todo = tabs.filter { state.assignments[$0.url] == nil }
-        guard !todo.isEmpty else { return }
+        let all = tabs.filter { state.assignments[$0.url] == nil }
+        guard !all.isEmpty else { return }
 
         isSorting = true
         sortError = nil
-        sortProgress = (0, todo.count)
         defer { isSorting = false }
+        // Apple's on-device model first; Claude gets what it is unsure about.
+        let handled = await sortOnDevice(all.map(sortItem))
+        let todo = all.filter { !handled.contains($0.url) && state.assignments[$0.url] == nil }
+        guard !todo.isEmpty else { Task { await findConnections() }; return }
+        sortProgress = (0, todo.count)
 
         let sorter = Sorter(backend: state.backend)
         let projects = self.projects
@@ -1175,7 +1188,8 @@ final class AppModel {
                 let e = library[r.url]
                 return SearchIndex.Doc(url: r.url, title: r.title, theme: a?.project ?? "", source: r.source,
                                        kind: e?.kind ?? "", saved: r.firstSeen, file: e?.file ?? "",
-                                       also: a?.also ?? [], fallback: r.previewText, note: r.takeaway ?? "")
+                                       also: a?.also ?? [], fallback: r.previewText, note: r.takeaway ?? "",
+                                       summary: e?.summary ?? "")
             }
             let counts = Dictionary(grouping: state.assignments.values, by: \.project).mapValues(\.count)
             let themes = themes.map { SearchIndex.Theme(name: $0.name, summary: $0.summary, notes: $0.notes, memory: $0.memory, links: counts[$0.name] ?? 0) }

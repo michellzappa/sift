@@ -172,6 +172,9 @@ contribute; see [CONTRIBUTING.md](CONTRIBUTING.md).
   theme discovery and sorting, each link's title, URL and short
   preview text, plus your theme names. Never whole pages. Errands never go
   to Claude.
+- **To Apple's on-device model**, which runs on this Mac: the same title,
+  URL and preview for sorting, and saved page text for summaries. Nothing
+  leaves the Mac.
 - **To each site**, once: a request for its page, for the preview and the
   library. X posts go to X's oEmbed endpoint, and to its embed data or API
   only if you turn those on.
@@ -187,6 +190,8 @@ contribute; see [CONTRIBUTING.md](CONTRIBUTING.md).
   default; Sift runs `claude -p` with tools, MCP servers and settings turned
   off), or an Anthropic API key in your keychain
 - Optional: iCloud Tabs on, for tabs from other devices
+- Optional: macOS 26 or later with Apple Intelligence on, for sorting and
+  summaries on this Mac
 
 ## Install
 
@@ -286,6 +291,17 @@ iPhone close list and the Shortcut guide, and explains Add to Reading List
 **Claude** chooses Claude Code or an API key (`claude-opus-5-5` at low
 effort) and stores the key in the keychain.
 
+**On this Mac.** On macOS 26 or later with Apple Intelligence on, Apple's
+on-device model does part of Claude's work, for free and offline. When you
+sort, it looks at each new link first. Errands and noise it is sure about go
+straight to their buckets, and a link that clearly fits one of your themes
+goes there. Claude sorts the rest. After a page or transcript is saved, the
+model writes a one-paragraph summary into the library file and the search
+index, and `sift-mcp` returns it. Summaries run one at a time, newest first,
+and wait while the Mac runs on battery. Settings > Claude > On this Mac has a
+switch for each feature, says whether the model is available, and counts the
+links each model sorted. On older Macs, Claude does all of it as before.
+
 **Themes** lists your themes. You can rename or delete one, add one by hand,
 or run Discover Themes again.
 
@@ -301,6 +317,7 @@ About 5,500 lines of SwiftUI. No dependencies.
 | `Storage/Archive` | Every link Sift has seen, and what it knows about it |
 | `Storage/StateFile` | Settings, themes and assignments, as one JSON file |
 | `Engine/Capture` | Page capture, text extraction and the Markdown library |
+| `Engine/LocalModel` | Apple's on-device model: first pass, theme picks and summaries |
 | `Send/*` | Destinations: Starlings (OAuth + MCP), Obsidian, Markdown, Reading List |
 | `Sorting/Sorter` | Theme discovery and sorting through `claude -p` or the Messages API |
 | `Sorting/Errands` | Rules for transactional tabs |

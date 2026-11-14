@@ -393,6 +393,7 @@ private struct ClaudeSettings: View {
                 Text("Sift sends the title, URL and preview text of each unsorted tab, and your project names and descriptions, to Claude. The key stays in your login keychain.")
                     .foregroundStyle(.secondary)
             }
+            OnDeviceSection()
             Section {
                 Toggle("Find links that feed two themes", isOn: $model.state.findConnections)
                 if model.isConnecting {

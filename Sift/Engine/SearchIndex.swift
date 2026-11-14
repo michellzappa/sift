@@ -7,7 +7,8 @@ import SQLite3
 /// ~/Library/Application Support/Sift/search.sqlite
 ///
 /// The `sift-mcp` tool inside Sift.app reads the same file, read-only, so
-/// Claude can search the library. Keep the schema in step with SiftMCP.
+/// Claude can search the library. Keep the schema in step with SiftMCP
+/// (`links.summary` is read by its `search` and `get_link`).
 enum SearchIndex {
     static var url: URL { StateFile.url.deletingLastPathComponent().appending(path: "search.sqlite") }
 
@@ -21,6 +22,8 @@ enum SearchIndex {
         let fallback: String
         /// The user's own note on the link.
         let note: String
+        /// The on-device summary, or "".
+        var summary: String = ""
     }
 
     struct Theme: Sendable {
@@ -43,21 +46,21 @@ enum SearchIndex {
         defer { sqlite3_close(db) }
         let schema = """
             PRAGMA journal_mode=OFF;
-            CREATE TABLE links(url TEXT PRIMARY KEY, title TEXT, theme TEXT, source TEXT, kind TEXT, saved TEXT, file TEXT, also TEXT);
-            CREATE VIRTUAL TABLE fts USING fts5(url UNINDEXED, title, body, theme, tokenize='unicode61 remove_diacritics 2');
+            CREATE TABLE links(url TEXT PRIMARY KEY, title TEXT, theme TEXT, source TEXT, kind TEXT, saved TEXT, file TEXT, also TEXT, summary TEXT);
+            CREATE VIRTUAL TABLE fts USING fts5(url UNINDEXED, title, body, theme, summary, tokenize='unicode61 remove_diacritics 2');
             CREATE TABLE themes(name TEXT PRIMARY KEY, summary TEXT, notes TEXT, memory TEXT, links INTEGER);
             CREATE TABLE meta(key TEXT PRIMARY KEY, value TEXT);
             BEGIN;
             """
         guard sqlite3_exec(db, schema, nil, nil, nil) == SQLITE_OK else { return }
         let iso = ISO8601DateFormatter()
-        let link = prepare(db, "INSERT OR REPLACE INTO links VALUES (?,?,?,?,?,?,?,?)")
-        let fts = prepare(db, "INSERT INTO fts VALUES (?,?,?,?)")
+        let link = prepare(db, "INSERT OR REPLACE INTO links VALUES (?,?,?,?,?,?,?,?,?)")
+        let fts = prepare(db, "INSERT INTO fts VALUES (?,?,?,?,?)")
         for d in docs {
             let text = d.file.isEmpty ? d.fallback : (Library.text(for: d.url) ?? d.fallback)
             let body = d.note.isEmpty ? text : "Note: \(d.note)\n\n\(text)"
-            run(link, [d.url, d.title, d.theme, d.source, d.kind, iso.string(from: d.saved), d.file, d.also.joined(separator: "\n")])
-            run(fts, [d.url, d.title, body, ([d.theme] + d.also).joined(separator: " ")])
+            run(link, [d.url, d.title, d.theme, d.source, d.kind, iso.string(from: d.saved), d.file, d.also.joined(separator: "\n"), d.summary])
+            run(fts, [d.url, d.title, body, ([d.theme] + d.also).joined(separator: " "), d.summary])
         }
         sqlite3_finalize(link)
         sqlite3_finalize(fts)
