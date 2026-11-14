@@ -92,20 +92,45 @@ enum ReelSpeech {
         request.shouldReportPartialResults = false
         request.addsPunctuation = true
         if recognizer.supportsOnDeviceRecognition { request.requiresOnDeviceRecognition = true }
+        // Recognition can end without a final result or an error (no speech,
+        // a stalled service). A deadline makes sure the queue moves on.
+        let seconds = await Self.duration(of: file)
+        let deadline = max(90, seconds * 3)
+        let once = Once<String?>()
         return await withCheckedContinuation { (c: CheckedContinuation<String?, Never>) in
-            var done = false
-            var task: SFSpeechRecognitionTask?
-            task = recognizer.recognitionTask(with: request) { result, error in
-                guard !done else { return }
+            let task = recognizer.recognitionTask(with: request) { result, error in
                 if let result, result.isFinal {
-                    done = true
-                    c.resume(returning: result.bestTranscription.formattedString)
+                    once.run { c.resume(returning: result.bestTranscription.formattedString) }
                 } else if error != nil {
-                    done = true
+                    once.run { c.resume(returning: nil) }
+                }
+            }
+            DispatchQueue.main.asyncAfter(deadline: .now() + deadline) {
+                once.run {
+                    task.cancel()
                     c.resume(returning: nil)
                 }
             }
-            _ = task
         }
+    }
+
+    static func duration(of file: URL) async -> Double {
+        guard let time = try? await AVURLAsset(url: file).load(.duration) else { return 60 }
+        let s = time.seconds
+        return s.isFinite && s > 0 ? s : 60
+    }
+}
+
+/// Runs a closure at most once, from any thread.
+final class Once<T>: @unchecked Sendable {
+    private let lock = NSLock()
+    private var done = false
+
+    func run(_ body: () -> Void) {
+        lock.lock()
+        defer { lock.unlock() }
+        guard !done else { return }
+        done = true
+        body()
     }
 }

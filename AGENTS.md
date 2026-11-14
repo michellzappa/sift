@@ -86,6 +86,13 @@ transcripts), not only the link. Never add a Sift server or account.
   language) makes the text; the audio is deleted. Appended under
   "## Transcript". Never pass browser cookies to yt-dlp: it risks the
   owner's Instagram account.
+- Background library jobs (2026-11-14): `startLibraryJobs()` runs on
+  reload and every 15 minutes. A refusal (YouTube IP block, Instagram rate
+  limit) sets `state.blockedUntil[job]` with a doubling wait (1 h to 24 h)
+  that survives relaunches; never retry a blocked service on launch. Speech
+  recognition has a deadline (3x the audio length, at least 90 s) so one
+  silent reel cannot stall the queue. Pass "--" before a YouTube id: ids
+  can start with "-".
 - Capture paces requests per site (`HostGate`: 4 s for YouTube, Instagram
   and X, 1 s elsewhere) and skips a site for an hour after 429/503. Never
   fetch one site in parallel bursts: YouTube rate-limited the owner's IP.

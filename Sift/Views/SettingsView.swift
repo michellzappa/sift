@@ -155,6 +155,10 @@ private struct LibrarySettings: View {
             Section {
                 Toggle("Save YouTube transcripts", isOn: $model.state.youtubeTranscripts)
                 LabeledContent("Transcripts", value: TranscriptTool.executable == nil ? "Tool not installed" : "\(model.transcriptCount) saved")
+                if let until = model.state.blockedUntil["youtube"], until > .now {
+                    Text("YouTube is refusing requests from this network for now. Sift tries again at \(until.formatted(date: .omitted, time: .shortened)).")
+                        .font(.caption).foregroundStyle(.secondary)
+                }
                 if model.isTranscribing {
                     ProgressView(value: Double(model.transcriptProgress.done), total: Double(max(model.transcriptProgress.total, 1))) {
                         Text("Fetching \(model.transcriptProgress.done) of \(model.transcriptProgress.total)").font(.caption)
@@ -183,6 +187,10 @@ private struct LibrarySettings: View {
                 }
                 Toggle("Save what reels say", isOn: $model.state.reelTranscripts)
                 LabeledContent("Reel transcripts", value: ReelTool.executable == nil ? "Tool not installed" : "\(model.reelTranscriptCount) of \(model.reelCount) reels")
+                if let until = model.state.blockedUntil["reels"], until > .now {
+                    Text("Instagram is refusing requests from this network for now. Sift tries again at \(until.formatted(date: .omitted, time: .shortened)).")
+                        .font(.caption).foregroundStyle(.secondary)
+                }
                 if model.isTranscribingReels {
                     ProgressView(value: Double(model.reelProgress.done), total: Double(max(model.reelProgress.total, 1))) {
                         Text("Transcribing \(model.reelProgress.done) of \(model.reelProgress.total)").font(.caption)

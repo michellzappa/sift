@@ -41,7 +41,8 @@ enum TranscriptTool {
         let output: String = await Task.detached {
             let p = Process()
             p.executableURL = exe
-            p.arguments = [videoID, "--languages", "en", "pt", "es", "de", "nl", "fr", "it", "--format", "text"]
+            // "--" before the id: ids that start with "-" are not options.
+            p.arguments = ["--languages", "en", "pt", "es", "de", "nl", "fr", "it", "--format", "text", "--", videoID]
             let out = Pipe(), err = Pipe()
             p.standardOutput = out
             p.standardError = err
@@ -52,8 +53,8 @@ enum TranscriptTool {
             return text + "\n" + (await errors.value)
         }.value
         let lower = output.lowercased()
-        if lower.contains("too many requests") || lower.contains("ipblocked") || lower.contains("requestblocked") || lower.contains("429") {
-            await HostGate.shared.pause("transcripts.youtube.com", seconds: 3600)
+        if lower.contains("too many requests") || lower.contains("ipblocked") || lower.contains("requestblocked")
+            || lower.contains("blocking requests from your ip") || lower.contains("429") {
             return .throttled
         }
         if lower.contains("could not retrieve a transcript") || lower.contains("transcriptsdisabled") || lower.contains("notranscriptfound") {

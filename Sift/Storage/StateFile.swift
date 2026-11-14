@@ -36,6 +36,10 @@ struct SiftState: Codable, Sendable {
     var sent: [String: [SentRecord]] = [:]
     /// A sent Safari tab goes on the iPhone close list.
     var closeAfterSend = true
+    /// Background jobs a service refused (youtube, reels): when to try again.
+    var blockedUntil: [String: Date] = [:]
+    /// The current wait per job, in hours; it doubles on each refusal.
+    var backoffHours: [String: Double] = [:]
     var xClientID: String = ""
     var xUserID: String?
     var xUsername: String?
@@ -70,6 +74,8 @@ struct SiftState: Codable, Sendable {
         destinations = try c.decodeIfPresent([Destination].self, forKey: .destinations) ?? []
         sent = try c.decodeIfPresent([String: [SentRecord]].self, forKey: .sent) ?? [:]
         closeAfterSend = try c.decodeIfPresent(Bool.self, forKey: .closeAfterSend) ?? true
+        blockedUntil = try c.decodeIfPresent([String: Date].self, forKey: .blockedUntil) ?? [:]
+        backoffHours = try c.decodeIfPresent([String: Double].self, forKey: .backoffHours) ?? [:]
         xClientID = try c.decodeIfPresent(String.self, forKey: .xClientID) ?? ""
         xUserID = try c.decodeIfPresent(String.self, forKey: .xUserID)
         xUsername = try c.decodeIfPresent(String.self, forKey: .xUsername)
