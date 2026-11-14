@@ -307,14 +307,12 @@ struct GraphView: View {
         "\(model.tabs.count)-\(model.state.assignments.count)-\(model.themes.map(\.name).joined())"
     }
 
-    /// Links in no theme yet form their own grey cluster, so the graph is
-    /// never empty: you always see your data, sorted or not.
+    /// Key of the old unsorted cluster; the graph no longer shows it.
     static let unsortedKey = "Not in a Theme Yet"
 
     private var themeNames: [String] {
-        var names = model.projects.map(\.name).filter { model.count($0) > 0 }
-        if model.unsortedCount > 0 { names.append(Self.unsortedKey) }
-        return names
+        // Links in no theme yet stay off the graph: they show under Unsorted.
+        model.projects.map(\.name).filter { model.count($0) > 0 }
     }
 
     /// The links behind a cluster; the unsorted cluster holds unsorted links.

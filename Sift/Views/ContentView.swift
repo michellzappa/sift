@@ -278,7 +278,7 @@ private struct UnsortedBanner: View {
                         Button("Discover Themes") { Task { await model.discoverThemes() } }
                             .buttonStyle(.borderedProminent)
                     } else {
-                        Text("\(count) link\(count == 1 ? " is" : "s are") not in a theme yet (the grey cluster).")
+                        Text("\(count) link\(count == 1 ? " is" : "s are") not in a theme yet. They are under Unsorted, not on the graph.")
                         Spacer()
                         Button("Discover Themes Again") { Task { await model.discoverThemes() } }
                             .buttonStyle(.borderedProminent)
