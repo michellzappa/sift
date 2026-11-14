@@ -77,6 +77,18 @@ struct Project: Identifiable, Hashable, Codable, Sendable {
     /// Transactional tabs: open for a task, not out of curiosity. See `Errands`.
     static let errands = "errands"
     static let buckets = [errands, personal, drop, unknown]
+
+    /// How a theme or bucket is shown. The "drop" bucket is what Claude calls
+    /// noise, so it shows as Noise.
+    static func displayName(_ name: String) -> String {
+        switch name {
+        case drop: "Noise"
+        case errands: "Errands"
+        case personal: "Personal"
+        case unknown: "Unknown"
+        default: name
+        }
+    }
 }
 
 /// Where a tab was sorted, and why it may matter there.

@@ -678,7 +678,7 @@ final class AppModel {
         for tab in tabs { if let p = state.assignments[tab.url]?.project { counts[p, default: 0] += 1 } }
         return counts.filter { !Project.buckets.contains($0.key) }
             .map { ($0.key, $0.value) }
-            .sorted { $0.1 == $1.1 ? $0.0 < $1.0 : $0.1 > $1.1 }
+            .sorted { $0.0.localizedStandardCompare($1.0) == .orderedAscending }
     }
 
     func move(_ tab: SafariTab, to project: String) {

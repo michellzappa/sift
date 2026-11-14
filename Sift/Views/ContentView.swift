@@ -178,7 +178,7 @@ private struct Sidebar: View {
             }
             Section("Outside your themes") {
                 ForEach(Project.buckets, id: \.self) { bucket in
-                    HStack { Text(bucket); Spacer(); count(model.count(bucket)) }
+                    HStack { Text(Project.displayName(bucket)); Spacer(); count(model.count(bucket)) }
                         .tag(SidebarItem.project(bucket))
                 }
             }

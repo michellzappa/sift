@@ -23,7 +23,7 @@ struct TabList: View {
         case .unsorted: "Unsorted"
         case .closeQueue: "To close on iPhone"
         case .archive: "Archive"
-        case .project(let p): p
+        case .project(let p): Project.displayName(p)
         case .site(let host): host
         case .action(let a): "Next: \(a.label)"
         }
@@ -249,7 +249,7 @@ struct TabCard: View {
                         .help(a?.action?.meaning ?? "Choose what to do with this link next.")
                         Spacer(minLength: 0)
                         if showTheme {
-                            Menu { moveMenu } label: { Text(a?.project ?? "Move to…").lineLimit(1) }
+                            Menu { moveMenu } label: { Text(a.map { Project.displayName($0.project) } ?? "Move to…").lineLimit(1) }
                                 .menuStyle(.button)
                                 .buttonStyle(.borderless)
                                 .controlSize(.small)
@@ -288,7 +288,7 @@ struct TabCard: View {
                 Button(closing ? "Keep Open on iPhone" : "Close on iPhone") { model.toggleClose(tab) }
             }
             Menu("Move to") { moveMenu }
-            Button("Drop") { model.move(tab, to: Project.drop) }
+            Button("Mark as Noise") { model.move(tab, to: Project.drop) }
         }
         .popover(isPresented: $editingUse) {
             VStack(alignment: .leading) {
@@ -380,7 +380,7 @@ struct TabCard: View {
         }
         Divider()
         ForEach(Project.buckets, id: \.self) { b in
-            Button(b) { model.move(tab, to: b) }
+            Button(Project.displayName(b)) { model.move(tab, to: b) }
         }
     }
 
