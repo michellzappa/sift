@@ -59,7 +59,7 @@ struct TabList: View {
         VStack(spacing: 0) {
             if item == .closeQueue { closeHeader }
             ScrollView {
-                LazyVGrid(columns: [GridItem(.adaptive(minimum: 250, maximum: 360), spacing: 14)], spacing: 14) {
+                LazyVGrid(columns: [TabCard.column], spacing: 14) {
                     ForEach(rows) { tab in
                         TabCard(tab: tab, isSelected: selected == tab.id)
                             .onTapGesture(count: 2) { TabActions.openInSafari(tab.url) }
@@ -165,6 +165,11 @@ struct TabList: View {
 /// One tab as a card: preview image, title, text, use, footer.
 /// The card fetches its own preview when it scrolls into view.
 struct TabCard: View {
+    /// One fixed card width everywhere. When the browser opens, rows hold
+    /// fewer cards; the cards themselves keep their size.
+    static let width: CGFloat = 290
+    static let column = GridItem(.adaptive(minimum: width, maximum: width), spacing: 14)
+
     @Environment(AppModel.self) private var model
     let tab: SafariTab
     let isSelected: Bool

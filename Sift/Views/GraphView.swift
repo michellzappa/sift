@@ -210,7 +210,7 @@ struct GraphView: View {
         let color = sim.nodes[node].color
         let summary = model.projects.first(where: { $0.name == theme })?.summary ?? ""
         let fade = min(1.0, max(0.0, Double(cam.scale - 1.1) / 0.6))
-        let columns = [GridItem(.adaptive(minimum: 250, maximum: 340), spacing: 14)]
+        let columns = [TabCard.column]
         return ScrollView {
             VStack(alignment: .leading, spacing: 14) {
                 VStack(alignment: .leading, spacing: 4) {
