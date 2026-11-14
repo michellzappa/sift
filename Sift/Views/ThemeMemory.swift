@@ -19,7 +19,6 @@ struct ThemeHeader: View {
                 HStack(alignment: .center) {
                     Text(theme).font(.title3.weight(.semibold)).foregroundStyle(color)
                     Spacer(minLength: 8)
-                    LinkStyleToggle()
                 }
                 if let summary = project?.summary, !summary.isEmpty {
                     Text(summary).font(.callout).foregroundStyle(.secondary).fixedSize(horizontal: false, vertical: true)

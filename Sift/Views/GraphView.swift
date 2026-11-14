@@ -19,7 +19,6 @@ struct GraphView: View {
     @State private var picked: String?
     @State private var hover: Int?
     @State private var redraw = 0
-    @AppStorage("links.style") private var linkStyle: LinkStyle = .list
     /// Where the sidebar was before a theme was focused.
     @State private var returnTo: SidebarItem?
     /// A link to another theme it also feeds: leaf index, theme hub index.
@@ -36,7 +35,6 @@ struct GraphView: View {
             // card grid underneath keep their size and position.
             ZStack(alignment: .trailing) {
                 canvas(size: geo.size)
-                    .onChange(of: linkStyle) { if let t = focusTheme { focus(t, size: geo.size) } }
                     .frame(width: geo.size.width, height: geo.size.height)
                     .clipped()
                 if let url = picked, let tab = model.tabs.first(where: { $0.url == url }) ?? model.archivedTabs.first(where: { $0.url == url }) {
@@ -148,7 +146,7 @@ struct GraphView: View {
         guard let i = nodeIndex(theme) else { return }
         let target: CGFloat = 1.8
         let p = sim.nodes[i].p
-        let shift = linkStyle == .list ? Self.panelWidth(size) / 2 : 0
+        let shift = Self.panelWidth(size) / 2
         cam.animate(to: CGSize(width: -p.x * target + shift, height: -p.y * target), scale: target)
         withAnimation(.easeOut(duration: 0.3)) { focusTheme = theme }
         redraw += 1
@@ -194,10 +192,8 @@ struct GraphView: View {
         func blend(_ normal: Double, _ dimmed: Double, _ isDim: Bool) -> Double { isDim ? normal + (dimmed - normal) * f : normal }
         let dotScale = max(0.7, min(cam.scale, 2.2))
         // Focused: the theme's own links are drawn as cards, not dots.
-        // In the list layout the cluster stays visible beside the list.
-        let hidden: (GraphSimulation.Node) -> Bool = { n in
-            linkStyle == .grid && focusTheme != nil && n.theme == focusTheme && n.kind != .theme
-        }
+        // The cluster stays visible beside the list, so nothing is hidden.
+        let hidden: (GraphSimulation.Node) -> Bool = { _ in false }
 
         for e in sim.edges {
             let a = sim.nodes[e.a], b = sim.nodes[e.b]
@@ -264,7 +260,7 @@ struct GraphView: View {
 
     @ViewBuilder
     private func chips(theme: String, node: Int, size: CGSize) -> some View {
-        if linkStyle == .list { panel(theme: theme, node: node, size: size) } else { grid(theme: theme, node: node, size: size) }
+        panel(theme: theme, node: node, size: size)
     }
 
     /// The theme's links as a list in a panel on the left; the cluster stays
@@ -295,33 +291,9 @@ struct GraphView: View {
         .opacity(fade)
     }
 
-    private func grid(theme: String, node: Int, size: CGSize) -> some View {
-        let tabs = links(in: theme)
-        let color = sim.nodes[node].color
-        let fade = min(1.0, max(0.0, Double(cam.scale - 1.1) / 0.6))
-        let columns = [TabCard.column]
-        return ScrollView {
-            VStack(alignment: .leading, spacing: 14) {
-                ThemeHeader(theme: theme, color: color, count: tabs.count)
-                    .frame(maxWidth: 720, alignment: .leading)
-                LazyVGrid(columns: columns, spacing: 14) {
-                    ForEach(tabs) { tab in chipCell(tab, color: color) }
-                }
-            }
-            .padding(.horizontal, 28)
-            .padding(.top, 56)
-            .padding(.bottom, 28)
-            .frame(maxWidth: 1180)
-            .frame(maxWidth: .infinity)
-        }
-        .frame(width: size.width, height: size.height)
-        .background(.ultraThinMaterial.opacity(0.85))
-        .opacity(fade)
-    }
-
     /// The same card the lists use: image, full title, summary, use, action.
     private func chipCell(_ tab: SafariTab, color: Color) -> some View {
-        TabCard(tab: tab, isSelected: picked == tab.url, showTheme: false, style: linkStyle)
+        TabCard(tab: tab, isSelected: picked == tab.url, showTheme: false)
             .onTapGesture(count: 2) { TabActions.openInSafari(tab.url) }
             .onTapGesture { withAnimation(.snappy) { picked = picked == tab.url ? nil : tab.url } }
     }

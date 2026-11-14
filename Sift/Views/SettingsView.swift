@@ -6,7 +6,7 @@ struct SettingsView: View {
             InputSettings().tabItem { Label("Inputs", systemImage: "tray.and.arrow.down") }
             LibrarySettings().tabItem { Label("Library", systemImage: "books.vertical") }
             OutputSettings().tabItem { Label("Outputs", systemImage: "tray.and.arrow.up") }
-            ClaudeSettings().tabItem { Label("Claude", systemImage: "sparkles") }
+            ClaudeSettings().tabItem { Label("Intelligence", systemImage: "sparkles") }
             ThemeSettings().tabItem { Label("Themes", systemImage: "circle.hexagongrid") }
         }
         .frame(width: 620, height: 560)

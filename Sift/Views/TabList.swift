@@ -13,7 +13,6 @@ struct TabList: View {
     @State private var siteFilter: String?
     /// A saved search's links, loaded from the search index.
     @State private var savedHits: [SafariTab] = []
-    @AppStorage("links.style") private var style: LinkStyle = .list
     /// Full-text matches for the filter: url to snippet, from the search index.
     @State private var textHits: [String: String] = [:]
 
@@ -80,24 +79,17 @@ struct TabList: View {
                         .frame(maxWidth: .infinity, alignment: .leading)
                         .padding([.horizontal, .top], 16)
                 }
-                if style == .list {
-                    LazyVStack(spacing: 2) {
-                        ForEach(rows) { tab in
-                            cell(tab).id(tab.id)
-                        }
+                LazyVStack(spacing: 2) {
+                    ForEach(rows) { tab in
+                        cell(tab).id(tab.id)
                     }
-                    .padding(.horizontal, 10)
-                    .padding(.vertical, 8)
-                    // Rows stay clear of the browser pane, so none hides under it.
-                    .padding(.trailing, showInspector ? BrowserOverlay.width(for: listWidth) : 0)
-                } else {
-                    LazyVGrid(columns: [TabCard.column], spacing: 14) {
-                        ForEach(rows) { tab in cell(tab) }
-                    }
-                    .padding(16)
                 }
+                .padding(.horizontal, 10)
+                .padding(.vertical, 8)
+                // Rows stay clear of the browser pane, so none hides under it.
+                .padding(.trailing, showInspector ? BrowserOverlay.width(for: listWidth) : 0)
             }
-            .background(style == .list ? Color(nsColor: .textBackgroundColor) : Color(nsColor: .underPageBackgroundColor))
+            .background(Color(nsColor: .textBackgroundColor))
             .background(GeometryReader { g in Color.clear.onAppear { listWidth = g.size.width }.onChange(of: g.size.width) { _, w in listWidth = w } })
             .scrollPosition(id: $scrolledTo, anchor: .center)
             // Keyboard: arrows move, space opens or closes the browser.
@@ -152,7 +144,6 @@ struct TabList: View {
 
     @ToolbarContentBuilder
     private var listToolbar: some ToolbarContent {
-        ToolbarItem { LinkStyleToggle() }
         ToolbarItem {
             Button { model.saveSearch(search) } label: { Label("Save Search", systemImage: "bookmark") }
                 .disabled(search.count < 2 || model.state.savedSearches.contains(search))
@@ -223,7 +214,7 @@ struct TabList: View {
     @State private var scrolledTo: String?
 
     private func cell(_ tab: SafariTab) -> some View {
-        TabCard(tab: tab, isSelected: selected == tab.id, showTheme: project == nil || Project.buckets.contains(project ?? ""), style: style)
+        TabCard(tab: tab, isSelected: selected == tab.id, showTheme: project == nil || Project.buckets.contains(project ?? ""))
             .onTapGesture(count: 2) { TabActions.openInSafari(tab.url) }
             .onTapGesture { withAnimation(.snappy) { selected = tab.id; showInspector = true } }
     }
@@ -253,27 +244,7 @@ struct TabList: View {
     }
 }
 
-/// How lists show links: rows (the default) or cards.
-enum LinkStyle: String {
-    case list, grid
-}
-
-/// List or grid, remembered for every list and the graph's theme view.
-struct LinkStyleToggle: View {
-    @AppStorage("links.style") private var style: LinkStyle = .list
-
-    var body: some View {
-        Picker("Layout", selection: $style) {
-            Image(systemName: "list.bullet").tag(LinkStyle.list).help("List")
-            Image(systemName: "square.grid.2x2").tag(LinkStyle.grid).help("Grid")
-        }
-        .pickerStyle(.segmented)
-        .labelsHidden()
-        .fixedSize()
-    }
-}
-
-/// One tab as a row or a card: preview image, title, text, theme, action.
+/// One link as a row: thumbnail, title, meta line, theme, send.
 /// The card fetches its own preview when it scrolls into view.
 struct TabCard: View {
     /// One fixed card width everywhere. When the browser opens, rows hold
@@ -286,8 +257,6 @@ struct TabCard: View {
     let isSelected: Bool
     /// Off inside a theme's own list, where the theme would repeat on every card.
     var showTheme = true
-    /// A row in the list, or a card in the grid.
-    var style: LinkStyle = .list
     @State private var hovering = false
     @State private var editingNote = false
     @State private var noteDraft = ""
@@ -299,7 +268,7 @@ struct TabCard: View {
         let preview = model.previews[tab.url]
         let closing = model.isQueuedToClose(tab)
         Group {
-            if style == .list { row(a, preview, closing) } else { card(a, preview, closing) }
+            row(a, preview, closing)
         }
         .contentShape(Rectangle())
         .task(id: tab.url) { await model.preview(for: tab) }
@@ -461,138 +430,6 @@ struct TabCard: View {
                 }
             }
         }
-    }
-
-    // MARK: Card
-
-    private func card(_ a: Assignment?, _ preview: Preview?, _ closing: Bool) -> some View {
-        VStack(alignment: .leading, spacing: 0) {
-            header(preview)
-            VStack(alignment: .leading, spacing: 8) {
-                // Source line: where it is from and when, one quiet line.
-                HStack(spacing: 5) {
-                    if model.isAll { Image(systemName: tab.sourceSymbol).help("From \(tab.source)") }
-                    Text(tab.host).lineLimit(1).truncationMode(.middle)
-                    if let d = tab.lastViewed {
-                        Text("·")
-                        // The year shows when it is not this year.
-                        Text(d, format: Self.dateFormat(d)).fixedSize()
-                    }
-                    Spacer(minLength: 0)
-                    if a?.manual == true { Image(systemName: "hand.point.up.left").help("Sorted by hand") }
-                    if closing { Image(systemName: "xmark.square").help("Closes on iPhone") }
-                }
-                .font(.caption).foregroundStyle(.secondary)
-
-                Text(cardTitle(preview))
-                    .font(.system(.headline, design: .default).weight(.semibold))
-                    .lineLimit(4)
-                    .fixedSize(horizontal: false, vertical: true)
-                    .strikethrough(closing, color: .secondary)
-
-                if let text = bodyText(preview) {
-                    Text(text).font(.callout).foregroundStyle(.secondary).lineLimit(3)
-                        .fixedSize(horizontal: false, vertical: true)
-                } else if preview == nil {
-                    Text("Loading preview…").font(.callout).foregroundStyle(.tertiary)
-                }
-                if let note = model.note(for: tab.url) {
-                    Label(note, systemImage: "pencil.line").font(.callout).lineLimit(3)
-                }
-                if let out = preview?.outboundURL, let url = URL(string: out) {
-                    Button { TabActions.openInSafari(out) } label: {
-                        Label((url.host() ?? out).replacingOccurrences(of: "www.", with: "") + url.path(), systemImage: "arrow.up.right")
-                            .lineLimit(1).truncationMode(.middle)
-                    }
-                    .buttonStyle(.link)
-                    .font(.caption)
-                    .help(out)
-                }
-                Spacer(minLength: 0)
-                // Footer: send left, theme right (only where the theme is
-                // not already the page you are on).
-                if a != nil {
-                    HStack(spacing: 8) {
-                        SendButton(tab: tab)
-                            .menuStyle(.button)
-                            .buttonStyle(.bordered)
-                            .controlSize(.small)
-                            .fixedSize()
-                        Spacer(minLength: 0)
-                        if showTheme {
-                            Menu { moveMenu } label: { Text(a.map { Project.displayName($0.project) } ?? "Move to…").lineLimit(1) }
-                                .menuStyle(.button)
-                                .buttonStyle(.borderless)
-                                .controlSize(.small)
-                                .foregroundStyle(.secondary)
-                                .frame(maxWidth: 150, alignment: .trailing)
-                                .help("Theme: \(a?.project ?? "")")
-                        }
-                    }
-                }
-            }
-            .padding(14)
-        }
-        .frame(maxWidth: .infinity, minHeight: 230, alignment: .topLeading)
-        .background(.background, in: RoundedRectangle(cornerRadius: 12))
-        .overlay(
-            RoundedRectangle(cornerRadius: 12)
-                .strokeBorder(isSelected ? Color.accentColor : Color.primary.opacity(0.08), lineWidth: isSelected ? 2 : 1)
-        )
-        .clipShape(RoundedRectangle(cornerRadius: 12))
-        .shadow(color: .black.opacity(0.05), radius: 4, y: 2)
-        .opacity(closing ? 0.6 : 1)
-    }
-
-    /// Page image when there is one. X posts get a band with the author's
-    /// avatar (or initial when oEmbed gave no avatar), then the post image.
-    @ViewBuilder
-    private func header(_ p: Preview?) -> some View {
-        if p?.site == "x.com" {
-            VStack(alignment: .leading, spacing: 0) {
-                if let s = p?.imageURL, let url = URL(string: s) { headerImage(url) }
-                HStack(spacing: 8) {
-                    initialCircle(p).overlay {
-                        if let s = p?.avatarURL, let url = URL(string: s) {
-                            AsyncImage(url: url) { $0.resizable().aspectRatio(contentMode: .fill) } placeholder: { Color.clear }
-                                .clipShape(Circle())
-                        }
-                    }
-                    Text(p?.title ?? "").font(.callout.weight(.medium)).lineLimit(1)
-                    Spacer()
-                    Text("𝕏").foregroundStyle(.secondary)
-                }
-                .padding(.horizontal, 12).padding(.top, 12)
-            }
-        } else if let s = p?.imageURL, let url = URL(string: s) {
-            headerImage(url)
-        }
-    }
-
-    private func initialCircle(_ p: Preview?) -> some View {
-        Text(String((p?.title ?? "X").prefix(1)).uppercased())
-            .font(.callout.weight(.semibold))
-            .frame(width: 26, height: 26)
-            .background(Circle().fill(.quaternary))
-    }
-
-    private func headerImage(_ url: URL) -> some View {
-        Color.clear
-            .frame(height: 150)
-            .overlay {
-                AsyncImage(url: url) { phase in
-                    if let image = phase.image {
-                        image.resizable().aspectRatio(contentMode: .fill)
-                    } else {
-                        // Loading or failed: a quiet panel, not a grey block.
-                        ZStack {
-                            Color.primary.opacity(0.035)
-                            Text(tab.host).font(.caption).foregroundStyle(.tertiary)
-                        }
-                    }
-                }
-            }
-            .clipped()
     }
 
     private func cardTitle(_ p: Preview?) -> String { Self.title(tab, p) }

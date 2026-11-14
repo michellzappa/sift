@@ -1,6 +1,6 @@
 import SwiftUI
 
-/// Settings > Claude > On this Mac: Apple's on-device model, one switch per
+/// Settings > Intelligence > On this Mac: Apple's on-device model, one switch per
 /// feature, its availability in plain words, and who sorted how many links.
 struct OnDeviceSection: View {
     @Environment(AppModel.self) private var model

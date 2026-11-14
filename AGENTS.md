@@ -136,10 +136,11 @@ transcripts), not only the link. Never add a Sift server or account.
   (`app.sift.starlings.<host>`); `docs_write` with `url` + project subject
   + idempotency key is a link save. Old `Assignment.action` data still
   decodes but nothing reads it.
-- Links show as rows by default (`LinkStyle`, `@AppStorage("links.style")`,
-  `LinkStyleToggle`); cards are the grid option. `TabCard` draws both and
-  shares menus. Lists take arrow keys and space (browser). In the graph,
-  the list layout opens a left panel and keeps the cluster in view.
+- Links show only as rows (`TabCard`); the card grid was removed at the
+  owner's request (2026-11-14). Lists take arrow keys and space (browser).
+  A focused theme in the graph opens a left panel and keeps the cluster in
+  view. The settings tab for Claude, the on-device model and MCP is named
+  Intelligence.
 - Cluster layout (2026-11-14): no site twigs. Leaves spiral out by recency
   (newest nearest the hub). Solid dot = text or transcript saved; ring =
   title only.

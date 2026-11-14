@@ -70,15 +70,14 @@ links around it as dots, and lines join themes that draw on the same sources
 evenly around the color wheel for however many themes you have, at equal
 lightness, in light and dark mode. Hover a theme and the others fade.
 
-Click a theme and the camera glides onto it: its links appear as cards in a
-grid. Pinch or two-finger scroll to zoom the map; inside a theme, scrolling
-moves the cards. Esc or a click on empty space zooms back out.
+Click a theme and the camera glides onto it: its links appear as a list in a
+panel on the left, with the cluster still in view. Pinch or two-finger scroll
+to zoom the map. Esc or a click on empty space zooms back out.
 
-### List, cards and the browser
+### List and the browser
 
 Links show as a list: thumbnail, title, source, date, what Sift saved and
-one line of preview, then the theme and a send button. A toggle switches to
-cards. Click a link and the page opens in a browser that slides in over the
+one line of preview, then the theme and a send button. Click a link and the page opens in a browser that slides in over the
 right side. ↑↓ move through the list; Space opens and closes the browser.
 The browser has back, forward, reload, Open in Safari, Send and, for pages
 in the library, a reader view of the saved text.
@@ -265,7 +264,7 @@ Library in Finder.
 page text and transcripts (SQLite full-text index on this Mac).
 
 **Claude can read your library.** Sift ships a small MCP server,
-`sift-mcp`. Settings > Claude > Add to Claude Code runs
+`sift-mcp`. Settings > Intelligence > Add to Claude Code runs
 `claude mcp add --scope user sift -- /Applications/Sift.app/Contents/MacOS/sift-mcp`.
 Claude can then search your links, page text and transcripts, list your
 themes and read a link in full. It only reads Sift's index.
@@ -298,7 +297,7 @@ straight to their buckets, and a link that clearly fits one of your themes
 goes there. Claude sorts the rest. After a page or transcript is saved, the
 model writes a one-paragraph summary into the library file and the search
 index, and `sift-mcp` returns it. Summaries run one at a time, newest first,
-and wait while the Mac runs on battery. Settings > Claude > On this Mac has a
+and wait while the Mac runs on battery. Settings > Intelligence > On this Mac has a
 switch for each feature, says whether the model is available, and counts the
 links each model sorted. On older Macs, Claude does all of it as before.
 
@@ -323,7 +322,7 @@ About 5,500 lines of SwiftUI. No dependencies.
 | `Sorting/Errands` | Rules for transactional tabs |
 | `X/*` | Optional X API: sign-in, client, cache and the native post view |
 | `Export/*` | The exporter protocol, the registry and one file per exporter |
-| `Views/*` | Sidebar, graph, cards, browser pane, theme review, settings |
+| `Views/*` | Sidebar, graph, list, browser pane, theme review, settings |
 
 Swift has no official Anthropic SDK, so the API backend uses plain HTTP.
 
