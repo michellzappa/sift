@@ -51,6 +51,22 @@ and lines join themes that draw on the same sources. Click a theme to zoom in
 to its links; click a link to read it beside the graph. Pinch or two-finger
 scroll to zoom.
 
+### X posts, natively (optional)
+
+With your own X developer app connected, Sift draws X posts as native views,
+with no web page: author, full text including long posts, images, video,
+quoted posts and real links. It can also bring in your bookmarks as a source.
+X bills your developer account per post read (about half a cent), so Sift
+reads posts in batches of 100, caches them, and refreshes a post only when
+its copy is older than a week. Posts that X no longer returns lose their
+content, as X's policy requires.
+
+To connect: create a Native App in the X Developer Console with callback URL
+`http://127.0.0.1:53682/callback` and the scopes `tweet.read`, `users.read`,
+`bookmark.read` and `offline.access`. Paste its Client ID in Settings >
+Sorting > X API and click Connect. Without it, X posts use the free oEmbed
+preview as before.
+
 ### Export
 
 The Export menu (toolbar and File menu) writes your themes and links out:

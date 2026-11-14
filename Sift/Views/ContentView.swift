@@ -54,6 +54,9 @@ struct ContentView: View {
                     Divider()
                     Text("Reading List (\(model.readingListCount))").tag(ReadingListReader.sourceID)
                 }
+                if model.xConnected {
+                    Text("X Bookmarks (\(model.xBookmarkIDs.count))").tag(AppModel.xBookmarksSourceID)
+                }
             }
             .pickerStyle(.menu)
             .disabled(model.devices.isEmpty)

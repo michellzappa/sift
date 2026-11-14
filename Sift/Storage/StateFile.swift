@@ -13,6 +13,10 @@ struct SiftState: Codable, Sendable {
     var closeQueue: [String] = []
     /// Last folder or file each exporter wrote to, keyed by exporter id.
     var exportTargets: [String: String] = [:]
+    /// The Client ID of the user's own X app (not a secret). Empty: X API off.
+    var xClientID: String = ""
+    var xUserID: String?
+    var xUsername: String?
     /// Opt-in: X post previews from X's unofficial syndication endpoint, which
     /// returns images. Off by default because the endpoint can stop working.
     var xSyndication: Bool = false
@@ -27,6 +31,9 @@ struct SiftState: Codable, Sendable {
         backend = try c.decodeIfPresent(Sorter.Backend.self, forKey: .backend) ?? .claudeCode
         closeQueue = try c.decodeIfPresent([String].self, forKey: .closeQueue) ?? []
         exportTargets = try c.decodeIfPresent([String: String].self, forKey: .exportTargets) ?? [:]
+        xClientID = try c.decodeIfPresent(String.self, forKey: .xClientID) ?? ""
+        xUserID = try c.decodeIfPresent(String.self, forKey: .xUserID)
+        xUsername = try c.decodeIfPresent(String.self, forKey: .xUsername)
         xSyndication = try c.decodeIfPresent(Bool.self, forKey: .xSyndication) ?? false
     }
 }

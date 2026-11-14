@@ -52,15 +52,27 @@ struct WebPane: View {
                 .padding(.horizontal, 10).padding(.bottom, 7)
             }
 
-            if page.isLoading {
-                ProgressView(value: page.progress).progressViewStyle(.linear).frame(height: 2)
-            } else {
+            if let post = model.xConnected ? model.xPost(for: tab.url) : nil {
+                // X posts render natively when the X API is connected.
                 Divider()
+                ScrollView {
+                    XPostView(post: post, quoted: post.quotedID.flatMap { model.xPosts[$0] })
+                        .frame(maxWidth: 640, alignment: .leading)
+                        .frame(maxWidth: .infinity)
+                }
+                .task(id: tab.url) { await model.refreshXPosts(urls: [tab.url]) }
+            } else {
+                if page.isLoading {
+                    ProgressView(value: page.progress).progressViewStyle(.linear).frame(height: 2)
+                } else {
+                    Divider()
+                }
+                WebViewHost(webView: page.webView)
+                    .onAppear { page.load(tab.url) }
+                    .onChange(of: tab.url) { page.load(tab.url) }
+                    .task(id: tab.url) { if model.xConnected, XClient.statusID(tab.url) != nil { await model.refreshXPosts(urls: [tab.url]) } }
             }
-            WebViewHost(webView: page.webView)
         }
-        .onAppear { page.load(tab.url) }
-        .onChange(of: tab.url) { page.load(tab.url) }
     }
 }
 

@@ -53,6 +53,28 @@ private struct SortingSettings: View {
                     .foregroundStyle(.secondary)
             }
             Section {
+                TextField("X app Client ID", text: $model.state.xClientID, prompt: Text("From the X Developer Console"))
+                    .disabled(model.xConnected)
+                HStack {
+                    if model.xConnected {
+                        Label("Connected as @\(model.state.xUsername ?? "")", systemImage: "checkmark.circle.fill").foregroundStyle(.green)
+                        Spacer()
+                        Button("Sync Bookmarks") { Task { await model.syncXBookmarks() } }.disabled(model.xBusy)
+                        Button("Disconnect", role: .destructive) { model.disconnectX() }
+                    } else {
+                        Button("Connect X Account") { Task { await model.connectX() } }
+                            .disabled(model.state.xClientID.isEmpty || model.xBusy)
+                        if model.xBusy { ProgressView().controlSize(.small) }
+                    }
+                }
+                if let error = model.xError { Text(error).font(.caption).foregroundStyle(.red) }
+            } header: {
+                Text("X API (optional, paid)")
+            } footer: {
+                Text("Shows X posts natively and brings in your bookmarks, using your own X developer app. Create a Native App in the X Developer Console with callback URL \(XAuth.redirectURI) and the scopes tweet.read, users.read, bookmark.read and offline.access, then paste its Client ID here. X bills your developer account per post read (about $0.005). Sift caches posts and refreshes a post when it is older than a week.")
+                    .foregroundStyle(.secondary)
+            }
+            Section {
                 LabeledContent("Tab database", value: CloudTabsReader.databaseURL.path(percentEncoded: false))
                 Button("Open Full Disk Access") { AppModel.openFullDiskAccessSettings() }
             }

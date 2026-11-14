@@ -209,7 +209,7 @@ struct GraphView: View {
         let color = sim.nodes[node].color
         let summary = model.projects.first(where: { $0.name == theme })?.summary ?? ""
         let fade = min(1.0, max(0.0, Double(cam.scale - 1.1) / 0.6))
-        let columns = [GridItem(.adaptive(minimum: Self.chip.width, maximum: 260), spacing: 10)]
+        let columns = [GridItem(.adaptive(minimum: 250, maximum: 340), spacing: 14)]
         return ScrollView {
             VStack(alignment: .leading, spacing: 14) {
                 VStack(alignment: .leading, spacing: 4) {
@@ -217,7 +217,7 @@ struct GraphView: View {
                     if !summary.isEmpty { Text(summary).font(.callout).foregroundStyle(.secondary) }
                     Text("\(tabs.count) links").font(.caption).foregroundStyle(.tertiary)
                 }
-                LazyVGrid(columns: columns, spacing: 10) {
+                LazyVGrid(columns: columns, spacing: 14) {
                     ForEach(tabs) { tab in chipCell(tab, color: color) }
                 }
             }
@@ -232,9 +232,9 @@ struct GraphView: View {
         .opacity(fade)
     }
 
+    /// The same card the lists use: image, full title, summary, use, action.
     private func chipCell(_ tab: SafariTab, color: Color) -> some View {
-        LinkChip(tab: tab, color: color, isPicked: picked == tab.url)
-            .frame(height: Self.chip.height)
+        TabCard(tab: tab, isSelected: picked == tab.url)
             .onTapGesture(count: 2) { TabActions.openInSafari(tab.url) }
             .onTapGesture { withAnimation(.snappy) { picked = picked == tab.url ? nil : tab.url } }
     }

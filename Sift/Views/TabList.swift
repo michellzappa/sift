@@ -179,10 +179,11 @@ struct TabCard: View {
             header(preview)
             VStack(alignment: .leading, spacing: 6) {
                 Text(cardTitle(preview))
-                    .font(.headline).lineLimit(2)
+                    .font(.headline).lineLimit(5)
+                    .fixedSize(horizontal: false, vertical: true)
                     .strikethrough(closing, color: .secondary)
                 if let text = bodyText(preview) {
-                    Text(text).font(.callout).foregroundStyle(.secondary).lineLimit(5)
+                    Text(text).font(.callout).foregroundStyle(.secondary).lineLimit(4)
                 } else if preview == nil {
                     Text("Loading preview…").font(.callout).foregroundStyle(.tertiary)
                 }
