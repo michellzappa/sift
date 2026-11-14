@@ -44,6 +44,10 @@ struct SiftState: Codable, Sendable {
     var xSyndication: Bool = false
     /// The Instagram data export (zip or folder) the user chose in Settings.
     var instagramExportPath: String?
+    /// Setup Guide step ids the user has been shown. nil: this state predates
+    /// the guide (AppModel decides between first run and an existing
+    /// install). Set it to [] to see the first run again.
+    var onboardingSeen: [String]?
 
     init() {}
 
@@ -71,6 +75,7 @@ struct SiftState: Codable, Sendable {
         xUsername = try c.decodeIfPresent(String.self, forKey: .xUsername)
         xSyndication = try c.decodeIfPresent(Bool.self, forKey: .xSyndication) ?? false
         instagramExportPath = try c.decodeIfPresent(String.self, forKey: .instagramExportPath)
+        onboardingSeen = try c.decodeIfPresent([String].self, forKey: .onboardingSeen)
     }
 }
 

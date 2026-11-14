@@ -20,33 +20,46 @@ enum SidebarItem: Hashable {
 struct ContentView: View {
     @Environment(AppModel.self) private var model
     @State private var selection: SidebarItem? = .overview
+    @Environment(\.openWindow) private var openWindow
 
     var body: some View {
-        Group {
-            if let error = model.loadError {
-                AccessView(error: error)
-            } else {
-                NavigationSplitView {
-                    Sidebar(selection: $selection)
-                        .navigationSplitViewColumnWidth(min: 200, ideal: 240)
-                } detail: {
-                    Group {
-                        let item = selection ?? .overview
-                        if showsGraph(item) {
-                            GraphView(selection: $selection)
-                        } else {
-                            TabList(item: item).id(item)
-                        }
-                    }
-                    .onChange(of: selection) { _, new in
-                        if let new, !showsGraph(new) { model.graphTheme = nil }
-                    }
-                    .safeAreaInset(edge: .top, spacing: 0) { UnsortedBanner() }
+        NavigationSplitView {
+            Sidebar(selection: $selection)
+                .navigationSplitViewColumnWidth(min: 200, ideal: 240)
+        } detail: {
+            Group {
+                let item = selection ?? .overview
+                if !model.hasReadableSource {
+                    NoSourcesView()
+                } else if showsGraph(item) {
+                    GraphView(selection: $selection)
+                } else {
+                    TabList(item: item).id(item)
+                }
+            }
+            .onChange(of: selection) { _, new in
+                if let new, !showsGraph(new) { model.graphTheme = nil }
+            }
+            .safeAreaInset(edge: .top, spacing: 0) {
+                VStack(spacing: 0) {
+                    SafariAccessBanner()
+                    UnsortedBanner()
                 }
             }
         }
         .toolbar { toolbar }
-        .sheet(isPresented: .init(get: { model.themeProposal != nil }, set: { if !$0 { model.themeProposal = nil } })) {
+        // First run, or steps added since the user last saw the guide.
+        .task {
+            guard model.onboarding == nil, let pending = model.pendingOnboarding() else { return }
+            model.onboarding = pending
+            openWindow(id: Onboarding.windowID)
+        }
+        // Coming back from System Settings: check Full Disk Access again.
+        .onReceive(NotificationCenter.default.publisher(for: NSApplication.didBecomeActiveNotification)) { _ in
+            if model.loadError != nil, !model.onboardingOpen { model.reload() }
+        }
+        // While the Setup Guide is open, it shows the review itself.
+        .sheet(isPresented: .init(get: { model.themeProposal != nil && !model.onboardingOpen }, set: { if !$0 { model.themeProposal = nil } })) {
             ThemeReview().environment(model)
         }
         .alert("Sift", isPresented: .init(get: { model.exportMessage != nil }, set: { if !$0 { model.exportMessage = nil } })) {
@@ -97,7 +110,7 @@ struct ContentView: View {
                 }
             }
             .pickerStyle(.menu)
-            .disabled(model.devices.isEmpty)
+            .disabled(!model.hasReadableSource)
         }
         // Toolbar items keep one size: their content must not change while
         // Claude works (AppKit aborts when toolbar layout changes every
@@ -263,29 +276,62 @@ private struct Sidebar: View {
     }
 }
 
-/// Shown when the tab database cannot be read.
-private struct AccessView: View {
+/// The detail pane when no source has links yet.
+private struct NoSourcesView: View {
     @Environment(AppModel.self) private var model
-    let error: CloudTabsReader.Failure
+    @Environment(\.openWindow) private var openWindow
 
     var body: some View {
-        VStack(spacing: 14) {
-            Image(systemName: "lock.shield").font(.system(size: 40)).foregroundStyle(.secondary)
-            Text(error.localizedDescription).font(.headline).multilineTextAlignment(.center)
-            if case .noAccess = error {
-                Text("In Full Disk Access, click + below the list, choose Sift in Applications, turn it on, then click Try Again.")
-                    .foregroundStyle(.secondary)
-                HStack {
-                    Button("Open Full Disk Access") { AppModel.openFullDiskAccessSettings() }
-                        .buttonStyle(.borderedProminent)
-                    Button("Try Again") { model.reload() }
-                }
-            } else {
-                Button("Try Again") { model.reload() }
+        ContentUnavailableView {
+            Label("No links yet", systemImage: "tray")
+        } description: {
+            Text("Add a source, like your Safari tabs or an export from a read-later app, and your links show up here.")
+        } actions: {
+            Button("Open Setup Guide") {
+                model.startSetupGuide()
+                model.onboardingGo(to: "sources")
+                openWindow(id: Onboarding.windowID)
             }
+            .buttonStyle(.borderedProminent)
+            Button("Import Links File…") { model.importLinksFile() }
         }
-        .padding(40)
-        .frame(maxWidth: .infinity, maxHeight: .infinity)
+    }
+}
+
+/// Safari's files cannot be read. Not modal: the other sources keep
+/// working. Full Disk Access is set up in the Setup Guide's Sources step.
+private struct SafariAccessBanner: View {
+    @Environment(AppModel.self) private var model
+    @Environment(\.openWindow) private var openWindow
+    @AppStorage("banner.safariAccess.hidden") private var hidden = false
+
+    var body: some View {
+        if let error = model.loadError, !hidden {
+            HStack(spacing: 10) {
+                Image(systemName: "lock.shield").foregroundStyle(.orange)
+                Text(model.needsDiskAccess
+                     ? "Sift cannot read your Safari tabs or Reading List without Full Disk Access."
+                     : error.localizedDescription)
+                    .lineLimit(2)
+                Spacer()
+                if model.needsDiskAccess {
+                    Button("Set Up…") {
+                        model.startSetupGuide()
+                        model.onboardingGo(to: "sources")
+                        openWindow(id: Onboarding.windowID)
+                    }
+                    .buttonStyle(.borderedProminent)
+                }
+                Button("Check Again") { model.reload() }
+                Button { hidden = true } label: { Image(systemName: "xmark") }
+                    .buttonStyle(.borderless)
+                    .help("Hide this. Settings > Inputs still shows Safari's status.")
+            }
+            .font(.callout)
+            .padding(.horizontal, 14).padding(.vertical, 8)
+            .background(.bar)
+            .overlay(alignment: .bottom) { Divider() }
+        }
     }
 }
 
@@ -294,6 +340,7 @@ private struct AccessView: View {
 /// two ways to sort them.
 private struct UnsortedBanner: View {
     @Environment(AppModel.self) private var model
+    @Environment(\.openWindow) private var openWindow
 
     var body: some View {
         let count = model.unsortedCount
@@ -310,6 +357,11 @@ private struct UnsortedBanner: View {
                     if model.themes.isEmpty {
                         Text("\(count) links, no themes yet. Claude reads them and proposes the themes you keep coming back to.")
                         Spacer()
+                        Button("Setup Guide") {
+                            model.startSetupGuide()
+                            model.onboardingGo(to: "themes")
+                            openWindow(id: Onboarding.windowID)
+                        }
                         Button("Discover Themes") { Task { await model.discoverThemes() } }
                             .buttonStyle(.borderedProminent)
                     } else {

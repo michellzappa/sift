@@ -202,9 +202,17 @@ gh attestation verify Sift-0.2.0.zip -R michellzappa/sift
 
 Each release also has a `SHA256SUMS` file.
 
-On first launch Sift asks for Full Disk Access. macOS does not list the app
-until you add it: in System Settings, open Privacy & Security, then Full Disk
-Access, click +, and choose Sift.
+### First run
+
+On first launch Sift opens the Setup Guide: Welcome, Sources, Claude,
+Library, Themes, Send and a few tips. Only Welcome is required. Sources
+is where you turn on Full Disk Access for Safari's tabs and Reading List.
+macOS does not list the app until you add it: in System Settings, open
+Privacy & Security, then Full Disk Access, click +, and choose Sift. Sift
+checks again when you come back. Themes runs Discover Themes, and after you
+accept the themes, the graph is ready. Help > Setup Guide opens the guide
+again at any time. When an update adds a step, Sift shows only that step,
+once.
 
 ### Build it yourself
 

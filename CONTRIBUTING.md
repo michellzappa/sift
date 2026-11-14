@@ -60,3 +60,27 @@ is the step between saving a link and filing it, not a notes app.
    kind (its settings go in `config`).
 A sender gets one link at a time and returns where it landed (a URL or a
 file path), or throws `SendFailure` with a message for the user.
+
+## Adding an onboarding step
+
+A new source, destination or library option can add its own page to the
+Setup Guide. You do not edit the guide itself.
+
+1. Create `Sift/Onboarding/<Name>Step.swift` with a struct that conforms to
+   `OnboardingStep`: `id` (lowercase, stable, never renamed), `title`,
+   `symbol` (an SF Symbol), `isOptional` (true unless the app cannot work
+   without it), `status(_:)` and `body`.
+2. `status(_:)` returns `.done`, `.available` or `.blocked`, each with one
+   line that says why. The guide shows it as a dot in the step list.
+   `.blocked` disables Continue, so use it only when the step cannot work
+   yet (for example, no source has links).
+3. `body` is the step's content. Read and change the app through
+   `AppModel` from the environment. Reuse what Settings uses (for example
+   `StatusRow` and the status properties in `Views/SourceStatus.swift`)
+   instead of a second copy.
+4. Add one instance to `Onboarding.steps` in
+   `Sift/Onboarding/Onboarding.swift`, where it belongs in the flow.
+
+People who already finished the guide see the new step once, under "New in
+Sift". Sift records each step id it has shown in `onboardingSeen` in
+`state.json`.

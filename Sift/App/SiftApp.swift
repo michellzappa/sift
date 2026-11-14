@@ -27,7 +27,20 @@ struct SiftApp: App {
                     }
                 }
             }
+            CommandGroup(replacing: .help) {
+                SetupGuideCommand(model: model)
+            }
         }
+
+        // The Setup Guide: one window, opened on first run, by Help >
+        // Setup Guide, and from the main window's empty states.
+        Window("Setup Guide", id: Onboarding.windowID) {
+            OnboardingView()
+                .environment(model)
+        }
+        .windowResizability(.contentSize)
+        .defaultPosition(.center)
+        .commandsRemoved()
 
         Settings {
             SettingsView()

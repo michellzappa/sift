@@ -25,16 +25,34 @@ final class AppModel {
     var sortProgress: (done: Int, total: Int) = (0, 0)
     var sortError: String?
 
+    /// The Setup Guide as it stands in this run (see Onboarding.swift).
+    var onboarding: OnboardingSession?
+    /// The guide window is open. The main window then leaves ThemeReview to it.
+    var onboardingOpen = false
+
     init() {
         state = StateFile.load()
         reload()
+        settleOnboardingForExistingInstall()
     }
 
     // MARK: Loading
 
     func reload() {
         do {
-            devices = try CloudTabsReader.devices()
+            // Safari's tab database needs Full Disk Access. Without it the
+            // other sources (Instagram, imports, X) still load; the Setup
+            // Guide and a banner explain the missing access.
+            do {
+                devices = try CloudTabsReader.devices()
+                loadError = nil
+            } catch let failure as CloudTabsReader.Failure {
+                loadError = failure
+                devices = []
+            } catch {
+                loadError = .sqlite(error.localizedDescription)
+                devices = []
+            }
             let readingItems = (try? ReadingListReader.items()) ?? []
             readingListCount = readingItems.count
             // Instagram Saved: read the export once per reload. Without a
@@ -56,12 +74,11 @@ final class AppModel {
                 everyURL.formUnion(phoneTabs.map(\.url))
             }
             allSourcesCount = everyURL.count
-            loadError = nil
             if state.deviceID == nil {
                 state.deviceID = Self.allSourcesID
             } else if !isAll, !isSavedList, currentImport == nil, !devices.contains(where: { $0.id == state.deviceID }) {
                 // The device with the most tabs is almost always the phone.
-                state.deviceID = devices.first?.id
+                state.deviceID = devices.first?.id ?? Self.allSourcesID
             }
             if isAll {
                 // Every source at once, newest first, each link once.
@@ -101,7 +118,7 @@ final class AppModel {
                     if let p = item.preview { previews[item.tab.url] = p }
                 }
             } else if isReadingList {
-                let items = try ReadingListReader.items()
+                let items = (try? ReadingListReader.items()) ?? []
                 tabs = items.map(\.tab)
                 // Safari stores preview text for Reading List items; use it until Sift fetches its own.
                 for item in items where previews[item.tab.url] == nil {

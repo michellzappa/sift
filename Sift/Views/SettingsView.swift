@@ -13,40 +13,6 @@ struct SettingsView: View {
     }
 }
 
-/// The first row of a source or an output: icon, name, one-line status and
-/// actions on the right.
-private struct SourceRow<Actions: View>: View {
-    let icon: String
-    let name: String
-    let status: String
-    var warning = false
-    @ViewBuilder var actions: () -> Actions
-
-    var body: some View {
-        HStack(alignment: .center, spacing: 10) {
-            Image(systemName: icon)
-                .font(.title3)
-                .foregroundStyle(.secondary)
-                .frame(width: 24)
-            VStack(alignment: .leading, spacing: 2) {
-                Text(name).font(.headline)
-                Text(status)
-                    .font(.caption)
-                    .foregroundStyle(warning ? AnyShapeStyle(.orange) : AnyShapeStyle(.secondary))
-                    .lineLimit(2)
-            }
-            Spacer()
-            actions()
-        }
-    }
-}
-
-extension SourceRow where Actions == EmptyView {
-    init(icon: String, name: String, status: String, warning: Bool = false) {
-        self.init(icon: icon, name: name, status: status, warning: warning) { EmptyView() }
-    }
-}
-
 private func abbreviated(_ path: String) -> String {
     (path as NSString).abbreviatingWithTildeInPath
 }
@@ -56,46 +22,11 @@ private func abbreviated(_ path: String) -> String {
 private struct InputSettings: View {
     @Environment(AppModel.self) private var model
 
-    private var needsDiskAccess: Bool {
-        if case .noAccess = model.loadError { return true }
-        return false
-    }
-
-    private var tabsStatus: String {
-        if needsDiskAccess { return "Needs Full Disk Access" }
-        if let error = model.loadError { return error.localizedDescription }
-        let total = model.devices.reduce(0) { $0 + $1.tabCount }
-        return model.devices.isEmpty ? "No device syncs tabs" : "\(total) tabs on \(model.devices.count) devices"
-    }
-
-    private var readingListStatus: String {
-        if needsDiskAccess { return "Needs Full Disk Access" }
-        return model.readingListCount == 0 ? "No links" : "\(model.readingListCount) links"
-    }
-
-    private var instagramStatus: String {
-        guard model.state.instagramExportPath != nil else { return "No export chosen" }
-        if model.instagramError != nil { return "Export not readable" }
-        return "\(model.instagramCount) saved posts"
-    }
-
-    private var xStatus: String {
-        guard model.xConnected else { return "Not connected. Previews use oEmbed." }
-        return "Connected as @\(model.state.xUsername ?? ""), \(model.xBookmarkIDs.count) bookmarks"
-    }
-
-    private var importStatus: String {
-        let files = model.state.importedSources
-        guard !files.isEmpty else { return "No files imported" }
-        let links = files.reduce(0) { $0 + (model.importCounts[$1.id] ?? 0) }
-        return "\(files.count) \(files.count == 1 ? "file" : "files"), \(links) links"
-    }
-
     var body: some View {
         @Bindable var model = model
         Form {
             Section {
-                SourceRow(icon: "safari", name: "Safari tabs", status: tabsStatus, warning: model.loadError != nil) {
+                StatusRow(icon: "safari", name: "Safari tabs", status: model.tabsStatus, warning: model.loadError != nil) {
                     Button("Open Full Disk Access") { AppModel.openFullDiskAccessSettings() }
                 }
                 ForEach(model.devices) { d in
@@ -112,11 +43,11 @@ private struct InputSettings: View {
             }
 
             Section {
-                SourceRow(icon: "eyeglasses", name: "Safari Reading List", status: readingListStatus, warning: needsDiskAccess)
+                StatusRow(icon: "eyeglasses", name: "Safari Reading List", status: model.readingListStatus, warning: model.needsDiskAccess)
             }
 
             Section {
-                SourceRow(icon: "camera", name: "Instagram Saved", status: instagramStatus,
+                StatusRow(icon: "camera", name: "Instagram Saved", status: model.instagramStatus,
                           warning: model.state.instagramExportPath != nil && model.instagramError != nil) {
                     Button("Choose…") { model.chooseInstagramExport() }
                     if model.state.instagramExportPath != nil {
@@ -134,7 +65,7 @@ private struct InputSettings: View {
             }
 
             Section {
-                SourceRow(icon: "at", name: "X", status: xStatus)
+                StatusRow(icon: "at", name: "X", status: model.xStatus)
                 Toggle("Use X's embed data for post images (unofficial, may stop working)", isOn: .init(
                     get: { model.state.xSyndication },
                     set: { model.setXSyndication($0) }
@@ -160,7 +91,7 @@ private struct InputSettings: View {
             }
 
             Section {
-                SourceRow(icon: "doc.text", name: "Imported files", status: importStatus) {
+                StatusRow(icon: "doc.text", name: "Imported files", status: model.importStatus) {
                     Button("Import Links File…") { model.importLinksFile() }
                 }
                 ForEach(model.state.importedSources) { source in
@@ -318,18 +249,6 @@ private struct OutputSettings: View {
         }
     }
 
-    private func addObsidian() {
-        let panel = NSOpenPanel()
-        panel.canChooseDirectories = true
-        panel.canChooseFiles = false
-        panel.canCreateDirectories = true
-        panel.prompt = "Send Here"
-        panel.message = "Choose a folder in your Obsidian vault. Each sent link becomes one note there."
-        guard panel.runModal() == .OK, let url = panel.url else { return }
-        model.addDestination(Destination(kind: "obsidian", name: url.lastPathComponent, detail: url.path(percentEncoded: false),
-                                         config: ["folder": url.path(percentEncoded: false)]))
-    }
-
     private func addMarkdown() {
         let panel = NSSavePanel()
         panel.allowedContentTypes = [.init(filenameExtension: "md")!]
@@ -369,7 +288,7 @@ private struct OutputSettings: View {
                 }
                 HStack {
                     Button("Connect Starlings…") { connecting = true }
-                    Button("Add Obsidian Folder…") { addObsidian() }
+                    Button("Add Obsidian Folder…") { model.addObsidianDestination() }
                     Button("Add Markdown File…") { addMarkdown() }
                     if !model.destinations.contains(where: { $0.kind == "reading-list" }) {
                         Button("Add Reading List") { model.addDestination(Destination(kind: "reading-list", name: "Reading List", detail: "Safari")) }
@@ -387,7 +306,7 @@ private struct OutputSettings: View {
             Section {
                 ForEach(Exporters.all, id: \.id) { exporter in
                     VStack(alignment: .leading, spacing: 4) {
-                        SourceRow(icon: icon(exporter.output),
+                        StatusRow(icon: icon(exporter.output),
                                   name: exporter.name.replacingOccurrences(of: "…", with: ""),
                                   status: exporter.summary) {
                             Button("Run") { model.runExport(exporter) }
@@ -408,7 +327,7 @@ private struct OutputSettings: View {
             }
 
             Section {
-                SourceRow(icon: "iphone", name: "iPhone close list", status: closeStatus,
+                StatusRow(icon: "iphone", name: "iPhone close list", status: closeStatus,
                           warning: !CloseList.iCloudDriveAvailable) {
                     Button("Set Up Shortcut…") { showShortcutGuide = true }
                 }
@@ -418,7 +337,7 @@ private struct OutputSettings: View {
             }
 
             Section {
-                SourceRow(icon: "eyeglasses", name: "Add to Reading List",
+                StatusRow(icon: "eyeglasses", name: "Add to Reading List",
                           status: "Cards and the browser add links through Safari. macOS asks once to allow Automation.") {
                     Button("Open Automation") {
                         if let url = URL(string: "x-apple.systempreferences:com.apple.preference.security?Privacy_Automation") {
@@ -481,14 +400,14 @@ private struct ClaudeSettings: View {
             }
             Section {
                 LabeledContent("Command") {
-                    Text(Self.mcpCommand).font(.caption.monospaced()).textSelection(.enabled).lineLimit(2)
+                    Text(MCPSetup.command).font(.caption.monospaced()).textSelection(.enabled).lineLimit(2)
                 }
                 HStack {
-                    Button("Add to Claude Code") { Task { mcpMessage = await Self.addToClaudeCode() } }
+                    Button("Add to Claude Code") { Task { mcpMessage = await MCPSetup.addToClaudeCode() } }
                         .disabled(ClaudeCodeRunner.executable == nil)
                     Button("Copy Command") {
                         NSPasteboard.general.clearContents()
-                        NSPasteboard.general.setString(Self.mcpCommand, forType: .string)
+                        NSPasteboard.general.setString(MCPSetup.command, forType: .string)
                     }
                     if let mcpMessage { Text(mcpMessage).font(.caption).foregroundStyle(.secondary) }
                 }
@@ -504,22 +423,6 @@ private struct ClaudeSettings: View {
 
     @State private var mcpMessage: String?
 
-    static var mcpPath: String { Bundle.main.bundleURL.appending(path: "Contents/MacOS/sift-mcp").path(percentEncoded: false) }
-    static var mcpCommand: String { "claude mcp add --scope user sift -- \(mcpPath)" }
-
-    /// Runs `claude mcp add` for the user's own Claude Code.
-    static func addToClaudeCode() async -> String {
-        guard let claude = ClaudeCodeRunner.executable else { return "Claude Code was not found." }
-        return await withCheckedContinuation { c in
-            let p = Process()
-            p.executableURL = claude
-            p.arguments = ["mcp", "add", "--scope", "user", "sift", "--", mcpPath]
-            p.standardOutput = FileHandle.nullDevice
-            p.standardError = FileHandle.nullDevice
-            p.terminationHandler = { c.resume(returning: $0.terminationStatus == 0 ? "Added. Start a new Claude Code session to use it." : "Not added. It may be there already: run claude mcp list.") }
-            do { try p.run() } catch { c.resume(returning: "Could not run Claude Code.") }
-        }
-    }
 }
 
 private struct ThemeSettings: View {

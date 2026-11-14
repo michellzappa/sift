@@ -135,6 +135,17 @@ transcripts), not only the link. Never add a Sift server or account.
   Overview or a source in the sidebar zooms back out.
   link feeds two themes or destinations). Not built.
 
+- Setup Guide (2026-11-14): `Sift/Onboarding/`, one file per step,
+  conforming to `OnboardingStep`, registered in `Onboarding.steps`. It is a
+  single `Window` scene (id `setup-guide`), not a sheet, so it works with
+  several main windows or none and can present ThemeReview itself.
+  `state.onboardingSeen` lists the step ids shown; a new id shows once as
+  "New in Sift". nil means the state predates the guide: an install with
+  themes or assignments counts as seen. Set it to `[]` to see the first run
+  again. Source status lives in `Views/SourceStatus.swift`, shared with
+  Settings > Inputs. A missing tab database (no Full Disk Access) no longer
+  blocks the window: the other sources load and a banner points to the guide.
+
 - No HouseKit code dependency: Sift is a window app, not a menu-bar app, and
   uses the SwiftUI Settings scene. The icon is the HouseKit `sift` glyph;
   `scripts/build-app.sh` regenerates `AppIcon.icns` from `../../housekit`.
