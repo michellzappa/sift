@@ -306,7 +306,7 @@ private struct OutputSettings: View {
             } header: {
                 Text("Send to")
             } footer: {
-                Text("Send files a link at once. A theme can have a default destination: then one click sends there. Starlings files each link as a Docs link save on the project you pick, through your own Starlings sign-in.")
+                Text("Sending is immediate. If a theme has a default destination, one click on the plane sends there. Starlings saves each link to your Links in that workspace's Docs, signed in as you.")
                     .foregroundStyle(.secondary)
             }
             .sheet(isPresented: $connecting) { StarlingsConnect().environment(model) }

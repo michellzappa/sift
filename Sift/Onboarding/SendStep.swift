@@ -25,7 +25,7 @@ struct SendStep: OnboardingStep {
                 GroupBox {
                     VStack(alignment: .leading, spacing: 12) {
                         StatusRow(icon: "person.2", name: "Starlings",
-                                  status: "Files each link on a project you pick, through your own Starlings sign-in.") {
+                                  status: "Saves each link to your Links in Starlings Docs. Sift signs in as you.") {
                             Button("Connect…") { connecting = true }
                         }
                         Divider()

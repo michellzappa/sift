@@ -125,7 +125,11 @@ transcripts), not only the link. Never add a Sift server or account.
   immediate, no confirm step). `Sift/Send/`: `Sender` plugins (Starlings,
   Obsidian, Markdown, Reading List), `state.destinations`, `state.sent`
   (url → records), `Project.sendTo` (theme default), `closeAfterSend`
-  (sent Safari tabs go on the close list). Starlings: OAuth 2.1 with
+  (sent Safari tabs go on the close list). Starlings is one destination
+  per workspace, "Starlings: <name>" (the `name` in the workspace's
+  `/.well-known/meet`), saving private link saves; no projects (owner's
+  call, 2026-11-14; old project destinations are removed on launch).
+  Starlings: OAuth 2.1 with
   dynamic registration, PKCE, loopback 127.0.0.1:53683, `resource`
   <origin>/mcp, tokens per workspace in the keychain
   (`app.sift.starlings.<host>`); `docs_write` with `url` + project subject

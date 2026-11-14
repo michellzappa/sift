@@ -89,7 +89,7 @@ A link stays in Sift until you send it where it will be used. Destinations:
 
 | Destination | What a send does |
 | ----------- | ---------------- |
-| Starlings project | Files the link as a Docs link save on the project (Starlings reads the page and posts a line on the project channel) |
+| Starlings workspace | Saves the link to your Links in that workspace's Docs (Starlings reads the page and keeps title, image and description) |
 | Obsidian folder | Writes one note per link: front matter, your note, summary, saved text |
 | Markdown file | Adds one line per link at the end of the file |
 | Reading List | Adds the link to Safari's Reading List |

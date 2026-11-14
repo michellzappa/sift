@@ -20,12 +20,6 @@ enum Starlings {
         var tokenEndpoint: String
     }
 
-    struct Project: Identifiable, Hashable, Sendable {
-        let id: String
-        let title: String
-        let door: String
-    }
-
     /// "bipe", "bipe.starlings.work" or a full address, as https://host. A
     /// bare name is a workspace on starlings.work.
     static func origin(_ text: String) -> String? {
@@ -188,26 +182,22 @@ enum Starlings {
         return object
     }
 
-    /// Every open project in the workspace, by name.
-    static func allProjects(_ origin: String) async throws -> [Project] {
-        let answer = try await resource(origin, uri: "starlings://subjects/project")
-        let rows = answer["subjects"] as? [[String: Any]] ?? []
-        return rows.compactMap { row -> Project? in
-            guard let id = row["id"] as? String, let title = row["title"] as? String else { return nil }
-            return Project(id: id, title: title, door: "subject:project:\(id)")
+    /// The workspace's own name, from its public descriptor
+    /// (`/.well-known/meet`, field `name`). The host's first label when the
+    /// descriptor cannot be read.
+    static func workspaceName(_ origin: String) async -> String {
+        if let url = URL(string: origin + "/.well-known/meet"),
+           let answer = try? await json(url), let name = answer["name"] as? String, !name.isEmpty {
+            return name
         }
-        .sorted { $0.title.localizedCaseInsensitiveCompare($1.title) == .orderedAscending }
+        let label = URL(string: origin)?.host()?.split(separator: ".").first.map(String.init) ?? origin
+        return label.prefix(1).uppercased() + label.dropFirst()
     }
 
-    /// Projects whose name matches.
-    static func projects(_ origin: String, matching query: String) async throws -> [Project] {
-        let answer = try await call(origin, tool: "search", arguments: ["query": query, "kinds": ["subject"]])
-        let rows = answer["rows"] as? [[String: Any]] ?? []
-        return rows.compactMap { row in
-            guard let door = row["door"] as? String, door.hasPrefix("subject:project:"),
-                  let title = row["title"] as? String else { return nil }
-            return Project(id: String(door.dropFirst("subject:project:".count)), title: title, door: door)
-        }
+    /// The one destination per workspace: your link saves in its Docs.
+    static func destination(for origin: String) async -> Destination {
+        Destination(kind: "starlings", name: "Starlings: \(await workspaceName(origin))",
+                    detail: URL(string: origin)?.host() ?? origin, config: ["origin": origin])
     }
 
     private static func json(_ url: URL, body: [String: Any]? = nil) async throws -> [String: Any] {
@@ -227,8 +217,8 @@ enum Starlings {
 }
 
 /// Files a link as a Docs link save (a document with `source_kind` link,
-/// listed under Links in Starlings Docs). With a project it is filed on that
-/// project and its team sees it; without one it stays private to you.
+/// listed under Links in Starlings Docs), private to you. Sift does not file
+/// on projects (owner's call, 2026-11-14).
 /// Starlings reads
 /// the page itself, files it under /work/links, posts a line on the
 /// project's channel, and answers the earlier save when the URL came before.
@@ -241,19 +231,17 @@ struct StarlingsSender: Sender {
         guard let origin = destination.config["origin"] else {
             throw SendFailure(message: "This Starlings destination is missing its workspace.")
         }
-        let project = destination.config["project"]
         var body: [String] = []
         if !item.note.isEmpty { body += [item.note, ""] }
         if !item.summary.isEmpty { body += [item.summary, ""] }
         body.append("Saved with Sift" + (item.theme.isEmpty ? "" : " · theme: \(item.theme)") + " · from \(item.source)")
-        let key = SHA256.hash(data: Data("\(origin)|\(project ?? "")|\(item.url)".utf8)).map { String(format: "%02x", $0) }.joined().prefix(64)
+        let key = SHA256.hash(data: Data("\(origin)||\(item.url)".utf8)).map { String(format: "%02x", $0) }.joined().prefix(64)
         var arguments: [String: Any] = [
             "url": item.url,
             "body_md": body.joined(separator: "\n"),
             "tags": ["sift"],
             "idempotency_key": String(key),
         ]
-        if let project { arguments["subjects"] = [["kind": "project", "subject_id": project]] }
         let answer = try await Starlings.call(origin, tool: "docs_write", arguments: arguments)
         // The answer names the document; keep a web address when there is one.
         for k in ["url", "web_url", "share_url"] {

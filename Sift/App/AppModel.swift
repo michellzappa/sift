@@ -34,6 +34,7 @@ final class AppModel {
 
     init() {
         state = StateFile.load()
+        Task { await migrateStarlingsDestinations() }
         reload()
         settleOnboardingForExistingInstall()
         startLibraryWorker()
@@ -801,6 +802,29 @@ final class AppModel {
         for tab in list where !sentRecords(tab.url).contains(where: { $0.destination == d.id }) {
             await send(tab, to: d)
             if sendError != nil { return }
+        }
+    }
+
+    /// One Starlings destination per workspace, named "Starlings: <Name>".
+    /// Project destinations from earlier builds are removed; their sent
+    /// history stays in `state.sent`.
+    private func migrateStarlingsDestinations() async {
+        var seen = Set<String>()
+        var out: [Destination] = []
+        for d in state.destinations {
+            guard d.kind == "starlings", let origin = d.config["origin"] else { out.append(d); continue }
+            if d.config["project"] != nil { continue }
+            guard seen.insert(origin).inserted else { continue }
+            var fixed = await Starlings.destination(for: origin)
+            fixed.id = d.id
+            out.append(fixed)
+        }
+        let removed = Set(state.destinations.map(\.id)).subtracting(out.map(\.id))
+        if out != state.destinations {
+            state.destinations = out
+            for i in state.extraProjects.indices where state.extraProjects[i].sendTo.map(removed.contains) == true {
+                state.extraProjects[i].sendTo = nil
+            }
         }
     }
 
