@@ -28,11 +28,19 @@ enum Capturer {
         if let knownText, !knownText.isEmpty {
             return Capture(url: urlString, title: "", author: nil, site: url.host() ?? "", published: nil, kind: "post", text: knownText)
         }
+        // One site at a time, politely; a paused site is skipped, not failed.
+        let host = (url.host() ?? "").lowercased()
+        guard await HostGate.shared.admit(host) else { return nil }
         var request = URLRequest(url: url, timeoutInterval: 20)
         request.setValue("Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/18.0 Safari/605.1.15", forHTTPHeaderField: "User-Agent")
         guard let (data, response) = try? await URLSession.shared.data(for: request),
-              let http = response as? HTTPURLResponse, (200..<400).contains(http.statusCode)
+              let http = response as? HTTPURLResponse
         else { return nil }
+        if http.statusCode == 429 || http.statusCode == 503 {
+            await HostGate.shared.pause(host, seconds: 3600)
+            return nil
+        }
+        guard (200..<400).contains(http.statusCode) else { return nil }
         let type = (http.value(forHTTPHeaderField: "Content-Type") ?? "").lowercased()
         let site = (url.host() ?? "").replacingOccurrences(of: "www.", with: "")
         if type.contains("pdf") || url.pathExtension.lowercased() == "pdf" {
@@ -217,5 +225,34 @@ enum YouTubePage {
         if let channel { text += "Video by \(channel).\n\n" }
         text += description.replacingOccurrences(of: "\\u0026", with: "&")
         return Capture(url: url, title: title, author: channel, site: "youtube.com", published: published, kind: "video", text: text)
+    }
+}
+
+/// Paces requests per site so capture never floods one site: big sites with
+/// many links (YouTube, Instagram, X) get one request every few seconds,
+/// others one a second. When a site answers "too many requests", its links
+/// are skipped for an hour and retried later instead of marked failed.
+actor HostGate {
+    static let shared = HostGate()
+    private var next: [String: Date] = [:]
+    private var pausedUntil: [String: Date] = [:]
+
+    func isPaused(_ host: String) -> Bool { (pausedUntil[host] ?? .distantPast) > .now }
+
+    func pause(_ host: String, seconds: TimeInterval) { pausedUntil[host] = Date().addingTimeInterval(seconds) }
+
+    /// Waits for this site's turn. False when the site is paused.
+    func admit(_ host: String) async -> Bool {
+        if isPaused(host) { return false }
+        let now = Date()
+        let at = max(now, next[host] ?? now)
+        next[host] = at.addingTimeInterval(interval(host))
+        let wait = at.timeIntervalSince(now)
+        if wait > 0 { try? await Task.sleep(for: .seconds(wait)) }
+        return !isPaused(host)
+    }
+
+    private func interval(_ host: String) -> TimeInterval {
+        ["youtube.com", "youtu.be", "instagram.com", "x.com", "twitter.com"].contains { host.hasSuffix($0) } ? 4 : 1
     }
 }

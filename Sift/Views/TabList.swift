@@ -201,7 +201,10 @@ struct TabCard: View {
                     Text(tab.host).lineLimit(1).truncationMode(.middle)
                     if let d = tab.lastViewed {
                         Text("·")
-                        Text(d, format: .dateTime.day().month(.abbreviated)).fixedSize()
+                        // The year shows when it is not this year.
+                        Text(d, format: Calendar.current.isDate(d, equalTo: .now, toGranularity: .year)
+                             ? .dateTime.day().month(.abbreviated) : .dateTime.day().month(.abbreviated).year())
+                            .fixedSize()
                     }
                     Spacer(minLength: 0)
                     if a?.manual == true { Image(systemName: "hand.point.up.left").help("Sorted by hand") }

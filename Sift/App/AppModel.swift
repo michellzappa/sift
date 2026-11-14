@@ -366,6 +366,8 @@ final class AppModel {
             for await (r, capture) in group {
                 if let capture {
                     library[r.url] = Library.write(capture, title: r.title, theme: r.theme, source: r.source)
+                } else if await HostGate.shared.isPaused((URL(string: r.url)?.host() ?? "").lowercased()) {
+                    // The site asked to slow down: leave it for a later run.
                 } else {
                     library[r.url] = Library.Entry(file: "", captured: .now, words: 0, kind: "page", status: "failed")
                 }
