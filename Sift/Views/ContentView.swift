@@ -157,7 +157,11 @@ private struct Sidebar: View {
             ForEach(sourceRows, id: \.id) { row in
                 HStack(spacing: 8) {
                     Image(systemName: row.symbol).frame(width: 16).foregroundStyle(.secondary)
-                    Text(row.name).lineLimit(1)
+                    HStack(spacing: 5) {
+                        Text(row.name)
+                        if let detail = row.detail { Text(detail).foregroundStyle(.tertiary) }
+                    }
+                    .lineLimit(1)
                     Spacer()
                     count(row.count)
                 }
@@ -231,13 +235,17 @@ private struct Sidebar: View {
         .safeAreaInset(edge: .bottom, spacing: 0) { LibraryStatus() }
     }
 
-    private struct SourceRow { let id: String; let name: String; let symbol: String; let count: Int }
+    private struct SourceRow {
+        let id: String; let name: String; let symbol: String; let count: Int
+        /// Quieter text after the name: the device of a Safari source.
+        var detail: String? = nil
+    }
 
     private var sourceRows: [SourceRow] {
         // Overview itself is All Sources; these rows narrow it to one source.
         var rows: [SourceRow] = []
         for d in model.devices where d.tabCount > 0 {
-            rows.append(.init(id: d.id, name: d.name, symbol: "iphone", count: d.tabCount))
+            rows.append(.init(id: d.id, name: "Safari", symbol: "safari", count: d.tabCount, detail: d.name))
         }
         if model.readingListCount > 0 { rows.append(.init(id: ReadingListReader.sourceID, name: "Reading List", symbol: "eyeglasses", count: model.readingListCount)) }
         if model.instagramCount > 0 { rows.append(.init(id: InstagramReader.sourceID, name: "Instagram Saved", symbol: "camera", count: model.instagramCount)) }
