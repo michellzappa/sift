@@ -29,7 +29,6 @@ struct Sorter: Sendable {
         let project: String
         /// No longer requested (the owner removed use lines, 2026-11-14).
         let use: String?
-        let action: String
     }
 
     /// One tab as the sorter sees it: title, URL and any preview text.
@@ -56,37 +55,7 @@ struct Sorter: Sendable {
         var out: [String: Assignment] = [:]
         let valid = Set(names)
         for r in results where items.indices.contains(r.id) && valid.contains(r.project) {
-            var action = NextAction(rawValue: r.action)
-            if r.project == Project.drop { action = .close }
-            out[items[r.id].url] = Assignment(project: r.project, use: "", manual: false, action: action)
-        }
-        return out
-    }
-
-    /// Suggests a next action for tabs that are already sorted.
-    func suggestActions(_ items: [(item: Item, project: String, use: String)]) async throws -> [String: NextAction] {
-        let system = """
-            A person sorted their open browser tabs into projects. For each tab, choose what they should \
-            do with it next, so the tab can be closed:
-            \(Self.actionGuide)
-            Return every id.
-            """
-        let user = "Tabs (id, project, title, URL, use):\n" + items.enumerated().map { index, row in
-            "\(index)\t\(row.project)\t\(row.item.title.isEmpty ? "(no title)" : row.item.title)\t\(row.item.url)\t\(row.use.isEmpty ? row.item.preview.prefix(200) : Substring(row.use))"
-        }.joined(separator: "\n")
-        let schema: [String: Any] = [
-            "type": "object", "additionalProperties": false, "required": ["items"],
-            "properties": ["items": ["type": "array", "items": [
-                "type": "object", "additionalProperties": false, "required": ["id", "action"],
-                "properties": ["id": ["type": "integer"], "action": ["type": "string", "enum": NextAction.allCases.map(\.rawValue)]],
-            ]]],
-        ]
-        struct Row: Decodable { let id: Int; let action: String }
-        struct Rows: Decodable { let items: [Row] }
-        let rows = try await Self.ask(backend: backend, system: system, user: user, schema: schema, as: Rows.self).items
-        var out: [String: NextAction] = [:]
-        for r in rows where items.indices.contains(r.id) {
-            if let a = NextAction(rawValue: r.action) { out[items[r.id].item.url] = a }
+            out[items[r.id].url] = Assignment(project: r.project, use: "", manual: false, action: nil)
         }
         return out
     }
@@ -202,10 +171,6 @@ struct Sorter: Sendable {
         return result
     }
 
-    static var actionGuide: String {
-        NextAction.allCases.map { "- \($0.rawValue): \($0.meaning)" }.joined(separator: "\n")
-    }
-
     static func ask<T: Decodable>(backend: Backend, system: String, user: String, schema: [String: Any], as: T.Type) async throws -> T {
         let data: Data
         switch backend {
@@ -238,11 +203,7 @@ struct Sorter: Sendable {
             - unknown: the title, URL and preview do not say what the page is.
 
             For each tab, choose exactly one project or bucket. Choose a project only when the link could \
-            feed that project's work.
-
-            Also choose "action", what the person should do with the link next:
-            \(actionGuide)
-            Return every id.
+            feed that project's work. Return every id.
             """
     }
 
@@ -257,11 +218,10 @@ struct Sorter: Sendable {
                     "items": [
                         "type": "object",
                         "additionalProperties": false,
-                        "required": ["id", "project", "action"],
+                        "required": ["id", "project"],
                         "properties": [
                             "id": ["type": "integer"],
                             "project": ["type": "string", "enum": names],
-                            "action": ["type": "string", "enum": NextAction.allCases.map(\.rawValue)],
                         ],
                     ],
                 ],

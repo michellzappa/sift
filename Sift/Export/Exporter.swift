@@ -17,8 +17,8 @@ struct ExportItem: Sendable, Codable {
     /// The theme name, or "personal" for the personal bucket.
     let theme: String
     let use: String
-    /// read, try, cite, contact, file or close. Empty when not set.
-    let action: String
+    /// Names of the destinations the link was sent to.
+    let sentTo: [String]
     let site: String
     let source: String
     let lastViewed: Date?

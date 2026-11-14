@@ -9,9 +9,9 @@ struct CSVExporter: Exporter {
     let output = ExportOutput.file(extension: "csv")
 
     func export(_ snapshot: ExportSnapshot, to destination: URL?) throws -> String {
-        var rows = [["project", "title", "url", "possible use", "action", "site", "last viewed"]]
+        var rows = [["project", "title", "url", "possible use", "sent to", "site", "last viewed"]]
         for item in snapshot.items {
-            rows.append([item.theme, item.title, item.url, item.use, item.action, item.site,
+            rows.append([item.theme, item.title, item.url, item.use, item.sentTo.joined(separator: "; "), item.site,
                          item.lastViewed.map { ExportText.day.string(from: $0) } ?? ""])
         }
         let text = rows.map { $0.map(Self.field).joined(separator: ",") }.joined(separator: "\n") + "\n"

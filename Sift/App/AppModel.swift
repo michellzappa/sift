@@ -160,7 +160,7 @@ final class AppModel {
         for tab in tabs where Errands.isErrand(tab.url) {
             let a = s.assignments[tab.url]
             guard a?.manual != true, a?.project != Project.errands else { continue }
-            s.assignments[tab.url] = Assignment(project: Project.errands, use: "", manual: false, action: .close)
+            s.assignments[tab.url] = Assignment(project: Project.errands, use: "", manual: false, action: nil)
             changed = true
         }
         if changed { state = s }
@@ -314,7 +314,7 @@ final class AppModel {
             var r = archive[tab.url] ?? ArchiveRecord(url: tab.url, title: tab.title, source: tab.source, firstSeen: tab.lastViewed ?? now)
             let p = previews[tab.url]
             if tab.hasUsefulTitle { r.title = tab.title } else if let p, !p.failed, !p.title.isEmpty { r.title = p.title }
-            if let a = state.assignments[tab.url] { r.theme = a.project; r.use = a.use; r.action = a.action }
+            if let a = state.assignments[tab.url] { r.theme = a.project; r.use = a.use }
             if let p, !p.failed { r.previewText = p.text; r.imageURL = p.imageURL ?? p.avatarURL }
             r.lastSeen = now
             r.archived = nil
@@ -682,50 +682,80 @@ final class AppModel {
 
     func tabs(onSite host: String) -> [SafariTab] { tabs.filter { $0.host == host } }
 
-    func tabs(withAction action: NextAction) -> [SafariTab] {
-        tabs.filter { state.assignments[$0.url]?.action == action }
+    // MARK: Send
+
+    var destinations: [Destination] { state.destinations }
+    var sendError: String?
+    /// URLs being sent right now, for a spinner on their rows.
+    var sending = Set<String>()
+
+    func destination(_ id: String?) -> Destination? { id.flatMap { id in state.destinations.first { $0.id == id } } }
+
+    /// The theme's default destination for this link, if any.
+    func defaultDestination(for tab: SafariTab) -> Destination? {
+        guard let theme = state.assignments[tab.url]?.project else { return nil }
+        return destination(themes.first { $0.name == theme }?.sendTo)
     }
 
-    func setAction(_ action: NextAction?, for tab: SafariTab) {
-        guard var a = state.assignments[tab.url] else { return }
-        a.action = action
-        state.assignments[tab.url] = a
+    func sentRecords(_ url: String) -> [SentRecord] { state.sent[url] ?? [] }
+
+    func sentTabs(to id: String) -> [SafariTab] {
+        let urls = state.sent.filter { $0.value.contains { $0.destination == id } }.map(\.key)
+        return urls.compactMap { url in tabs.first { $0.url == url } ?? archive[url]?.asTab }
+            .sorted { (state.sent[$0.url]?.last?.date ?? .distantPast) > (state.sent[$1.url]?.last?.date ?? .distantPast) }
     }
 
-    /// Sorted tabs that have no next action yet (for example from a CSV import).
-    var tabsWithoutAction: [SafariTab] {
-        tabs.filter { tab in
-            guard let a = state.assignments[tab.url] else { return false }
-            return a.action == nil && a.project != Project.unknown
+    func setDefaultDestination(_ id: String?, forTheme theme: String) {
+        guard let i = state.extraProjects.firstIndex(where: { $0.name == theme }) else { return }
+        state.extraProjects[i].sendTo = id
+    }
+
+    /// Sends one link now. A sent Safari tab is marked closable: it goes on
+    /// the iPhone close list.
+    func send(_ tab: SafariTab, to d: Destination) async {
+        guard let sender = Senders.sender(for: d.kind), !sending.contains(tab.url) else { return }
+        sending.insert(tab.url)
+        defer { sending.remove(tab.url) }
+        let p = previews[tab.url]
+        let item = SendItem(
+            url: tab.url,
+            title: TabCard.title(tab, p),
+            theme: state.assignments[tab.url].map { Project.displayName($0.project) } ?? "",
+            note: note(for: tab.url) ?? "",
+            summary: p?.failed == false ? p?.text ?? "" : "",
+            text: library[tab.url]?.file.isEmpty == false ? Library.text(for: tab.url) ?? "" : "",
+            site: tab.host, source: tab.source, saved: archive[tab.url]?.firstSeen ?? tab.lastViewed)
+        do {
+            let link = try await sender.send(item, to: d)
+            state.sent[tab.url, default: []].append(SentRecord(destination: d.id, date: .now, link: link))
+            if state.closeAfterSend, isSafariTab(tab), !state.closeQueue.contains(tab.url) {
+                state.closeQueue.append(tab.url)
+            }
+        } catch {
+            sendError = "\(d.name): \(error.localizedDescription)"
         }
     }
 
-    func suggestActions() async {
-        guard !isSorting else { return }
-        let todo = tabsWithoutAction
-        guard !todo.isEmpty else { return }
-        isSorting = true
-        sortError = nil
-        sortProgress = (0, todo.count)
-        defer { isSorting = false }
-        let sorter = Sorter(backend: state.backend)
-        for start in stride(from: 0, to: todo.count, by: Sorter.batchSize) {
-            let batch = Array(todo[start..<min(start + Sorter.batchSize, todo.count)])
-            let rows = batch.map { tab in
-                (item: sortItem(tab), project: state.assignments[tab.url]?.project ?? "", use: state.assignments[tab.url]?.use ?? "")
-            }
-            do {
-                let result = try await sorter.suggestActions(rows)
-                for (url, action) in result where state.assignments[url]?.action == nil {
-                    state.assignments[url]?.action = action
-                }
-                sortProgress.done = min(start + batch.count, todo.count)
-            } catch {
-                sortError = error.localizedDescription
-                return
-            }
+    /// Sends several links, one after another; stops at the first failure.
+    func send(_ list: [SafariTab], to d: Destination) async {
+        for tab in list where !sentRecords(tab.url).contains(where: { $0.destination == d.id }) {
+            await send(tab, to: d)
+            if sendError != nil { return }
         }
     }
+
+    func addDestination(_ d: Destination) {
+        guard !state.destinations.contains(where: { $0.kind == d.kind && $0.config == d.config }) else { return }
+        state.destinations.append(d)
+    }
+
+    func removeDestination(_ id: String) {
+        state.destinations.removeAll { $0.id == id }
+        for i in state.extraProjects.indices where state.extraProjects[i].sendTo == id { state.extraProjects[i].sendTo = nil }
+    }
+
+    /// Safari tabs come from a device; saved lists and imports do not.
+    private func isSafariTab(_ tab: SafariTab) -> Bool { devices.contains { $0.id == tab.source } || tab.source == "tabs" }
 
     // MARK: Projects
 
@@ -737,7 +767,7 @@ final class AppModel {
 
     /// Places links can end up, added by hand. Used only as hints when
     /// Claude suggests a home for a theme.
-    var destinations: [Project] { state.extraProjects.filter { !$0.isTheme } }
+    var handPlaces: [Project] { state.extraProjects.filter { !$0.isTheme } }
 
     // MARK: Themes
 
@@ -782,7 +812,7 @@ final class AppModel {
 
         do {
             let result = try await Sorter(backend: state.backend)
-                .discoverThemes(corpus.map(sortItem), destinations: destinations, keep: themes)
+                .discoverThemes(corpus.map(sortItem), destinations: handPlaces + state.destinations.map { Project(name: $0.name, summary: $0.detail, isTheme: false) }, keep: themes)
             proposalURLs = corpus.map(\.url)
             themeProposal = result.sorted { $0.itemIDs.count > $1.itemIDs.count }
         } catch {
@@ -846,7 +876,6 @@ final class AppModel {
                 a.project = name
                 a.manual = false
                 if bucket != nil { a.use = "" }
-                if bucket == Project.drop { a.action = .close }
                 s.assignments[url] = a
             }
         }
@@ -894,7 +923,7 @@ final class AppModel {
     func move(_ tab: SafariTab, to project: String) {
         let old = state.assignments[tab.url]
         let use = Project.buckets.contains(project) ? "" : (old?.use ?? "")
-        let action = project == Project.drop ? .close : old?.action
+        let action = old?.action
         state.assignments[tab.url] = Assignment(project: project, use: use, manual: true, action: action)
     }
 
@@ -1215,7 +1244,8 @@ final class AppModel {
             let p = previews[tab.url]
             let usable = p?.failed == false ? p : nil
             let title = tab.hasUsefulTitle ? tab.title : (usable.map { $0.site == "x.com" ? "\($0.title) on X" : $0.title } ?? tab.url)
-            return ExportItem(url: tab.url, title: title, theme: a.project, use: a.use, action: a.action?.rawValue ?? "",
+            return ExportItem(url: tab.url, title: title, theme: a.project, use: a.use,
+                              sentTo: sentRecords(tab.url).compactMap { destination($0.destination)?.name },
                               site: tab.host, source: source, lastViewed: tab.lastViewed,
                               previewText: usable?.text ?? "", imageURL: usable?.imageURL)
         }
@@ -1291,7 +1321,7 @@ final class AppModel {
                 addTheme(name: project, summary: "")
             }
             let use = useIndex.flatMap { row.indices.contains($0) ? row[$0] : nil } ?? ""
-            state.assignments[row[u]] = Assignment(project: project, use: use, manual: true, action: project == Project.drop ? .close : nil)
+            state.assignments[row[u]] = Assignment(project: project, use: use, manual: true, action: nil)
             count += 1
         }
         return count

@@ -12,6 +12,24 @@ struct ThemeMemory: View {
     var body: some View {
         let project = model.themes.first { $0.name == theme }
         VStack(alignment: .leading, spacing: 8) {
+            if !model.destinations.isEmpty {
+                HStack(spacing: 8) {
+                    Picker("Sends to", selection: .init(get: { project?.sendTo ?? "" },
+                                                        set: { model.setDefaultDestination($0.isEmpty ? nil : $0, forTheme: theme) })) {
+                        Text("Nowhere yet").tag("")
+                        ForEach(model.destinations) { d in Text(d.name).tag(d.id) }
+                    }
+                    .fixedSize()
+                    if let d = model.destination(project?.sendTo) {
+                        let unsent = model.tabs(in: theme).filter { tab in !model.sentRecords(tab.url).contains { $0.destination == d.id } }
+                        if !unsent.isEmpty {
+                            Button("Send \(unsent.count) to \(d.name)") { Task { await model.send(unsent, to: d) } }
+                                .help("Sends every link in this theme that has not gone to \(d.name) yet.")
+                        }
+                    }
+                }
+                .controlSize(.small)
+            }
             TextField("Your notes on this theme: why it matters, what you want from it", text: $draft, axis: .vertical)
                 .textFieldStyle(.plain)
                 .lineLimit(1...6)

@@ -49,9 +49,9 @@ struct ObsidianExporter: Exporter {
                          "theme: \(ExportText.yaml("[[\(ExportText.fileName(item.theme))]]"))",
                          "site: \(ExportText.yaml(item.site))",
                          "source: \(ExportText.yaml(item.source))"]
-            if !item.action.isEmpty { lines.append("action: \(item.action)") }
+            if !item.sentTo.isEmpty { lines.append("sent_to: [\(item.sentTo.map(ExportText.yaml).joined(separator: ", "))]") }
             if let d = item.lastViewed { lines.append("saved: \(ExportText.day.string(from: d))") }
-            lines += ["tags: [sift\(item.action.isEmpty ? "" : ", sift/\(item.action)")]", "---", ""]
+            lines += ["tags: [sift\(item.sentTo.isEmpty ? "" : ", sift/sent")]", "---", ""]
             if let image = item.imageURL { lines += ["![](\(image))", ""] }
             lines.append("[\(item.title.isEmpty ? item.url : item.title)](\(item.url))")
             lines.append("")
@@ -69,17 +69,12 @@ struct ObsidianExporter: Exporter {
             if !theme.destination.isEmpty { lines.append("destination: \(ExportText.yaml(theme.destination))") }
             lines += ["links: \(items.count)", "tags: [sift, sift/theme]", "---", ""]
             if !theme.summary.isEmpty { lines += [theme.summary, ""] }
-            let byAction = Dictionary(grouping: items) { $0.action.isEmpty ? "no action" : $0.action }
-            for action in ["read", "try", "cite", "contact", "file", "close", "no action"] {
-                guard let group = byAction[action], !group.isEmpty else { continue }
-                lines += ["### \(action.prefix(1).uppercased() + action.dropFirst())", ""]
-                for item in group {
-                    if let n = noteName[item.url] {
-                        lines.append("- [[\(n)]]" + (item.use.isEmpty ? "" : " · \(item.use)"))
-                    }
+            for item in items {
+                if let n = noteName[item.url] {
+                    lines.append("- [[\(n)]]" + (item.sentTo.isEmpty ? "" : " → \(item.sentTo.joined(separator: ", "))"))
                 }
-                lines.append("")
             }
+            lines.append("")
             try write(lines.joined(separator: "\n"), to: themesDir.appending(path: "\(ExportText.fileName(theme.name)).md"))
         }
 

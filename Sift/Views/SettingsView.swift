@@ -318,14 +318,72 @@ private struct OutputSettings: View {
         }
     }
 
+    private func addObsidian() {
+        let panel = NSOpenPanel()
+        panel.canChooseDirectories = true
+        panel.canChooseFiles = false
+        panel.canCreateDirectories = true
+        panel.prompt = "Send Here"
+        panel.message = "Choose a folder in your Obsidian vault. Each sent link becomes one note there."
+        guard panel.runModal() == .OK, let url = panel.url else { return }
+        model.addDestination(Destination(kind: "obsidian", name: url.lastPathComponent, detail: url.path(percentEncoded: false),
+                                         config: ["folder": url.path(percentEncoded: false)]))
+    }
+
+    private func addMarkdown() {
+        let panel = NSSavePanel()
+        panel.allowedContentTypes = [.init(filenameExtension: "md")!]
+        panel.nameFieldStringValue = "Links.md"
+        panel.prompt = "Send Here"
+        panel.message = "Sent links are added to the end of this file, one line each."
+        guard panel.runModal() == .OK, let url = panel.url else { return }
+        model.addDestination(Destination(kind: "markdown", name: url.deletingPathExtension().lastPathComponent, detail: url.path(percentEncoded: false),
+                                         config: ["file": url.path(percentEncoded: false)]))
+    }
+
     private var closeStatus: String {
         guard CloseList.iCloudDriveAvailable else { return "iCloud Drive is off" }
         let n = model.state.closeQueue.count
         return "iCloud Drive/Sift/close.txt, \(n) \(n == 1 ? "link" : "links") to close"
     }
 
+    @State private var connecting = false
+
     var body: some View {
+        @Bindable var model = model
         Form {
+            Section {
+                ForEach(model.destinations) { d in
+                    HStack {
+                        Image(systemName: d.symbol).frame(width: 18).foregroundStyle(.secondary)
+                        VStack(alignment: .leading, spacing: 1) {
+                            Text(d.name)
+                            if !d.detail.isEmpty { Text(d.detail).font(.caption).foregroundStyle(.secondary).lineLimit(1).truncationMode(.middle) }
+                        }
+                        Spacer()
+                        Text("\(model.sentTabs(to: d.id).count) sent").font(.caption).foregroundStyle(.secondary)
+                        Button(role: .destructive) { model.removeDestination(d.id) } label: { Image(systemName: "minus.circle") }
+                            .buttonStyle(.borderless)
+                            .help("Remove this destination. Links already sent stay where they are.")
+                    }
+                }
+                HStack {
+                    Button("Connect Starlings…") { connecting = true }
+                    Button("Add Obsidian Folder…") { addObsidian() }
+                    Button("Add Markdown File…") { addMarkdown() }
+                    if !model.destinations.contains(where: { $0.kind == "reading-list" }) {
+                        Button("Add Reading List") { model.addDestination(Destination(kind: "reading-list", name: "Reading List", detail: "Safari")) }
+                    }
+                }
+                Toggle("Close sent Safari tabs on iPhone", isOn: $model.state.closeAfterSend)
+            } header: {
+                Text("Send to")
+            } footer: {
+                Text("Send files a link at once. A theme can have a default destination: then one click sends there. Starlings files each link as a Docs link save on the project you pick, through your own Starlings sign-in.")
+                    .foregroundStyle(.secondary)
+            }
+            .sheet(isPresented: $connecting) { StarlingsConnect().environment(model) }
+
             Section {
                 ForEach(Exporters.all, id: \.id) { exporter in
                     VStack(alignment: .leading, spacing: 4) {

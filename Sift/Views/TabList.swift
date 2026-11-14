@@ -33,7 +33,7 @@ struct TabList: View {
         case .saved(let q): "“\(q)”"
         case .project(let p): Project.displayName(p)
         case .site(let host): host
-        case .action(let a): "Next: \(a.label)"
+        case .destination(let id): model.destination(id)?.name ?? "Destination"
         }
     }
 
@@ -48,7 +48,7 @@ struct TabList: View {
         case .saved: savedHits
         case .project(let p): model.tabs(in: p)
         case .site(let host): model.tabs(onSite: host)
-        case .action(let a): model.tabs(withAction: a)
+        case .destination(let id): model.sentTabs(to: id)
         }
     }
 
@@ -313,7 +313,13 @@ struct TabCard: View {
                 noteDraft = model.note(for: tab.url) ?? ""
                 editingNote = true
             }
-            if a != nil { Menu("Next Action") { actionMenu } }
+            if !model.destinations.isEmpty {
+                Menu("Send to") {
+                    ForEach(model.destinations) { d in
+                        Button(d.name) { Task { await model.send(tab, to: d) } }
+                    }
+                }
+            }
             Divider()
             if !model.isSavedList {
                 Button(closing ? "Keep Open on iPhone" : "Close on iPhone") { model.toggleClose(tab) }
@@ -403,17 +409,15 @@ struct TabCard: View {
                     .fixedSize(horizontal: false, vertical: true)
                     .help("Theme: \(a.project)")
                 }
-                Menu { actionMenu } label: {
-                    Image(systemName: a.action?.symbol ?? "plus.circle")
-                }
+            }
+            let sent = !model.sentRecords(tab.url).isEmpty
+            SendButton(tab: tab, compact: true)
                 .menuStyle(.button)
                 .buttonStyle(.borderless)
                 .menuIndicator(.hidden)
                 .fixedSize()
-                .foregroundStyle(a.action == nil ? .tertiary : .secondary)
-                .opacity(a.action != nil || hovering || isSelected ? 1 : 0)
-                .help(a.action.map { "Next: \($0.label). \($0.meaning)" } ?? "Choose what to do with this link next.")
-            }
+                .foregroundStyle(sent ? Color.accentColor : .secondary)
+                .opacity(sent || hovering || isSelected || model.sending.contains(tab.url) ? 1 : 0)
         }
         .padding(.horizontal, 12)
         .padding(.vertical, 8)
@@ -505,18 +509,15 @@ struct TabCard: View {
                     .help(out)
                 }
                 Spacer(minLength: 0)
-                // Footer: next action left, theme right (only where the
-                // theme is not already the page you are on).
+                // Footer: send left, theme right (only where the theme is
+                // not already the page you are on).
                 if a != nil {
                     HStack(spacing: 8) {
-                        Menu { actionMenu } label: {
-                            Label(a?.action?.label ?? "Action", systemImage: a?.action?.symbol ?? "plus.circle")
-                        }
-                        .menuStyle(.button)
-                        .buttonStyle(.bordered)
-                        .controlSize(.small)
-                        .fixedSize()
-                        .help(a?.action?.meaning ?? "Choose what to do with this link next.")
+                        SendButton(tab: tab)
+                            .menuStyle(.button)
+                            .buttonStyle(.bordered)
+                            .controlSize(.small)
+                            .fixedSize()
                         Spacer(minLength: 0)
                         if showTheme {
                             Menu { moveMenu } label: { Text(a.map { Project.displayName($0.project) } ?? "Move to…").lineLimit(1) }
@@ -594,7 +595,9 @@ struct TabCard: View {
             .clipped()
     }
 
-    private func cardTitle(_ p: Preview?) -> String {
+    private func cardTitle(_ p: Preview?) -> String { Self.title(tab, p) }
+
+    static func title(_ tab: SafariTab, _ p: Preview?) -> String {
         if p?.site == "x.com", let text = p?.text, !text.isEmpty, !p!.failed {
             // The post itself is the title; the header carries the author.
             return text
@@ -623,14 +626,6 @@ struct TabCard: View {
         }
     }
 
-    @ViewBuilder
-    private var actionMenu: some View {
-        ForEach(NextAction.allCases, id: \.self) { action in
-            Button { model.setAction(action, for: tab) } label: { Label(action.label, systemImage: action.symbol) }
-        }
-        Divider()
-        Button("No Action") { model.setAction(nil, for: tab) }
-    }
 }
 
 enum TabActions {

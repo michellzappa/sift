@@ -16,7 +16,7 @@ file. You do not need to touch the rest of the app.
    - `.file(extension:)` for one file,
    - `.clipboard` when you return text to copy.
 3. Write `export(_:to:)`. You get an `ExportSnapshot` with `themes` and
-   `items`. Each item has the URL, title, theme, use, next action, site,
+   `items`. Each item has the URL, title, theme, use, the destinations it was sent to, site,
    source, date, preview text and image URL. Return a short result message,
    or the text to copy for `.clipboard`.
 4. Add one instance to `Exporters.all` in `Sift/Export/Exporter.swift`.
@@ -50,3 +50,13 @@ or `./scripts/build-app.sh` to build, sign and install to /Applications.
 Open an issue first for anything bigger than an exporter or a fix, so we can
 agree on the shape before you spend time on it. Sift aims to stay small: it
 is the step between saving a link and filing it, not a notes app.
+
+## Adding a send destination
+
+1. Create `Sift/Send/<Name>Sender.swift` with a struct that conforms to
+   `Sender` (`kind`, `label`, `symbol`, `send(_:to:)`).
+2. Add one instance to `Senders.all` in `Sift/Send/Sender.swift`.
+3. Give Settings > Outputs > Send to a way to add a `Destination` of that
+   kind (its settings go in `config`).
+A sender gets one link at a time and returns where it landed (a URL or a
+file path), or throws `SendFailure` with a message for the user.

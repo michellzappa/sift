@@ -107,6 +107,16 @@ project and as an overview network (one hub per project, one dot per tab).
   present. Capture marks 404/410/no-such-host as status "gone" (Broken
   Links). Notes per link live in `ArchiveRecord.takeaway` and go into the
   search index. Saved searches (`state.savedSearches`) list FTS hits.
+- Send replaced next actions (2026-11-14, owner's call; filing is
+  immediate, no confirm step). `Sift/Send/`: `Sender` plugins (Starlings,
+  Obsidian, Markdown, Reading List), `state.destinations`, `state.sent`
+  (url → records), `Project.sendTo` (theme default), `closeAfterSend`
+  (sent Safari tabs go on the close list). Starlings: OAuth 2.1 with
+  dynamic registration, PKCE, loopback 127.0.0.1:53683, `resource`
+  <origin>/mcp, tokens per workspace in the keychain
+  (`app.sift.starlings.<host>`); `docs_write` with `url` + project subject
+  + idempotency key is a link save. Old `Assignment.action` data still
+  decodes but nothing reads it.
 - Links show as rows by default (`LinkStyle`, `@AppStorage("links.style")`,
   `LinkStyleToggle`); cards are the grid option. `TabCard` draws both and
   shares menus. Lists take arrow keys and space (browser). In the graph,

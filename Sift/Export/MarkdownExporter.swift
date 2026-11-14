@@ -22,7 +22,7 @@ struct MarkdownExporter: Exporter {
             for item in snapshot.items(in: theme.name) {
                 let title = item.title.isEmpty ? item.url : item.title
                 var line = "- [\(title.replacingOccurrences(of: "]", with: ")"))](\(item.url))"
-                if !item.action.isEmpty { line += " `\(item.action)`" }
+                if !item.sentTo.isEmpty { line += " → \(item.sentTo.joined(separator: ", "))" }
                 if !item.use.isEmpty { line += ": \(item.use)" }
                 lines.append(line)
             }

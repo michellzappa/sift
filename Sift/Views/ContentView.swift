@@ -12,7 +12,8 @@ enum SidebarItem: Hashable {
     /// The overview, showing one source (see AppModel.selectDevice).
     case source(String)
     case site(String)
-    case action(NextAction)
+    /// Links sent to one destination.
+    case destination(String)
     case project(String)
 }
 
@@ -52,6 +53,11 @@ struct ContentView: View {
             Button("OK") { model.exportMessage = nil }
         } message: {
             Text(model.exportMessage ?? "")
+        }
+        .alert("Not sent", isPresented: .init(get: { model.sendError != nil }, set: { if !$0 { model.sendError = nil } })) {
+            Button("OK") { model.sendError = nil }
+        } message: {
+            Text(model.sendError ?? "")
         }
         .alert("Sorting stopped", isPresented: .init(get: { model.sortError != nil }, set: { if !$0 { model.sortError = nil } })) {
             Button("OK") { model.sortError = nil }
@@ -113,15 +119,6 @@ struct ContentView: View {
             }
             .help(model.themes.isEmpty ? "Discover your themes first." : "Sort the links that are in no theme yet into your themes.")
             .disabled(model.unsortedCount == 0 || model.themes.isEmpty || model.isSorting || model.isDiscovering)
-        }
-        ToolbarItem(placement: .primaryAction) {
-            Button {
-                Task { await model.suggestActions() }
-            } label: {
-                Label("Suggest Next Actions", systemImage: "arrow.forward.circle")
-            }
-            .help("Ask Claude what to do next with sorted links that have no next action.")
-            .disabled(model.tabsWithoutAction.isEmpty || model.isSorting || model.isDiscovering)
         }
         ToolbarItem(placement: .primaryAction) {
             Menu {
@@ -206,11 +203,16 @@ private struct Sidebar: View {
                         .tag(SidebarItem.project(item.project))
                 }
             }
-            Section("Next action", isExpanded: $showActions) {
-                ForEach(NextAction.allCases, id: \.self) { action in
-                    Label { HStack { Text(action.label); Spacer(); count(model.tabs(withAction: action).count) } } icon: { Image(systemName: action.symbol) }
-                        .help(action.meaning)
-                        .tag(SidebarItem.action(action))
+            Section("Sent to", isExpanded: $showActions) {
+                ForEach(model.destinations) { d in
+                    Label { HStack { Text(d.name).lineLimit(1); Spacer(); count(model.sentTabs(to: d.id).count) } } icon: { Image(systemName: d.symbol) }
+                        .help(d.detail.isEmpty ? d.name : "\(d.name) · \(d.detail)")
+                        .tag(SidebarItem.destination(d.id))
+                }
+                if model.destinations.isEmpty {
+                    SettingsLink { Label("Add a Destination…", systemImage: "plus") }
+                        .buttonStyle(.plain)
+                        .foregroundStyle(.secondary)
                 }
             }
             Section("Sites", isExpanded: $showSites) {

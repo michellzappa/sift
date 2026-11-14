@@ -47,15 +47,9 @@ struct WebPane: View {
             if a != nil {
                 HStack(spacing: 8) {
                     Spacer(minLength: 4)
-                    Menu {
-                        ForEach(NextAction.allCases, id: \.self) { action in
-                            Button { model.setAction(action, for: tab) } label: { Label(action.label, systemImage: action.symbol) }
-                        }
-                    } label: {
-                        Label(a?.action?.label ?? "Next action", systemImage: a?.action?.symbol ?? "arrow.forward.circle")
-                    }
-                    .menuStyle(.borderlessButton).fixedSize()
-                    .font(.caption)
+                    SendButton(tab: tab)
+                        .menuStyle(.borderlessButton).fixedSize()
+                        .font(.caption)
                 }
                 .padding(.horizontal, 10).padding(.bottom, 7)
             }

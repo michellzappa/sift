@@ -97,14 +97,15 @@ enum XAuth {
         return Tokens(access: access, refresh: refresh, expires: Date().addingTimeInterval(seconds))
     }
 
-    private static func randomString(_ length: Int) -> String {
+    static func randomString(_ length: Int) -> String {
         var bytes = [UInt8](repeating: 0, count: length)
         _ = SecRandomCopyBytes(kSecRandomDefault, length, &bytes)
         return Data(bytes).base64URL.prefix(length).description
     }
 }
 
-private extension Data {
+extension Data {
+    /// Base64 with the URL-safe alphabet and no padding (PKCE, OAuth state).
     var base64URL: String {
         base64EncodedString().replacingOccurrences(of: "+", with: "-").replacingOccurrences(of: "/", with: "_")
             .replacingOccurrences(of: "=", with: "")

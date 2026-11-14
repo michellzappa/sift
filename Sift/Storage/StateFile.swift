@@ -30,6 +30,12 @@ struct SiftState: Codable, Sendable {
     var mergedInto: [String: String] = [:]
     /// Searches kept in the sidebar.
     var savedSearches: [String] = []
+    /// Where links can be sent: Starlings projects, Obsidian folders, files.
+    var destinations: [Destination] = []
+    /// Where each link was sent, keyed by URL.
+    var sent: [String: [SentRecord]] = [:]
+    /// A sent Safari tab goes on the iPhone close list.
+    var closeAfterSend = true
     var xClientID: String = ""
     var xUserID: String?
     var xUsername: String?
@@ -57,6 +63,9 @@ struct SiftState: Codable, Sendable {
         findConnections = try c.decodeIfPresent(Bool.self, forKey: .findConnections) ?? true
         mergedInto = try c.decodeIfPresent([String: String].self, forKey: .mergedInto) ?? [:]
         savedSearches = try c.decodeIfPresent([String].self, forKey: .savedSearches) ?? []
+        destinations = try c.decodeIfPresent([Destination].self, forKey: .destinations) ?? []
+        sent = try c.decodeIfPresent([String: [SentRecord]].self, forKey: .sent) ?? [:]
+        closeAfterSend = try c.decodeIfPresent(Bool.self, forKey: .closeAfterSend) ?? true
         xClientID = try c.decodeIfPresent(String.self, forKey: .xClientID) ?? ""
         xUserID = try c.decodeIfPresent(String.self, forKey: .xUserID)
         xUsername = try c.decodeIfPresent(String.self, forKey: .xUsername)

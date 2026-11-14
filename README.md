@@ -68,33 +68,37 @@ Click a theme and the camera glides onto it: its links appear as cards in a
 grid. Pinch or two-finger scroll to zoom the map; inside a theme, scrolling
 moves the cards. Esc or a click on empty space zooms back out.
 
-### Cards and the browser
+### List, cards and the browser
 
-Every link is a card: the page image, where it is from and when, the full
-title, a short summary, how you could use it, and its next action. Click a
-card and the page opens in a browser that slides in over the right side, so
-the grid never moves. The browser has back, forward, reload, Open in Safari,
-Add to Reading List and, for pages in the library, a reader view of the
-saved text. The sidebar also lists links by next action, by site and by
-bucket.
+Links show as a list: thumbnail, title, source, date, what Sift saved and
+one line of preview, then the theme and a send button. A toggle switches to
+cards. Click a link and the page opens in a browser that slides in over the
+right side. ↑↓ move through the list; Space opens and closes the browser.
+The browser has back, forward, reload, Open in Safari, Send and, for pages
+in the library, a reader view of the saved text.
 
-### Next actions
+### Send
 
-Each link gets one of six next steps, set by Claude or by you:
+A link stays in Sift until you send it where it will be used. Destinations:
 
-| Action  | Meaning |
-| ------- | ------- |
-| Read    | Read or watch it properly: a long article, paper, talk or book |
-| Try     | Install, test or prototype with it: a tool, repo, app or method |
-| Cite    | Quote or reference it in writing, a deck, a pitch or a spec |
-| Contact | Reach out to the person, company or community behind it |
-| File    | Keep it as reference; nothing to do now |
-| Close   | Already used, outdated or not worth more time |
+| Destination | What a send does |
+| ----------- | ---------------- |
+| Starlings project | Files the link as a Docs link save on the project (Starlings reads the page and posts a line on the project channel) |
+| Obsidian folder | Writes one note per link: front matter, your note, summary, saved text |
+| Markdown file | Adds one line per link at the end of the file |
+| Reading List | Adds the link to Safari's Reading List |
+
+Sending is immediate. Each theme can name a default destination: then one
+click on the plane sends there, and the theme header can send all of its
+links at once. A sent Safari tab goes on the iPhone close list. The sidebar
+lists what went to each destination. Connect Starlings in Settings > Outputs:
+Sift signs in like Claude Code (OAuth, no API key) and keeps the tokens in
+the keychain. Destinations are plugins: one file per kind in `Sift/Send/`.
 
 ### Archive
 
-Sift keeps a record of every link it has seen: title, theme, use, next
-action, preview and dates. When a link leaves its source (a tab closed on
+Sift keeps a record of every link it has seen: title, theme, use,
+preview and dates. When a link leaves its source (a tab closed on
 the phone, an item removed from the Reading List or an export), the record
 moves to **Archive** instead of being forgotten.
 
@@ -159,7 +163,7 @@ contribute; see [CONTRIBUTING.md](CONTRIBUTING.md).
 ### What Sift sends where
 
 - **To Claude**, through your Claude Code login or your own API key: for
-  theme discovery, sorting and next actions, each link's title, URL and short
+  theme discovery and sorting, each link's title, URL and short
   preview text, plus your theme names. Never whole pages. Errands never go
   to Claude.
 - **To each site**, once: a request for its page, for the preview and the
@@ -283,7 +287,8 @@ About 5,500 lines of SwiftUI. No dependencies.
 | `Storage/Archive` | Every link Sift has seen, and what it knows about it |
 | `Storage/StateFile` | Settings, themes and assignments, as one JSON file |
 | `Engine/Capture` | Page capture, text extraction and the Markdown library |
-| `Sorting/Sorter` | Theme discovery, sorting and next actions through `claude -p` or the Messages API |
+| `Send/*` | Destinations: Starlings (OAuth + MCP), Obsidian, Markdown, Reading List |
+| `Sorting/Sorter` | Theme discovery and sorting through `claude -p` or the Messages API |
 | `Sorting/Errands` | Rules for transactional tabs |
 | `X/*` | Optional X API: sign-in, client, cache and the native post view |
 | `Export/*` | The exporter protocol, the registry and one file per exporter |
