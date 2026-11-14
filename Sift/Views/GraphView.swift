@@ -19,6 +19,7 @@ struct GraphView: View {
     @State private var picked: String?
     @State private var hover: Int?
     @State private var redraw = 0
+    @State private var viewSize: CGSize = .zero
     /// Where the sidebar was before a theme was focused.
     @State private var returnTo: SidebarItem?
     /// A link to another theme it also feeds: leaf index, theme hub index.
@@ -35,6 +36,8 @@ struct GraphView: View {
             // card grid underneath keep their size and position.
             ZStack(alignment: .trailing) {
                 canvas(size: geo.size)
+                    .onAppear { viewSize = geo.size; if focusTheme == nil { fit(animated: false) } }
+                    .onChange(of: geo.size) { _, new in viewSize = new; if focusTheme == nil { fit(animated: false) } }
                     .frame(width: geo.size.width, height: geo.size.height)
                     .clipped()
                 if let url = picked, let tab = model.tabs.first(where: { $0.url == url }) ?? model.archivedTabs.first(where: { $0.url == url }) {
@@ -176,7 +179,26 @@ struct GraphView: View {
     private func zoomOut() {
         withAnimation(.snappy) { picked = nil }
         withAnimation(.easeOut(duration: 0.25)) { focusTheme = nil }
-        cam.animate(to: .zero, scale: 1)
+        fit(animated: true)
+        redraw += 1
+    }
+
+    /// Frames the whole graph: as large as the view allows, centered, with
+    /// room for the theme labels (which keep their size on screen).
+    private func fit(animated: Bool) {
+        let points = sim.nodes.map(\.p)
+        guard viewSize.width > 0, let minX = points.map(\.x).min(), let maxX = points.map(\.x).max(),
+              let minY = points.map(\.y).min(), let maxY = points.map(\.y).max() else { return }
+        let width = max(maxX - minX, 1), height = max(maxY - minY, 1)
+        let room = CGSize(width: max(viewSize.width - 240, 100), height: max(viewSize.height - 120, 100))
+        let scale = min(max(min(room.width / width, room.height / height), 0.4), 3)
+        let offset = CGSize(width: -(minX + maxX) / 2 * scale, height: -(minY + maxY) / 2 * scale)
+        if animated {
+            cam.animate(to: offset, scale: scale)
+        } else {
+            cam.offset = offset
+            cam.scale = scale
+        }
         redraw += 1
     }
 
@@ -409,6 +431,7 @@ struct GraphView: View {
         }
         crossEdges = cross
         if let f = focusTheme, !themeNames.contains(f) { focusTheme = nil }
+        if focusTheme == nil { fit(animated: false) }
         // The layout is settled already; draw it now.
         redraw += 1
     }
