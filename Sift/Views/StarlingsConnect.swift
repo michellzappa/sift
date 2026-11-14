@@ -15,8 +15,9 @@ struct StarlingsConnect: View {
         VStack(alignment: .leading, spacing: 12) {
             Text("Connect Starlings").font(.title3.weight(.semibold))
             if let origin {
-                Text("Connected to \(URL(string: origin)?.host() ?? origin). Add the projects to send links to.")
+                Text("Connected to \(URL(string: origin)?.host() ?? origin). Links always go to your Links in Starlings Docs. Add a project to file them on it, where its team sees them.")
                     .foregroundStyle(.secondary)
+                    .fixedSize(horizontal: false, vertical: true)
                 TextField("Filter", text: $query)
                 List(shown) { p in
                     HStack {
@@ -63,6 +64,11 @@ struct StarlingsConnect: View {
         }
         message = nil
         origin = o
+        // "Links": a link save with no project, private to you.
+        let host = URL(string: o)?.host() ?? o
+        if !model.destinations.contains(where: { $0.kind == "starlings" && $0.config["origin"] == o && $0.config["project"] == nil }) {
+            model.addDestination(Destination(kind: "starlings", name: "Links", detail: host, config: ["origin": o]))
+        }
         do {
             projects = try await Starlings.allProjects(o)
             if projects.isEmpty { message = "No open projects in this workspace." }

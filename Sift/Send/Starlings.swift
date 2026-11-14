@@ -226,7 +226,10 @@ enum Starlings {
     }
 }
 
-/// Files a link on a Starlings project as a Docs link save. Starlings reads
+/// Files a link as a Docs link save (a document with `source_kind` link,
+/// listed under Links in Starlings Docs). With a project it is filed on that
+/// project and its team sees it; without one it stays private to you.
+/// Starlings reads
 /// the page itself, files it under /work/links, posts a line on the
 /// project's channel, and answers the earlier save when the URL came before.
 struct StarlingsSender: Sender {
@@ -235,21 +238,23 @@ struct StarlingsSender: Sender {
     let symbol = "starlings"
 
     func send(_ item: SendItem, to destination: Destination) async throws -> String? {
-        guard let origin = destination.config["origin"], let project = destination.config["project"] else {
-            throw SendFailure(message: "This Starlings destination is missing its workspace or project.")
+        guard let origin = destination.config["origin"] else {
+            throw SendFailure(message: "This Starlings destination is missing its workspace.")
         }
+        let project = destination.config["project"]
         var body: [String] = []
         if !item.note.isEmpty { body += [item.note, ""] }
         if !item.summary.isEmpty { body += [item.summary, ""] }
         body.append("Saved with Sift" + (item.theme.isEmpty ? "" : " · theme: \(item.theme)") + " · from \(item.source)")
-        let key = SHA256.hash(data: Data("\(origin)|\(project)|\(item.url)".utf8)).map { String(format: "%02x", $0) }.joined().prefix(64)
-        let answer = try await Starlings.call(origin, tool: "docs_write", arguments: [
+        let key = SHA256.hash(data: Data("\(origin)|\(project ?? "")|\(item.url)".utf8)).map { String(format: "%02x", $0) }.joined().prefix(64)
+        var arguments: [String: Any] = [
             "url": item.url,
-            "subjects": [["kind": "project", "subject_id": project]],
             "body_md": body.joined(separator: "\n"),
             "tags": ["sift"],
             "idempotency_key": String(key),
-        ])
+        ]
+        if let project { arguments["subjects"] = [["kind": "project", "subject_id": project]] }
+        let answer = try await Starlings.call(origin, tool: "docs_write", arguments: arguments)
         // The answer names the document; keep a web address when there is one.
         for k in ["url", "web_url", "share_url"] {
             if let s = answer[k] as? String, s.hasPrefix("http") { return s }
