@@ -66,6 +66,14 @@ project and as an overview network (one hub per project, one dot per tab).
   via PDFKit; X posts from the text Sift has. `Library` writes one Markdown
   file per link (front matter + text) and `index.json`. Next steps: digests
   by the user's Claude, theme memory, local search (SQLite FTS5).
+- YouTube transcripts (2026-11-14, owner's choice of the free route):
+  `Engine/Transcripts.swift` calls the optional `youtube-transcript-api`
+  CLI (installed into `Application Support/Sift/tools/venv`), paced through
+  `HostGate` ("transcripts.youtube.com", 4 s), pausing an hour on throttling.
+  Transcripts are appended to the library file under "## Transcript".
+- Capture paces requests per site (`HostGate`: 4 s for YouTube, Instagram
+  and X, 1 s elsewhere) and skips a site for an hour after 429/503. Never
+  fetch one site in parallel bursts: YouTube rate-limited the owner's IP.
 - Exporters are plugins: one file per exporter in `Sift/Export/`, conforming
   to `Exporter`, registered in `Exporters.all`. They read only the
   `ExportSnapshot`: no network, keychain or app state. CONTRIBUTING.md is the

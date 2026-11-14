@@ -194,6 +194,19 @@ private struct InputSettings: View {
                     }
                 }
                 Toggle("Save the text of new links automatically", isOn: $model.state.autoCapture)
+                Toggle("Save YouTube transcripts", isOn: $model.state.youtubeTranscripts)
+                    .help("Uses the open-source youtube-transcript-api tool. It reads YouTube's captions in a way YouTube has not sanctioned and can stop working.")
+                HStack {
+                    Text(TranscriptTool.executable == nil
+                         ? "Transcript tool not installed."
+                         : "\(model.transcriptCount) transcripts saved.")
+                        .font(.caption).foregroundStyle(.secondary)
+                    Spacer()
+                    if TranscriptTool.executable == nil {
+                        Button("Install Transcript Tool") { Task { await model.installTranscriptTool() } }
+                    }
+                    if let m = model.transcriptToolMessage { Text(m).font(.caption).foregroundStyle(.secondary) }
+                }
             } footer: {
                 Text("Sift fetches each new link once and keeps its readable text as Markdown on this Mac. No Claude involved.")
                     .foregroundStyle(.secondary)

@@ -5,6 +5,8 @@ enum SidebarItem: Hashable {
     case unsorted
     case closeQueue
     case archive
+    /// The overview, showing one source (see AppModel.selectDevice).
+    case source(String)
     case site(String)
     case action(NextAction)
     case project(String)
@@ -25,7 +27,7 @@ struct ContentView: View {
                 } detail: {
                     Group {
                         switch selection ?? .overview {
-                        case .overview: GraphView(selection: $selection)
+                        case .overview, .source: GraphView(selection: $selection)
                         case let other: TabList(item: other).id(other)
                         }
                     }
@@ -135,22 +137,15 @@ private struct Sidebar: View {
             // The sources behind the overview, with counts. Click one to show
             // only that source; All Sources shows everything.
             ForEach(sourceRows, id: \.id) { row in
-                Button {
-                    model.selectDevice(row.id)
-                    selection = .overview
-                } label: {
-                    HStack(spacing: 8) {
-                        Image(systemName: row.symbol).frame(width: 16).foregroundStyle(.secondary)
-                        Text(row.name).lineLimit(1)
-                        Spacer()
-                        count(row.count)
-                    }
-                    .font(.callout)
-                    .padding(.leading, 18)
-                    .foregroundStyle(model.state.deviceID == row.id ? Color.accentColor : Color.primary)
-                    .contentShape(Rectangle())
+                HStack(spacing: 8) {
+                    Image(systemName: row.symbol).frame(width: 16).foregroundStyle(.secondary)
+                    Text(row.name).lineLimit(1)
+                    Spacer()
+                    count(row.count)
                 }
-                .buttonStyle(.plain)
+                .font(.callout)
+                .padding(.leading, 18)
+                .tag(SidebarItem.source(row.id))
             }
             Label { HStack { Text("Unsorted"); Spacer(); count(model.unsortedCount) } } icon: { Image(systemName: "tray") }
                 .tag(SidebarItem.unsorted)
@@ -189,6 +184,10 @@ private struct Sidebar: View {
             }
         }
         .listStyle(.sidebar)
+        // A source row switches the source; the canvas then shows only it.
+        .onChange(of: selection) { _, new in
+            if case .source(let id) = new, model.state.deviceID != id { model.selectDevice(id) }
+        }
         .safeAreaInset(edge: .bottom, spacing: 0) { LibraryStatus() }
     }
 
@@ -296,6 +295,12 @@ private struct LibraryStatus: View {
                 Text("Library").font(.caption.weight(.semibold))
                 Spacer()
                 Text("\(saved) of \(total)").font(.caption.monospacedDigit()).foregroundStyle(.secondary)
+            }
+            if model.isTranscribing {
+                ProgressView(value: Double(model.transcriptProgress.done), total: Double(max(model.transcriptProgress.total, 1)))
+                    .progressViewStyle(.linear).controlSize(.small)
+                Text("YouTube transcripts: \(model.transcriptProgress.done) of \(model.transcriptProgress.total)")
+                    .font(.caption2).foregroundStyle(.secondary)
             }
             if model.isFetchingInstagramImages {
                 ProgressView(value: Double(model.instagramImageProgress.done), total: Double(max(model.instagramImageProgress.total, 1)))

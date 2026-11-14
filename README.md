@@ -105,9 +105,12 @@ Markdown file per link, with the URL, title, author, site, theme and date at
 the top, in `~/Library/Application Support/Sift/Library/`. Articles keep
 their headings, paragraphs and lists; PDFs keep their text; posts keep their
 text (Instagram posts their caption); YouTube videos keep their title,
-channel and full description, which usually includes the chapters. Video
-transcripts are not saved: YouTube serves captions only to its own player
-and to a video's owner. Errands are skipped. Capture runs on
+channel and full description, which usually includes the chapters. With the
+open-source `youtube-transcript-api` tool installed (Settings > Inputs >
+Library capture > Install Transcript Tool, which needs Python 3), Sift also
+saves each video's transcript, newest saves first. The tool reads YouTube's
+captions in a way YouTube has not sanctioned, so it can stop working; Sift
+paces it and pauses for an hour when YouTube refuses. Errands are skipped. Capture runs on
 its own in the background, with a progress bar at the foot of the sidebar,
 and does not use Claude. When a tab closes, its text stays.
 

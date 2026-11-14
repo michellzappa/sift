@@ -117,6 +117,10 @@ final class AppModel {
             }
             recordArchive()
             separateErrands()
+            // YouTube videos get their transcript in the background.
+            if !isTranscribing, !videosNeedingTranscript.isEmpty {
+                Task { await fetchTranscripts() }
+            }
             // Instagram posts get their image in the background.
             if !isFetchingInstagramImages, !instagramPostsWithoutImage.isEmpty {
                 Task { await fetchInstagramImages() }
@@ -383,6 +387,56 @@ final class AppModel {
         let host = URL(string: url)?.host()?.lowercased() ?? ""
         return host.hasSuffix("instagram.com")
     }
+
+    // MARK: YouTube transcripts
+
+    var isTranscribing = false
+    var transcriptProgress: (done: Int, total: Int) = (0, 0)
+    private var transcriptTried = Set<String>()
+
+    /// YouTube links without a transcript attempt, newest saves first.
+    var videosNeedingTranscript: [ArchiveRecord] {
+        guard state.youtubeTranscripts, TranscriptTool.executable != nil else { return [] }
+        return archive.values
+            .filter { TranscriptTool.videoID($0.url) != nil && library[$0.url]?.transcript == nil && !transcriptTried.contains($0.url) }
+            .sorted { $0.firstSeen > $1.firstSeen }
+    }
+
+    var transcriptCount: Int { library.values.filter { $0.transcript == true }.count }
+
+    /// One video at a time, paced by HostGate; stops when YouTube throttles.
+    func fetchTranscripts() async {
+        guard !isTranscribing else { return }
+        let todo = videosNeedingTranscript
+        guard !todo.isEmpty else { return }
+        isTranscribing = true
+        transcriptProgress = (0, todo.count)
+        defer { isTranscribing = false; Library.saveIndex(library) }
+        for r in todo {
+            guard state.youtubeTranscripts, let id = TranscriptTool.videoID(r.url) else { break }
+            transcriptTried.insert(r.url)
+            switch await TranscriptTool.fetch(id) {
+            case .transcript(let text):
+                library[r.url] = Library.addTranscript(text, to: r, existing: library[r.url])
+            case .none:
+                var e = library[r.url] ?? Library.Entry(file: "", captured: .now, words: 0, kind: "video", status: "failed")
+                e.transcript = false
+                library[r.url] = e
+            case .throttled:
+                return
+            }
+            transcriptProgress.done += 1
+            if transcriptProgress.done % 10 == 0 { Library.saveIndex(library) }
+        }
+    }
+
+    func installTranscriptTool() async {
+        transcriptToolMessage = "Installing…"
+        transcriptToolMessage = await TranscriptTool.install() ?? "Installed."
+        if TranscriptTool.executable != nil, !isTranscribing { Task { await fetchTranscripts() } }
+    }
+
+    var transcriptToolMessage: String?
 
     // MARK: Instagram images
 

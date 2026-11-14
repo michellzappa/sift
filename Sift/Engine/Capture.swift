@@ -147,6 +147,9 @@ enum Library {
         var kind: String
         /// ok, thin (too little text: paywall or login), failed
         var status: String
+        /// YouTube only: true when a transcript is in the file, false when
+        /// the video has none, nil when not tried yet.
+        var transcript: Bool?
     }
 
     static var folder: URL {
@@ -187,6 +190,27 @@ enum Library {
         // Posts are short by nature; only articles and PDFs can be "thin".
         let thin = c.kind != "post" && c.kind != "video" && c.words < 150
         return Entry(file: file, captured: .now, words: c.words, kind: c.kind, status: thin ? "thin" : "ok")
+    }
+
+    /// Adds a transcript to the link's library file: appended under a
+    /// "## Transcript" heading when the page was captured, otherwise a new
+    /// file with the transcript alone.
+    static func addTranscript(_ text: String, to r: ArchiveRecord, existing: Entry?) -> Entry {
+        if let existing, !existing.file.isEmpty,
+           var raw = try? String(contentsOf: folder.appending(path: existing.file), encoding: .utf8) {
+            raw += "\n## Transcript\n\n" + text + "\n"
+            try? raw.write(to: folder.appending(path: existing.file), atomically: true, encoding: .utf8)
+            var e = existing
+            e.words += text.split { $0 == " " || $0 == "\n" }.count
+            e.transcript = true
+            if e.status == "failed" || e.status == "thin" { e.status = "ok" }
+            return e
+        }
+        let site = URL(string: r.url)?.host() ?? "youtube.com"
+        var e = write(Capture(url: r.url, title: r.title, author: nil, site: site, published: nil, kind: "video",
+                              text: "## Transcript\n\n" + text), title: r.title, theme: r.theme, source: r.source)
+        e.transcript = true
+        return e
     }
 
     /// The captured text (without front matter), if any.

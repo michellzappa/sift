@@ -18,6 +18,8 @@ struct SiftState: Codable, Sendable {
     var importedSources: [LinkImporter.Source] = []
     /// Capture new links into the library in the background.
     var autoCapture = true
+    /// Fetch YouTube transcripts with youtube-transcript-api when installed.
+    var youtubeTranscripts = true
     var xClientID: String = ""
     var xUserID: String?
     var xUsername: String?
@@ -39,6 +41,7 @@ struct SiftState: Codable, Sendable {
         exportTargets = try c.decodeIfPresent([String: String].self, forKey: .exportTargets) ?? [:]
         importedSources = try c.decodeIfPresent([LinkImporter.Source].self, forKey: .importedSources) ?? []
         autoCapture = try c.decodeIfPresent(Bool.self, forKey: .autoCapture) ?? true
+        youtubeTranscripts = try c.decodeIfPresent(Bool.self, forKey: .youtubeTranscripts) ?? true
         xClientID = try c.decodeIfPresent(String.self, forKey: .xClientID) ?? ""
         xUserID = try c.decodeIfPresent(String.self, forKey: .xUserID)
         xUsername = try c.decodeIfPresent(String.self, forKey: .xUsername)

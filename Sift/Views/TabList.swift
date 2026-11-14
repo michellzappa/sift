@@ -19,7 +19,7 @@ struct TabList: View {
 
     private var title: String {
         switch item {
-        case .overview: "Overview"
+        case .overview, .source: "Overview"
         case .unsorted: "Unsorted"
         case .closeQueue: "To close on iPhone"
         case .archive: "Archive"
@@ -31,7 +31,7 @@ struct TabList: View {
 
     private var all: [SafariTab] {
         switch item {
-        case .overview: model.tabs
+        case .overview, .source: model.tabs
         case .unsorted: model.tabs(in: nil)
         case .closeQueue: model.closeQueueTabs
         case .archive: model.archivedTabs

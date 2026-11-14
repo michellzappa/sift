@@ -371,10 +371,8 @@ struct GraphView: View {
 /// brighter one for dark.
 enum GraphStyle {
     static func background(_ scheme: ColorScheme) -> AnyShapeStyle {
-        scheme == .dark
-            ? AnyShapeStyle(LinearGradient(colors: [Color(red: 0.12, green: 0.11, blue: 0.16), Color(red: 0.08, green: 0.09, blue: 0.13)],
-                                           startPoint: .topLeading, endPoint: .bottomTrailing))
-            : AnyShapeStyle(Color(nsColor: .textBackgroundColor))
+        // System backgrounds: white in light mode, macOS's neutral grey in dark.
+        AnyShapeStyle(Color(nsColor: scheme == .dark ? .underPageBackgroundColor : .textBackgroundColor))
     }
 
     /// Theme `index` of `count` themes: hues spread evenly around the wheel,
