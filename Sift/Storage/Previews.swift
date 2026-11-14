@@ -10,8 +10,13 @@ struct Preview: Codable, Hashable, Sendable {
     var failed: Bool = false
     /// Author avatar for X posts. Only the syndication endpoint returns it.
     var avatarURL: String? = nil
+    /// Real URLs a post links to (t.co expanded). Nil when never extracted.
+    var links: [String]? = nil
 
-    init(title: String, text: String, imageURL: String?, site: String, fetched: Date, failed: Bool = false, avatarURL: String? = nil) {
+    /// The first outside link, if the post points somewhere.
+    var outboundURL: String? { links?.first }
+
+    init(title: String, text: String, imageURL: String?, site: String, fetched: Date, failed: Bool = false, avatarURL: String? = nil, links: [String]? = nil) {
         self.title = title
         self.text = text
         self.imageURL = imageURL
@@ -19,6 +24,7 @@ struct Preview: Codable, Hashable, Sendable {
         self.fetched = fetched
         self.failed = failed
         self.avatarURL = avatarURL
+        self.links = links
     }
 
     init(from decoder: Decoder) throws {
@@ -30,6 +36,7 @@ struct Preview: Codable, Hashable, Sendable {
         fetched = try c.decode(Date.self, forKey: .fetched)
         failed = try c.decodeIfPresent(Bool.self, forKey: .failed) ?? false
         avatarURL = try c.decodeIfPresent(String.self, forKey: .avatarURL)
+        links = try c.decodeIfPresent([String].self, forKey: .links)
     }
 }
 
@@ -86,7 +93,8 @@ enum PreviewFetcher {
         // The post text is the first <p> in the blockquote.
         let paragraph = html.range(of: #"<p[^>]*>(.*?)</p>"#, options: .regularExpression).map { String(html[$0]) } ?? html
         let author = json["author_name"] as? String ?? "X"
-        return Preview(title: author, text: plain(paragraph), imageURL: nil, site: "x.com", fetched: .now)
+        let text = plain(paragraph).replacingOccurrences(of: #"\s*(https?://t\.co/\S+|pic\.twitter\.com/\S+)"#, with: "", options: .regularExpression)
+        return Preview(title: author, text: text, imageURL: nil, site: "x.com", fetched: .now)
     }
 
     /// X's syndication endpoint (cdn.syndication.twimg.com), as used by X's
@@ -106,16 +114,30 @@ enum PreviewFetcher {
               let text = json["text"] as? String
         else { return nil }
         let user = json["user"] as? [String: Any]
+        // Expand t.co links: show the readable URL in the text, keep the real
+        // ones, and drop t.co links to the post's own media.
+        var shown = text
+        var links: [String] = []
+        let entities = (json["entities"] as? [String: Any])?["urls"] as? [[String: Any]] ?? []
+        for e in entities {
+            guard let short = e["url"] as? String else { continue }
+            let expanded = e["expanded_url"] as? String
+            let display = e["display_url"] as? String ?? expanded ?? ""
+            shown = shown.replacingOccurrences(of: short, with: display)
+            if let expanded, !links.contains(expanded) { links.append(expanded) }
+        }
+        shown = shown.replacingOccurrences(of: #"\s*https?://t\.co/\S+"#, with: "", options: .regularExpression)
         let photo = (json["photos"] as? [[String: Any]])?.first?["url"] as? String
         let media = (json["mediaDetails"] as? [[String: Any]])?.first?["media_url_https"] as? String
         let poster = (json["video"] as? [String: Any])?["poster"] as? String
         return Preview(
             title: user?["name"] as? String ?? "X",
-            text: plain(text),
+            text: plain(shown),
             imageURL: photo ?? media ?? poster,
             site: "x.com",
             fetched: .now,
-            avatarURL: (user?["profile_image_url_https"] as? String)?.replacingOccurrences(of: "_normal.", with: "_bigger.")
+            avatarURL: (user?["profile_image_url_https"] as? String)?.replacingOccurrences(of: "_normal.", with: "_bigger."),
+            links: links
         )
     }
 

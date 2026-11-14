@@ -305,12 +305,14 @@ final class AppModel {
     private func sortItem(_ tab: SafariTab) -> Sorter.Item {
         let p = previews[tab.url]
         let title = tab.hasUsefulTitle ? tab.title : (p?.title ?? "")
-        return Sorter.Item(url: tab.url, title: title, preview: p?.failed == false ? p?.text ?? "" : "")
+        var preview = p?.failed == false ? p?.text ?? "" : ""
+        if let out = p?.outboundURL { preview += " (links to \(out))" }
+        return Sorter.Item(url: tab.url, title: title, preview: preview)
     }
 
     /// Fetches previews for the tabs that have none yet, six at a time.
     func fetchPreviews(for list: [SafariTab], force: Bool = false) async {
-        let todo = list.map(\.url).filter { force || previews[$0] == nil }
+        let todo = list.map(\.url).filter { force || previews[$0] == nil || needsLinks($0) }
         guard !todo.isEmpty else { return }
         fetchingPreviews += todo.count
         let xSyndication = state.xSyndication
@@ -344,7 +346,13 @@ final class AppModel {
     }
 
     func preview(for tab: SafariTab) async {
-        if previews[tab.url] == nil { await fetchPreviews(for: [tab]) }
+        if previews[tab.url] == nil || needsLinks(tab.url) { await fetchPreviews(for: [tab]) }
+    }
+
+    /// X previews cached before link extraction existed get one refetch.
+    private func needsLinks(_ url: String) -> Bool {
+        guard state.xSyndication, let p = previews[url] else { return false }
+        return p.site == "x.com" && !p.failed && p.links == nil
     }
 
     /// Fetches previews for the "unknown" tabs, then sorts them again with the

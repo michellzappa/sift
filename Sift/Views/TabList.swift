@@ -186,6 +186,15 @@ struct TabCard: View {
                 } else if preview == nil {
                     Text("Loading preview…").font(.callout).foregroundStyle(.tertiary)
                 }
+                if let out = preview?.outboundURL, let url = URL(string: out) {
+                    Button { TabActions.openInSafari(out) } label: {
+                        Label((url.host() ?? out).replacingOccurrences(of: "www.", with: "") + url.path(), systemImage: "arrow.up.right.square")
+                            .lineLimit(1).truncationMode(.middle)
+                    }
+                    .buttonStyle(.link)
+                    .font(.callout)
+                    .help(out)
+                }
                 if let use = a?.use, !use.isEmpty {
                     Text(use).font(.callout).foregroundStyle(.tint).lineLimit(3)
                 }
@@ -258,7 +267,8 @@ struct TabCard: View {
     @ViewBuilder
     private func header(_ p: Preview?) -> some View {
         if p?.site == "x.com" {
-            VStack(alignment: .leading, spacing: 10) {
+            VStack(alignment: .leading, spacing: 0) {
+                if let s = p?.imageURL, let url = URL(string: s) { headerImage(url) }
                 HStack(spacing: 8) {
                     initialCircle(p).overlay {
                         if let s = p?.avatarURL, let url = URL(string: s) {
@@ -271,7 +281,6 @@ struct TabCard: View {
                     Text("𝕏").foregroundStyle(.secondary)
                 }
                 .padding(.horizontal, 12).padding(.top, 12)
-                if let s = p?.imageURL, let url = URL(string: s) { headerImage(url) }
             }
         } else if let s = p?.imageURL, let url = URL(string: s) {
             headerImage(url)
