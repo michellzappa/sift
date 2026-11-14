@@ -117,6 +117,10 @@ final class AppModel {
             }
             recordArchive()
             separateErrands()
+            // New links go into the library in the background.
+            if state.autoCapture, !isCapturing, !linksToCapture.isEmpty {
+                Task { await captureAll() }
+            }
         } catch let failure as CloudTabsReader.Failure {
             loadError = failure
             devices = []

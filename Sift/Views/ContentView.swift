@@ -104,15 +104,6 @@ struct ContentView: View {
             .disabled(model.tabsWithoutAction.isEmpty || model.isSorting || model.isDiscovering)
         }
         ToolbarItem(placement: .primaryAction) {
-            Button {
-                Task { await model.captureAll() }
-            } label: {
-                Label("Capture Pages", systemImage: "books.vertical")
-            }
-            .help("Save the readable text of every link into your library on this Mac. No Claude involved.")
-            .disabled(model.isCapturing || model.linksToCapture.isEmpty)
-        }
-        ToolbarItem(placement: .primaryAction) {
             Menu {
                 ForEach(Exporters.all, id: \.id) { exporter in
                     Button(exporter.name) { model.runExport(exporter) }
@@ -173,6 +164,7 @@ private struct Sidebar: View {
             }
         }
         .listStyle(.sidebar)
+        .safeAreaInset(edge: .bottom, spacing: 0) { LibraryStatus() }
     }
 
     private func count(_ n: Int) -> some View {
@@ -214,12 +206,9 @@ private struct UnsortedBanner: View {
 
     var body: some View {
         let count = model.unsortedCount
-        if count > 0 || model.isSorting || model.isDiscovering || model.isCapturing {
+        if count > 0 || model.isSorting || model.isDiscovering {
             HStack(spacing: 10) {
-                if model.isCapturing {
-                    ProgressView().controlSize(.small)
-                    Text("Capturing pages into your library: \(model.captureProgress.done) of \(model.captureProgress.total)")
-                } else if model.isSorting {
+                if model.isSorting {
                     ProgressView().controlSize(.small)
                     Text("Sorting with Claude: \(model.sortProgress.done) of \(model.sortProgress.total)")
                 } else if model.isDiscovering {
@@ -242,12 +231,40 @@ private struct UnsortedBanner: View {
                             .help("Cheaper: Claude puts each link into one of the themes you have.")
                     }
                 }
-                if model.isSorting || model.isDiscovering || model.isCapturing { Spacer() }
+                if model.isSorting || model.isDiscovering { Spacer() }
             }
             .font(.callout)
             .padding(.horizontal, 14).padding(.vertical, 8)
             .background(.bar)
             .overlay(alignment: .bottom) { Divider() }
         }
+    }
+}
+
+/// The library's state at the foot of the sidebar: how many links have their
+/// text saved, and a progress bar while capture runs in the background.
+private struct LibraryStatus: View {
+    @Environment(AppModel.self) private var model
+
+    var body: some View {
+        let total = model.archive.count
+        let saved = model.capturedCount
+        VStack(alignment: .leading, spacing: 5) {
+            HStack(spacing: 6) {
+                Image(systemName: "books.vertical").foregroundStyle(.secondary)
+                Text("Library").font(.caption.weight(.semibold))
+                Spacer()
+                Text("\(saved) of \(total)").font(.caption.monospacedDigit()).foregroundStyle(.secondary)
+            }
+            if model.isCapturing {
+                ProgressView(value: Double(model.captureProgress.done), total: Double(max(model.captureProgress.total, 1)))
+                    .progressViewStyle(.linear)
+                    .controlSize(.small)
+                Text("Saving page text: \(model.captureProgress.done) of \(model.captureProgress.total)")
+                    .font(.caption2).foregroundStyle(.secondary)
+            }
+        }
+        .padding(.horizontal, 14).padding(.vertical, 10)
+        .help("Sift saves the readable text of your links on this Mac, so it stays when a tab closes.")
     }
 }

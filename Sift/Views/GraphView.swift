@@ -27,16 +27,18 @@ struct GraphView: View {
 
     var body: some View {
         GeometryReader { geo in
-            let browserWidth = min(max(geo.size.width * 0.44, 420), geo.size.width - 360)
-            let graphSize = picked == nil ? geo.size : CGSize(width: geo.size.width - browserWidth, height: geo.size.height)
-            HStack(spacing: 0) {
-                canvas(size: graphSize)
-                    .frame(width: graphSize.width, height: graphSize.height)
+            // The browser slides in over the right side; the graph and the
+            // card grid underneath keep their size and position.
+            ZStack(alignment: .trailing) {
+                canvas(size: geo.size)
+                    .frame(width: geo.size.width, height: geo.size.height)
                     .clipped()
-                if let url = picked, let tab = model.tabs.first(where: { $0.url == url }) {
-                    Divider()
+                if let url = picked, let tab = model.tabs.first(where: { $0.url == url }) ?? model.archivedTabs.first(where: { $0.url == url }) {
                     WebPane(tab: tab) { withAnimation(.snappy) { picked = nil } }
-                        .frame(width: browserWidth)
+                        .frame(width: BrowserOverlay.width(for: geo.size.width))
+                        .background(.background)
+                        .overlay(alignment: .leading) { Divider() }
+                        .shadow(color: .black.opacity(0.12), radius: 12, x: -2)
                         .transition(.move(edge: .trailing))
                 }
             }

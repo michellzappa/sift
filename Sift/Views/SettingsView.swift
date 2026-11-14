@@ -100,6 +100,8 @@ private struct SortingSettings: View {
                         }
                     }
                 }
+                Toggle("Save the text of new links automatically", isOn: $model.state.autoCapture)
+                    .help("Sift fetches each new link once and keeps its readable text in your library on this Mac. No Claude involved.")
                 Button("Import Links File…") { model.importLinksFile() }
                     .help("Instapaper or Pocket CSV, Readwise or Raindrop CSV, Pinboard JSON, or a bookmarks HTML file.")
             } header: {

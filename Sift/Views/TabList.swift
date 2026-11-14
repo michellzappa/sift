@@ -65,7 +65,7 @@ struct TabList: View {
                     ForEach(rows) { tab in
                         TabCard(tab: tab, isSelected: selected == tab.id, showTheme: project == nil || Project.buckets.contains(project ?? ""))
                             .onTapGesture(count: 2) { TabActions.openInSafari(tab.url) }
-                            .onTapGesture { selected = tab.id; showInspector = true }
+                            .onTapGesture { withAnimation(.snappy) { selected = tab.id; showInspector = true } }
                     }
                 }
                 .padding(16)
@@ -80,15 +80,22 @@ struct TabList: View {
         .searchable(text: $search, prompt: "Filter")
         .navigationTitle(title)
         .navigationSubtitle(subtitle)
-        .inspector(isPresented: $showInspector) {
-            Group {
-                if let tab = rows.first(where: { $0.id == selected }) {
-                    WebPane(tab: tab)
-                } else {
-                    ContentUnavailableView("Select a link", systemImage: "safari", description: Text("It opens here, next to your cards."))
+        // The browser slides in over the right side. The grid underneath
+        // keeps its size and position, so no card moves.
+        .overlay(alignment: .trailing) {
+            if showInspector, let tab = rows.first(where: { $0.id == selected }) {
+                GeometryReader { geo in
+                    HStack(spacing: 0) {
+                        Spacer(minLength: 0)
+                        WebPane(tab: tab) { withAnimation(.snappy) { showInspector = false } }
+                            .frame(width: BrowserOverlay.width(for: geo.size.width))
+                            .background(.background)
+                            .overlay(alignment: .leading) { Divider() }
+                            .shadow(color: .black.opacity(0.12), radius: 12, x: -2)
+                    }
                 }
+                .transition(.move(edge: .trailing))
             }
-            .inspectorColumnWidth(min: 380, ideal: 560, max: 900)
         }
         .toolbar { listToolbar }
         .sheet(isPresented: $showShortcutGuide) { ShortcutGuide() }
@@ -486,5 +493,12 @@ struct ShortcutGuide: View {
         }
         .padding(24)
         .frame(width: 520)
+    }
+}
+
+/// The browser pane slides over the content instead of pushing it aside.
+enum BrowserOverlay {
+    static func width(for available: CGFloat) -> CGFloat {
+        min(max(available * 0.46, 420), max(available - 280, 320))
     }
 }

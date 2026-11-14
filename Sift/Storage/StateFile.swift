@@ -16,6 +16,8 @@ struct SiftState: Codable, Sendable {
     /// The Client ID of the user's own X app (not a secret). Empty: X API off.
     /// Link exports the user imported (Instapaper, Pocket, Pinboard, bookmarks).
     var importedSources: [LinkImporter.Source] = []
+    /// Capture new links into the library in the background.
+    var autoCapture = true
     var xClientID: String = ""
     var xUserID: String?
     var xUsername: String?
@@ -36,6 +38,7 @@ struct SiftState: Codable, Sendable {
         closeQueue = try c.decodeIfPresent([String].self, forKey: .closeQueue) ?? []
         exportTargets = try c.decodeIfPresent([String: String].self, forKey: .exportTargets) ?? [:]
         importedSources = try c.decodeIfPresent([LinkImporter.Source].self, forKey: .importedSources) ?? []
+        autoCapture = try c.decodeIfPresent(Bool.self, forKey: .autoCapture) ?? true
         xClientID = try c.decodeIfPresent(String.self, forKey: .xClientID) ?? ""
         xUserID = try c.decodeIfPresent(String.self, forKey: .xUserID)
         xUsername = try c.decodeIfPresent(String.self, forKey: .xUsername)

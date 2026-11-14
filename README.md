@@ -85,12 +85,14 @@ forgotten. Records live in `archive.json` in Application Support.
 
 ### Library
 
-**Capture Pages** saves the readable text of every link Sift has seen into a
+Sift saves the readable text of every link it has seen into a
 library on your Mac: one Markdown file per link, with the URL, title,
 author, site, theme and date at the top, in
 `~/Library/Application Support/Sift/Library/`. Articles keep their headings,
 paragraphs and lists; PDFs keep their text; X posts keep the post. Errands
-are skipped. Capture runs locally and does not use Claude. When a tab closes,
+are skipped. Capture runs on its own in the background (a progress bar sits
+at the foot of the sidebar; Settings can turn it off), locally, and does not
+use Claude. When a tab closes,
 its text stays. In the browser pane, the page button switches to a reader
 view of the captured text.
 
