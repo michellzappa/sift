@@ -46,6 +46,8 @@ private struct InputSettings: View {
                 StatusRow(icon: "eyeglasses", name: "Safari Reading List", status: model.readingListStatus, warning: model.needsDiskAccess)
             }
 
+            ChromeSettings()
+
             Section {
                 StatusRow(icon: "camera", name: "Instagram Saved", status: model.instagramStatus,
                           warning: model.state.instagramExportPath != nil && model.instagramError != nil) {
@@ -112,6 +114,37 @@ private struct InputSettings: View {
 
         }
         .formStyle(.grouped)
+    }
+}
+
+// MARK: - Chrome
+
+/// Chrome profiles that report their tabs through Sift's extension.
+private struct ChromeSettings: View {
+    @Environment(AppModel.self) private var model
+
+    var body: some View {
+        Section {
+            StatusRow(icon: "globe", name: "Chrome", status: model.chromeStatus, warning: model.chromeHasStale)
+            ForEach(model.chromeProfiles) { p in
+                LabeledContent {
+                    HStack {
+                        Text("\(p.tabs.count) tabs, updated \(p.updated.formatted(.relative(presentation: .named)))")
+                            .foregroundStyle(p.isStale ? AnyShapeStyle(.orange) : AnyShapeStyle(.secondary))
+                        Button("Remove") { model.removeChromeProfile(p) }
+                    }
+                } label: {
+                    TextField(p.browser, text: .init(get: { model.state.chromeProfileNames[p.install] ?? "" },
+                                                     set: { model.setChromeProfileName($0, for: p) }),
+                              prompt: Text(model.chromeProfileName(p) ?? "Name this profile"))
+                }
+            }
+            ChromeHelperButtons()
+            if let message = model.chromeHelperMessage { Text(message).font(.caption).foregroundStyle(.secondary) }
+        } footer: {
+            Text("A small extension sends the open tabs of each Chrome profile to Sift on this Mac and closes the tabs you mark here. It does not read pages or use the internet. The helper also works in Brave, Edge, Arc, Vivaldi and Chromium. To add the extension, open chrome://extensions, turn on Developer mode, click Load unpacked and choose the extension folder. In that window, Command-Shift-G lets you paste the folder path.")
+                .foregroundStyle(.secondary)
+        }
     }
 }
 
@@ -270,7 +303,7 @@ private struct OutputSettings: View {
 
     private var closeStatus: String {
         guard CloseList.iCloudDriveAvailable else { return "iCloud Drive is off" }
-        let n = model.state.closeQueue.count
+        let n = model.iPhoneCloseQueue.count
         return "iCloud Drive/Sift/close.txt, \(n) \(n == 1 ? "link" : "links") to close"
     }
 
@@ -302,7 +335,7 @@ private struct OutputSettings: View {
                         Button("Add Reading List") { model.addDestination(Destination(kind: "reading-list", name: "Reading List", detail: "Safari")) }
                     }
                 }
-                Toggle("Close sent Safari tabs on iPhone", isOn: $model.state.closeAfterSend)
+                Toggle("Close sent tabs on the iPhone and in Chrome", isOn: $model.state.closeAfterSend)
             } header: {
                 Text("Send to")
             } footer: {

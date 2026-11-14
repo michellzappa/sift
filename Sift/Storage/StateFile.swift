@@ -57,6 +57,8 @@ struct SiftState: Codable, Sendable {
     var localFirstPass = true
     var localSorting = true
     var localSummaries = true
+    /// Names the user gave Chrome profiles, keyed by the extension's install id.
+    var chromeProfileNames: [String: String] = [:]
 
     init() {}
 
@@ -90,6 +92,7 @@ struct SiftState: Codable, Sendable {
         localFirstPass = try c.decodeIfPresent(Bool.self, forKey: .localFirstPass) ?? true
         localSorting = try c.decodeIfPresent(Bool.self, forKey: .localSorting) ?? true
         localSummaries = try c.decodeIfPresent(Bool.self, forKey: .localSummaries) ?? true
+        chromeProfileNames = try c.decodeIfPresent([String: String].self, forKey: .chromeProfileNames) ?? [:]
     }
 }
 

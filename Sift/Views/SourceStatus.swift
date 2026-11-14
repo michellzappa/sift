@@ -59,6 +59,24 @@ extension AppModel {
         return readingListCount == 0 ? "No links" : "\(readingListCount) links"
     }
 
+    var chromeTabCount: Int { chromeProfiles.reduce(0) { $0 + $1.tabs.count } }
+
+    var chromeStatus: String {
+        guard !chromeProfiles.isEmpty else {
+            if ChromeHelper.installedBrowsers.isEmpty { return "No Chrome-based browser on this Mac" }
+            return ChromeHelper.isInstalled ? "Helper installed. Waiting for the extension." : "Not set up"
+        }
+        let n = chromeProfiles.count
+        var status = "\(chromeTabCount) tabs in \(n) \(n == 1 ? "profile" : "profiles")"
+        let stale = chromeProfiles.filter(\.isStale)
+        if let last = stale.map(\.updated).max() {
+            status += ", \(stale.count) stale (last seen \(last.formatted(date: .abbreviated, time: .omitted)))"
+        }
+        return status
+    }
+
+    var chromeHasStale: Bool { chromeProfiles.contains(where: \.isStale) }
+
     var instagramStatus: String {
         guard state.instagramExportPath != nil else { return "No export chosen" }
         if instagramError != nil { return "Export not readable" }
@@ -110,6 +128,20 @@ extension AppModel {
         guard panel.runModal() == .OK, let url = panel.url else { return }
         addDestination(Destination(kind: "obsidian", name: url.lastPathComponent, detail: url.path(percentEncoded: false),
                                    config: ["folder": url.path(percentEncoded: false)]))
+    }
+}
+
+/// Install Chrome Helper and the two steps after it. Settings > Inputs and
+/// the Setup Guide both show these.
+struct ChromeHelperButtons: View {
+    @Environment(AppModel.self) private var model
+
+    var body: some View {
+        HStack {
+            Button(ChromeHelper.isInstalled ? "Install Again" : "Install Chrome Helper") { model.installChromeHelper() }
+            Button("Show Extension Folder") { ChromeHelper.revealExtension() }
+            Button("Copy Folder Path") { model.copy(ChromeHelper.extensionFolder.path(percentEncoded: false)) }
+        }
     }
 }
 

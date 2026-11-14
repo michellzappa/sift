@@ -1,0 +1,11 @@
+{
+  "manifest_version": 3,
+  "name": "Sift",
+  "version": "1.0",
+  "description": "Shows your open tabs in Sift on this Mac, and closes the tabs you mark there.",
+  "key": "MIIBIjANBgkqhkiG9w0BAQEFAAOCAQ8AMIIBCgKCAQEAnfrQkoctfvb/SUMP1zaM1UR5j6hCLLZ85teAzMZ+3q+wLlUuCuXwERTPq4O1LW1Sw6E5Y0Mv++fFJtI1UZv2jXCk2gdfT334d2bGgPc91WloC5k3BgADBPMvpTky07U+OY+Zq7i2rW756eRkr6Az3V9ZuDTArqVsQqBz+KY/p69n5o1YQD/c8PhkKYrK329WyY6k/LL/ssEjPEUD01hg+SOqtCyms41byYev+RnWfYBPIn0KELntpJLOl+WOWrS923WD6KRa5Nrkbo0aMn3gmjOJ0t3Z/D+6jBFMOQXpRzskyN27XD/vmH3IOCSAuVoBasF8EVNwxxs+ys7MaXLZ+wIDAQAB",
+  "minimum_chrome_version": "105",
+  "permissions": ["tabs", "nativeMessaging"],
+  "background": { "service_worker": "background.js" },
+  "icons": { "16": "icon16.png", "48": "icon48.png", "128": "icon128.png" }
+}

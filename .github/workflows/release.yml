@@ -108,6 +108,11 @@ jobs:
           grep -q "Authority=Developer ID Application" "$RUNNER_TEMP/sift-mcp-sign.txt"
           grep -q "flags=.*runtime" "$RUNNER_TEMP/sift-mcp-sign.txt"
           grep -q "^Timestamp=" "$RUNNER_TEMP/sift-mcp-sign.txt"
+          # The same for the Chrome native messaging host.
+          codesign -dvv "$app_path/Contents/MacOS/sift-chrome" 2>&1 | tee "$RUNNER_TEMP/sift-chrome-sign.txt"
+          grep -q "Authority=Developer ID Application" "$RUNNER_TEMP/sift-chrome-sign.txt"
+          grep -q "flags=.*runtime" "$RUNNER_TEMP/sift-chrome-sign.txt"
+          grep -q "^Timestamp=" "$RUNNER_TEMP/sift-chrome-sign.txt"
           /usr/libexec/PlistBuddy -c 'Print :CFBundleVersion' "$app_path/Contents/Info.plist"
 
       - name: Notarize

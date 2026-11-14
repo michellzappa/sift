@@ -10,7 +10,7 @@ final class AppModel {
     var state: SiftState {
         didSet {
             StateFile.save(state)
-            if state.closeQueue != oldValue.closeQueue { CloseList.write(state.closeQueue) }
+            if state.closeQueue != oldValue.closeQueue { writeCloseLists() }
         }
     }
     var previews: [String: Preview] = PreviewFetcher.loadCache()
@@ -38,6 +38,7 @@ final class AppModel {
         reload()
         settleOnboardingForExistingInstall()
         startLibraryWorker()
+        startChromeWatcher()
     }
 
     // MARK: Loading
@@ -57,6 +58,11 @@ final class AppModel {
                 loadError = .sqlite(error.localizedDescription)
                 devices = []
             }
+            // Every device's open tabs, so the close list keeps what is still open.
+            safariOpenURLs = Set(devices.flatMap { (try? CloudTabsReader.tabs(deviceID: $0.id)) ?? [] }.map(\.url))
+            chromeProfiles = ChromeReader.profiles()
+            chromeOpenURLs = Set(chromeProfiles.flatMap(\.tabs).map(\.url))
+            lastChromeChange = ChromeReader.latestChange()
             let readingItems = (try? ReadingListReader.items()) ?? []
             readingListCount = readingItems.count
             // Instagram Saved: read the export once per reload. Without a
@@ -77,10 +83,11 @@ final class AppModel {
             if let phone = devices.first, let phoneTabs = try? CloudTabsReader.tabs(deviceID: phone.id) {
                 everyURL.formUnion(phoneTabs.map(\.url))
             }
+            everyURL.formUnion(chromeOpenURLs)
             allSourcesCount = everyURL.count
             if state.deviceID == nil {
                 state.deviceID = Self.allSourcesID
-            } else if !isAll, !isSavedList, currentImport == nil, !devices.contains(where: { $0.id == state.deviceID }) {
+            } else if !isAll, !isSavedList, currentImport == nil, currentChrome == nil, !devices.contains(where: { $0.id == state.deviceID }) {
                 // The device with the most tabs is almost always the phone.
                 state.deviceID = devices.first?.id ?? Self.allSourcesID
             }
@@ -92,6 +99,7 @@ final class AppModel {
                     for var t in list where seen.insert(t.url).inserted { t.source = source; all.append(t) }
                 }
                 if let phone = devices.first { add(try CloudTabsReader.tabs(deviceID: phone.id), "tabs:\(phone.id)") }
+                for profile in chromeProfiles { add(profile.tabs, profile.id) }
                 let reading = (try? ReadingListReader.items()) ?? []
                 for item in reading + instagram where previews[item.tab.url] == nil {
                     if let p = item.preview { previews[item.tab.url] = p }
@@ -115,6 +123,8 @@ final class AppModel {
                 }
             } else if isXBookmarks {
                 tabs = xBookmarkTabs()
+            } else if let profile = currentChrome {
+                tabs = profile.tabs
             } else if isInstagram {
                 tabs = instagram.map(\.tab)
                 // The export carries author, caption and collection; use them until Sift fetches its own.
@@ -130,11 +140,15 @@ final class AppModel {
                 }
             } else {
                 tabs = try state.deviceID.map { try CloudTabsReader.tabs(deviceID: $0) } ?? []
-                // Tabs closed on the phone drop out of the close list.
-                let open = Set(tabs.map(\.url))
+            }
+            // Tabs closed on the phone or in Chrome drop out of the close
+            // list. Without Safari's tabs Sift cannot tell, so it keeps them.
+            if loadError == nil {
+                let open = safariOpenURLs.union(chromeOpenURLs)
                 let stillOpen = state.closeQueue.filter(open.contains)
                 if stillOpen != state.closeQueue { state.closeQueue = stillOpen }
             }
+            writeCloseLists()
             if !isAll {
                 let key = currentSourceKey
                 tabs = tabs.map { var t = $0; t.source = key; return t }
@@ -297,6 +311,7 @@ final class AppModel {
         if isReadingList { return "reading-list" }
         if isInstagram { return "instagram" }
         if isXBookmarks { return "x" }
+        if let profile = currentChrome { return profile.id }
         if let source = currentImport { return LinkImporter.sourcePrefix + source.id }
         return "tabs:\(state.deviceID ?? "")"
     }
@@ -307,6 +322,7 @@ final class AppModel {
         guard isAll else { return [currentSourceKey] }
         var keys: Set<String> = ["reading-list", "instagram", "x"]
         if let phone = devices.first { keys.insert("tabs:\(phone.id)") }
+        for p in chromeProfiles { keys.insert(p.id) }
         for s in state.importedSources { keys.insert(LinkImporter.sourcePrefix + s.id) }
         return keys
     }
@@ -789,7 +805,7 @@ final class AppModel {
         do {
             let link = try await sender.send(item, to: d)
             state.sent[tab.url, default: []].append(SentRecord(destination: d.id, date: .now, link: link))
-            if state.closeAfterSend, isSafariTab(tab), !state.closeQueue.contains(tab.url) {
+            if state.closeAfterSend, isOpenTab(tab), !state.closeQueue.contains(tab.url) {
                 state.closeQueue.append(tab.url)
             }
         } catch {
@@ -838,8 +854,11 @@ final class AppModel {
         for i in state.extraProjects.indices where state.extraProjects[i].sendTo == id { state.extraProjects[i].sendTo = nil }
     }
 
-    /// Safari tabs come from a device; saved lists and imports do not.
-    private func isSafariTab(_ tab: SafariTab) -> Bool { devices.contains { $0.id == tab.source } || tab.source == "tabs" }
+    /// Open tabs come from a Safari device or a Chrome profile; saved lists
+    /// and imports do not.
+    private func isOpenTab(_ tab: SafariTab) -> Bool {
+        tab.source.hasPrefix("tabs") || tab.source.hasPrefix(ChromeReader.sourcePrefix)
+    }
 
     // MARK: Projects
 
@@ -873,6 +892,7 @@ final class AppModel {
         var seen = Set<String>()
         func add(_ list: [SafariTab]) { for t in list where seen.insert(t.url).inserted { corpus.append(t) } }
         if let phone = devices.first, let phoneTabs = try? CloudTabsReader.tabs(deviceID: phone.id) { add(phoneTabs) }
+        for profile in chromeProfiles { add(profile.tabs) }
         if let reading = try? ReadingListReader.items() {
             for item in reading where previews[item.tab.url] == nil { if let p = item.preview { previews[item.tab.url] = p } }
             add(reading.map(\.tab))
@@ -1297,7 +1317,107 @@ final class AppModel {
         await sortUnsorted()
     }
 
-    // MARK: Closing on the iPhone
+    // MARK: Closing on the iPhone and in Chrome
+
+    /// Chrome profiles that report their open tabs, from the extension.
+    private(set) var chromeProfiles: [ChromeReader.Profile] = []
+    /// URLs open in any Chrome profile, and on any Safari device.
+    private(set) var chromeOpenURLs = Set<String>()
+    private(set) var safariOpenURLs = Set<String>()
+    private var lastChromeChange: Date?
+    private var lastChromeReload = Date.distantPast
+    /// What Install Chrome Helper did, for Settings and the Setup Guide.
+    var chromeHelperMessage: String?
+
+    var currentChrome: ChromeReader.Profile? {
+        guard let id = state.deviceID, id.hasPrefix(ChromeReader.sourcePrefix) else { return nil }
+        return chromeProfiles.first { $0.id == id }
+    }
+
+    /// The source shown now is a Chrome profile.
+    var isChrome: Bool { state.deviceID?.hasPrefix(ChromeReader.sourcePrefix) == true }
+
+    /// The name of a Chrome profile: the user's own, else "Profile 2" when
+    /// one browser has several, else nothing.
+    func chromeProfileName(_ p: ChromeReader.Profile) -> String? {
+        if let name = state.chromeProfileNames[p.install], !name.isEmpty { return name }
+        let same = chromeProfiles.filter { $0.browser == p.browser }
+        guard same.count > 1, let i = same.firstIndex(of: p) else { return nil }
+        return "Profile \(i + 1)"
+    }
+
+    func setChromeProfileName(_ name: String, for p: ChromeReader.Profile) {
+        let clean = name.trimmingCharacters(in: .whitespaces)
+        state.chromeProfileNames[p.install] = clean.isEmpty ? nil : clean
+    }
+
+    func removeChromeProfile(_ p: ChromeReader.Profile) {
+        ChromeReader.remove(p)
+        state.chromeProfileNames[p.install] = nil
+        if state.deviceID == p.id { state.deviceID = Self.allSourcesID }
+        reload()
+    }
+
+    /// Writes the helper's host manifest for each Chromium browser, copies
+    /// the extension, shows it in Finder and opens the extensions page.
+    func installChromeHelper() {
+        do {
+            let browsers = try ChromeHelper.install()
+            guard !browsers.isEmpty else {
+                chromeHelperMessage = "Sift found no Chrome, Brave, Edge, Arc, Vivaldi or Chromium on this Mac."
+                return
+            }
+            chromeHelperMessage = "Helper installed for \(browsers.map(\.name).formatted(.list(type: .and)))."
+            ChromeHelper.revealExtension()
+            ChromeHelper.openExtensionsPage()
+        } catch {
+            chromeHelperMessage = "Could not install the helper: \(error.localizedDescription)"
+        }
+    }
+
+    /// The extension reports every minute while Chrome runs, but the host
+    /// rewrites a snapshot only when the tabs change. Sift looks every 30
+    /// seconds and reloads at most every two minutes, never while Claude works.
+    private func startChromeWatcher() {
+        Task { [weak self] in
+            while !Task.isCancelled {
+                try? await Task.sleep(for: .seconds(30))
+                guard let self else { return }
+                let latest = ChromeReader.latestChange()
+                guard latest != lastChromeChange, Date().timeIntervalSince(lastChromeReload) > 120,
+                      !isSorting, !isDiscovering else { continue }
+                lastChromeReload = .now
+                reload()
+            }
+        }
+    }
+
+    /// A tab Sift closes in Chrome rather than on the iPhone: it is open in
+    /// Chrome and not on a Safari device.
+    func closesInChrome(_ tab: SafariTab) -> Bool {
+        tab.source.hasPrefix(ChromeReader.sourcePrefix) || (chromeOpenURLs.contains(tab.url) && !safariOpenURLs.contains(tab.url))
+    }
+
+    func closeLabel(_ tab: SafariTab) -> String {
+        let queued = isQueuedToClose(tab)
+        if closesInChrome(tab) { return queued ? "Keep Open in Chrome" : "Close in Chrome" }
+        return queued ? "Keep Open on iPhone" : "Close on iPhone"
+    }
+
+    /// Queued URLs open in Chrome. The extension closes them within a minute.
+    var chromeCloseCount: Int { state.closeQueue.filter(chromeOpenURLs.contains).count }
+
+    /// Queued URLs for the iPhone Shortcut.
+    var iPhoneCloseQueue: [String] {
+        state.closeQueue.filter { !(chromeOpenURLs.contains($0) && !safariOpenURLs.contains($0)) }
+    }
+
+    /// Routes the close queue: Chrome's tabs to chrome/close.json, the rest
+    /// to the iPhone's close.txt. A URL open in both goes to both.
+    func writeCloseLists() {
+        CloseList.write(iPhoneCloseQueue)
+        ChromeReader.writeClose(state.closeQueue.filter(chromeOpenURLs.contains))
+    }
 
     func isQueuedToClose(_ tab: SafariTab) -> Bool { state.closeQueue.contains(tab.url) }
 

@@ -39,6 +39,11 @@ targets:
         excludes:
           - "Resources/Info.plist"
           - "Resources/Sift.entitlements"
+      # The Chrome extension, copied whole into Resources. Sift copies it
+      # to Application Support for Load unpacked (ChromeHelper).
+      - path: ChromeExtension
+        type: folder
+        buildPhase: resources
     settings:
       base:
         PRODUCT_BUNDLE_IDENTIFIER: app.sift.Sift
@@ -59,6 +64,12 @@ targets:
         codeSign: true
         copy:
           destination: executables
+      # Chrome's native messaging host, at Contents/MacOS/sift-chrome.
+      - target: sift-chrome
+        embed: true
+        codeSign: true
+        copy:
+          destination: executables
   sift-mcp:
     type: tool
     platform: macOS
@@ -68,6 +79,17 @@ targets:
       base:
         PRODUCT_NAME: sift-mcp
         PRODUCT_BUNDLE_IDENTIFIER: app.sift.sift-mcp
+        ENABLE_HARDENED_RUNTIME: YES
+        SKIP_INSTALL: YES
+  sift-chrome:
+    type: tool
+    platform: macOS
+    sources:
+      - path: SiftChrome
+    settings:
+      base:
+        PRODUCT_NAME: sift-chrome
+        PRODUCT_BUNDLE_IDENTIFIER: app.sift.sift-chrome
         ENABLE_HARDENED_RUNTIME: YES
         SKIP_INSTALL: YES
 schemes:

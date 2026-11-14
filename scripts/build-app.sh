@@ -28,8 +28,10 @@ command -v build-lock >/dev/null && lock=(build-lock "sift build-app")
 app="build/DerivedData/Build/Products/$config/Sift.app"
 /usr/libexec/PlistBuddy -c "Set :CFBundleVersion $build" "$app/Contents/Info.plist"
 identity="${SIGN_IDENTITY:-Apple Development}"
-# Nested code first: the MCP server in Contents/MacOS, then the app around it.
+# Nested code first: the MCP server and the Chrome helper in Contents/MacOS,
+# then the app around them.
 codesign --force --sign "$identity" --identifier app.sift.sift-mcp --options runtime "$app/Contents/MacOS/sift-mcp"
+codesign --force --sign "$identity" --identifier app.sift.sift-chrome --options runtime "$app/Contents/MacOS/sift-chrome"
 codesign --force --sign "$identity" --entitlements Sift/Resources/Sift.entitlements --options runtime "$app"
 
 target=/Applications/Sift.app

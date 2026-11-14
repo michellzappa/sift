@@ -277,6 +277,8 @@ enum CloseList {
         // No line break after the last URL: the Shortcut splits by new lines,
         // and an empty last item makes Safari's Close Tab fail.
         let text = urls.sorted().joined(separator: "\n")
+        // Sift writes the lists on every reload; iCloud syncs only real changes.
+        if (try? String(contentsOf: fileURL, encoding: .utf8)) == text { return }
         try? text.write(to: fileURL, atomically: true, encoding: .utf8)
     }
 }

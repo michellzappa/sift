@@ -50,6 +50,7 @@ enum Onboarding {
     static let steps: [any OnboardingStep] = [
         WelcomeStep(),
         SourcesStep(),
+        ChromeStep(),
         ClaudeStep(),
         LibraryStep(),
         ThemesStep(),

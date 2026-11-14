@@ -13,6 +13,7 @@ struct SafariTab: Identifiable, Hashable, Sendable {
 
     var sourceSymbol: String {
         if source.hasPrefix("import") { return "tray.and.arrow.down" }
+        if source.hasPrefix("chrome:") { return "globe" }
         switch source {
         case "reading-list": return "eyeglasses"
         case "instagram": return "camera"

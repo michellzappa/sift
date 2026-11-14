@@ -28,6 +28,9 @@ The source picker in the toolbar reads, all read-only:
 - **Open tabs** that Safari syncs from your iPhone, iPad and other Macs
   through iCloud.
 - **Safari's Reading List.**
+- **Chrome tabs**, from every window of each Chrome profile where you add
+  Sift's extension (Brave, Edge, Arc, Vivaldi and Chromium work too). See
+  [Chrome](#chrome) below.
 - **Instagram Saved**, from Instagram's data export. In Instagram's Accounts
   Center, open Download your information and ask for JSON (HTML does not
   work), then choose the zip in Settings > Inputs.
@@ -150,6 +153,28 @@ ready-made Shortcut is one tap: [install "Sift: Close Tabs"](https://www.icloud.
 (Sift also shows it as a QR code). It splits the list by lines, and for each
 address finds the tab, switches to it and closes it. iOS 17 or later.
 
+### Chrome
+
+Sift reads Chrome's open tabs through a small extension in
+`ChromeExtension/` (Manifest V3, permissions `tabs` and `nativeMessaging`
+only). The extension sends the address and title of each open tab to
+`sift-chrome`, a helper inside Sift.app, through Chrome's native messaging.
+The helper writes one file per profile to
+`~/Library/Application Support/Sift/chrome/`. Nothing goes over the
+network. Each profile is its own source; one that has not reported for a
+day shows as stale.
+
+Chrome is on the same Mac, so Sift closes Chrome tabs itself: a tab you mark
+to close goes to `chrome/close.json`, and the extension closes it within a
+minute while Chrome runs.
+
+To set it up: Settings > Inputs > Chrome > Install Chrome Helper (or the
+Chrome step of the Setup Guide). Sift writes the helper's manifest for each
+Chromium browser it finds, copies the extension to
+`~/Library/Application Support/Sift/ChromeExtension` and shows it in Finder.
+Then open `chrome://extensions`, turn on Developer mode, click Load unpacked
+and choose that folder. The extension is not in the Chrome Web Store yet.
+
 ### Export
 
 The Export menu writes your themes and links out:
@@ -208,7 +233,7 @@ Each release also has a `SHA256SUMS` file.
 
 ### First run
 
-On first launch Sift opens the Setup Guide: Welcome, Sources, Claude,
+On first launch Sift opens the Setup Guide: Welcome, Sources, Chrome, Claude,
 Library, Themes, Send and a few tips. Only Welcome is required. Sources
 is where you turn on Full Disk Access for Safari's tabs and Reading List.
 macOS does not list the app until you add it: in System Settings, open
@@ -312,6 +337,9 @@ About 5,500 lines of SwiftUI. No dependencies.
 | --- | --- |
 | `Storage/CloudTabsReader` | Safari's synced tabs (`CloudTabs.db`, SQLite, read-only) |
 | `Storage/ReadingListReader`, `InstagramReader`, `LinkImporter` | The other sources |
+| `Storage/ChromeReader`, `ChromeHelper` | Chrome tabs from the extension, and the helper setup |
+| `SiftChrome/` | `sift-chrome`, Chrome's native messaging host (embedded in the app) |
+| `ChromeExtension/` | The Chrome extension (plain JavaScript, no build step) |
 | `Storage/Previews` | Page previews (Open Graph, X oEmbed and embed data) and the iPhone close list |
 | `Storage/Archive` | Every link Sift has seen, and what it knows about it |
 | `Storage/StateFile` | Settings, themes and assignments, as one JSON file |
@@ -328,8 +356,8 @@ Swift has no official Anthropic SDK, so the API backend uses plain HTTP.
 
 ## Limitations
 
-- Sift cannot close tabs from the Mac; closing goes through the iPhone
-  Shortcut.
+- Sift cannot close Safari tabs from the Mac; closing goes through the
+  iPhone Shortcut. Chrome tabs close directly.
 - Sift cannot remove items from the Reading List or from imported files.
 - Pages behind a login have no preview and only thin text in the library.
 - Instagram posts show the caption from your export, not the image.

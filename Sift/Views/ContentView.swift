@@ -95,6 +95,9 @@ struct ContentView: View {
                 Text("All Sources (\(model.allSourcesCount))").tag(AppModel.allSourcesID)
                 Divider()
                 ForEach(model.devices) { d in Text("\(d.name) (\(d.tabCount))").tag(d.id) }
+                ForEach(model.chromeProfiles) { p in
+                    Text("\(p.browser)\(model.chromeProfileName(p).map { ", \($0)" } ?? "") (\(p.tabs.count))").tag(p.id)
+                }
                 if model.readingListCount > 0 || model.instagramCount > 0 { Divider() }
                 if model.readingListCount > 0 {
                     Text("Reading List (\(model.readingListCount))").tag(ReadingListReader.sourceID)
@@ -197,7 +200,7 @@ private struct Sidebar: View {
                     .help("Pages that are gone: not found, or the site no longer exists. Sift keeps what it saved.")
             }
             if !model.isSavedList {
-                Label { HStack { Text("To close on iPhone"); Spacer(); count(model.state.closeQueue.count) } } icon: { Image(systemName: "xmark.square") }
+                Label { HStack { Text("To Close"); Spacer(); count(model.state.closeQueue.count) } } icon: { Image(systemName: "xmark.square") }
                     .tag(SidebarItem.closeQueue)
             }
 
@@ -261,6 +264,12 @@ private struct Sidebar: View {
         var rows: [SourceRow] = []
         for d in model.devices where d.tabCount > 0 {
             rows.append(.init(id: d.id, name: "Safari", symbol: "safari", count: d.tabCount, detail: d.name))
+        }
+        for p in model.chromeProfiles {
+            // A profile that has not reported for a day says so.
+            let name = model.chromeProfileName(p)
+            let detail = p.isStale ? [name, "last seen \(p.updated.formatted(.relative(presentation: .named)))"].compactMap { $0 }.joined(separator: ", ") : name
+            rows.append(.init(id: p.id, name: p.browser, symbol: "globe", count: p.tabs.count, detail: detail))
         }
         if model.readingListCount > 0 { rows.append(.init(id: ReadingListReader.sourceID, name: "Reading List", symbol: "eyeglasses", count: model.readingListCount)) }
         if model.instagramCount > 0 { rows.append(.init(id: InstagramReader.sourceID, name: "Instagram Saved", symbol: "camera", count: model.instagramCount)) }

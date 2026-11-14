@@ -50,6 +50,23 @@ transcripts), not only the link. Never add a Sift server or account.
   the unpacked folder. Instagram writes UTF-8 as one `\u00XX` escape per
   byte; `InstagramReader.fix` turns it back into text. Never commit
   anything from an export.
+- Chrome tabs (issue #1): `ChromeExtension/` (MV3, plain JS, permissions
+  `tabs` + `nativeMessaging` only) talks to `sift-chrome` (target in
+  project.yml, `SiftChrome/main.swift`, embedded in Contents/MacOS, signed
+  in build-app.sh, checked in release.yml) over Chrome native messaging
+  (4-byte little-endian length + JSON). The extension keeps a port open, so
+  its worker lives and resends every minute; the host writes
+  `Application Support/Sift/chrome/tabs-<install>.json` only when tabs
+  change (or hourly) and answers with the URLs in `chrome/close.json` open
+  in that profile. `ChromeReader` makes each file a source
+  `chrome:<install>`; the install id is a random UUID the extension keeps
+  in IndexedDB. Extensions cannot read the profile name, so the user names
+  profiles in Settings (`chromeProfileNames`). The close queue routes by
+  URL: open in Chrome goes to close.json, the rest to close.txt.
+  Extension id `olgmdjbjikcjaohhpmeekcmiknpfofpb` comes from the public
+  `key` in manifest.json (private key discarded; `ChromeHelper.extensionID`
+  must match). `ChromeHelper.install` writes `app.sift.chrome.json` into
+  each Chromium browser's NativeMessagingHosts folder. Not in the Web Store.
 - State: one JSON file, `~/Library/Application Support/Sift/state.json`,
   keyed by URL. Hand moves set `manual: true`; the sorter never overwrites them.
 - API key: login keychain, service `app.sift.anthropic-api-key`.

@@ -25,7 +25,7 @@ struct TabList: View {
         switch item {
         case .overview, .source: "Overview"
         case .unsorted: "Unsorted"
-        case .closeQueue: "To close on iPhone"
+        case .closeQueue: "To Close"
         case .archive: "Archive"
         case .duplicates: "Duplicates"
         case .broken: "Broken Links"
@@ -179,9 +179,9 @@ struct TabList: View {
             }
             if item != .closeQueue, !rows.isEmpty, !model.isSavedList {
                 Button { model.queueClose(rows) } label: {
-                    Label("Close All on iPhone", systemImage: "xmark.square")
+                    Label(model.isChrome ? "Close All in Chrome" : "Close All on iPhone", systemImage: "xmark.square")
                 }
-                .help("Add every tab in this list to the close list for the iPhone Shortcut.")
+                .help(model.isChrome ? "Close every tab in this list in Chrome." : "Add every tab in this list to the close list for the iPhone Shortcut.")
             }
             if let project {
                 Button { model.copy(model.markdown(for: project)) } label: {
@@ -196,10 +196,16 @@ struct TabList: View {
     private var closeHeader: some View {
         HStack {
             Image(systemName: "iphone")
-            if CloseList.iCloudDriveAvailable {
-                Text("\(model.state.closeQueue.count) tabs wait in iCloud Drive/Sift/close.txt. Run the Sift Shortcut on the iPhone to close them.")
-            } else {
-                Text("iCloud Drive is off on this Mac, so the iPhone cannot read the close list.")
+            VStack(alignment: .leading, spacing: 2) {
+                if CloseList.iCloudDriveAvailable {
+                    Text("\(model.iPhoneCloseQueue.count) tabs wait in iCloud Drive/Sift/close.txt. Run the Sift Shortcut on the iPhone to close them.")
+                } else {
+                    Text("iCloud Drive is off on this Mac, so the iPhone cannot read the close list.")
+                }
+                if model.chromeCloseCount > 0 {
+                    Text("Chrome closes \(model.chromeCloseCount) of them within a minute while it is open.")
+                        .foregroundStyle(.secondary)
+                }
             }
             Spacer()
             Button("Set Up Shortcut…") { showShortcutGuide = true }
@@ -291,7 +297,7 @@ struct TabCard: View {
             }
             Divider()
             if !model.isSavedList {
-                Button(closing ? "Keep Open on iPhone" : "Close on iPhone") { model.toggleClose(tab) }
+                Button(model.closeLabel(tab)) { model.toggleClose(tab) }
             }
             Menu("Move to") { moveMenu }
             Button("Mark as Noise") { model.move(tab, to: Project.drop) }
@@ -361,7 +367,7 @@ struct TabCard: View {
             }
             Spacer(minLength: 8)
             if a?.manual == true { Image(systemName: "hand.point.up.left").foregroundStyle(.tertiary).help("Sorted by hand") }
-            if closing { Image(systemName: "xmark.square").foregroundStyle(.secondary).help("Closes on iPhone") }
+            if closing { Image(systemName: "xmark.square").foregroundStyle(.secondary).help(model.closesInChrome(tab) ? "Closes in Chrome" : "Closes on iPhone") }
             if let a {
                 if showTheme {
                     Menu { moveMenu } label: {
@@ -528,7 +534,7 @@ struct PreviewPane: View {
                 Text(tab.url).font(.caption).foregroundStyle(.secondary).textSelection(.enabled).lineLimit(4)
                 HStack {
                     Button("Open in Safari") { TabActions.openInSafari(tab.url) }
-                    Button(model.isQueuedToClose(tab) ? "Keep Open" : "Close on iPhone") { model.toggleClose(tab) }
+                    Button(model.closeLabel(tab)) { model.toggleClose(tab) }
                     Spacer()
                     Button { Task { await model.fetchPreviews(for: [tab], force: true) } } label: { Image(systemName: "arrow.clockwise") }
                         .help("Fetch the preview again")
