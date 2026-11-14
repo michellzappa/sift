@@ -50,12 +50,15 @@ struct ContentView: View {
         ToolbarItem(placement: .navigation) {
             Picker("Source", selection: .init(get: { model.state.deviceID ?? "" }, set: { model.selectDevice($0) })) {
                 ForEach(model.devices) { d in Text("\(d.name) (\(d.tabCount))").tag(d.id) }
+                if model.readingListCount > 0 || model.instagramCount > 0 { Divider() }
                 if model.readingListCount > 0 {
-                    Divider()
                     Text("Reading List (\(model.readingListCount))").tag(ReadingListReader.sourceID)
                 }
                 if model.xConnected {
                     Text("X Bookmarks (\(model.xBookmarkIDs.count))").tag(AppModel.xBookmarksSourceID)
+                }
+                if model.state.instagramExportPath != nil, model.instagramCount > 0 {
+                    Text("Instagram Saved (\(model.instagramCount))").tag(InstagramReader.sourceID)
                 }
             }
             .pickerStyle(.menu)
@@ -128,7 +131,7 @@ private struct Sidebar: View {
             Label("Overview", systemImage: "circle.hexagongrid").tag(SidebarItem.overview)
             Label { HStack { Text("Unsorted"); Spacer(); count(model.unsortedCount) } } icon: { Image(systemName: "tray") }
                 .tag(SidebarItem.unsorted)
-            if !model.isReadingList {
+            if !model.isSavedList {
                 Label { HStack { Text("To close on iPhone"); Spacer(); count(model.state.closeQueue.count) } } icon: { Image(systemName: "xmark.square") }
                     .tag(SidebarItem.closeQueue)
             }

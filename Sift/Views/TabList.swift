@@ -122,7 +122,7 @@ struct TabList: View {
                 .help("Fetch previews for these tabs, then sort them again with the preview text.")
                 .disabled(model.isSorting)
             }
-            if item != .closeQueue, !rows.isEmpty, !model.isReadingList {
+            if item != .closeQueue, !rows.isEmpty, !model.isSavedList {
                 Button { model.queueClose(rows) } label: {
                     Label("Close All on iPhone", systemImage: "xmark.square")
                 }
@@ -243,7 +243,7 @@ struct TabCard: View {
             }
             if a != nil { Menu("Next Action") { actionMenu } }
             Divider()
-            if !model.isReadingList {
+            if !model.isSavedList {
                 Button(closing ? "Keep Open on iPhone" : "Close on iPhone") { model.toggleClose(tab) }
             }
             Menu("Move to") { moveMenu }

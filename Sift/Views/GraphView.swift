@@ -104,7 +104,8 @@ struct GraphView: View {
         .simultaneousGesture(MagnifyGesture()
             .onChanged { zoom(to: pinchBase * $0.magnification, around: $0.startLocation, size: size) }
             .onEnded { _ in pinchBase = cam.scale })
-        .background(ScrollZoom { delta, location in
+        // While a theme's cards are open, scrolling scrolls the cards.
+        .background(ScrollZoom(isEnabled: focusTheme == nil) { delta, location in
             zoom(to: cam.scale * (1 + delta * 0.01), around: location, size: size)
             pinchBase = cam.scale
         })
@@ -581,18 +582,24 @@ final class GraphSimulation {
 /// Turns two-finger trackpad scroll and the mouse wheel into zoom.
 /// Reports the delta and the cursor position in the view's coordinates.
 struct ScrollZoom: NSViewRepresentable {
+    var isEnabled = true
     let onZoom: (CGFloat, CGPoint) -> Void
 
     func makeNSView(context: Context) -> ZoomView {
         let view = ZoomView()
         view.onZoom = onZoom
+        view.isEnabled = isEnabled
         return view
     }
 
-    func updateNSView(_ view: ZoomView, context: Context) { view.onZoom = onZoom }
+    func updateNSView(_ view: ZoomView, context: Context) {
+        view.onZoom = onZoom
+        view.isEnabled = isEnabled
+    }
 
     final class ZoomView: NSView {
         var onZoom: ((CGFloat, CGPoint) -> Void)?
+        var isEnabled = true
         private var monitor: Any?
 
         override var isFlipped: Bool { true }
@@ -602,7 +609,7 @@ struct ScrollZoom: NSViewRepresentable {
             if let monitor { NSEvent.removeMonitor(monitor); self.monitor = nil }
             guard window != nil else { return }
             monitor = NSEvent.addLocalMonitorForEvents(matching: .scrollWheel) { [weak self] event in
-                guard let self, let window = self.window, event.window === window else { return event }
+                guard let self, self.isEnabled, let window = self.window, event.window === window else { return event }
                 let point = self.convert(event.locationInWindow, from: nil)
                 guard self.bounds.contains(point) else { return event }
                 let delta = event.scrollingDeltaY * (event.hasPreciseScrollingDeltas ? 1 : 6)

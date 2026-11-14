@@ -20,6 +20,8 @@ struct SiftState: Codable, Sendable {
     /// Opt-in: X post previews from X's unofficial syndication endpoint, which
     /// returns images. Off by default because the endpoint can stop working.
     var xSyndication: Bool = false
+    /// The Instagram data export (zip or folder) the user chose in Settings.
+    var instagramExportPath: String?
 
     init() {}
 
@@ -35,6 +37,7 @@ struct SiftState: Codable, Sendable {
         xUserID = try c.decodeIfPresent(String.self, forKey: .xUserID)
         xUsername = try c.decodeIfPresent(String.self, forKey: .xUsername)
         xSyndication = try c.decodeIfPresent(Bool.self, forKey: .xSyndication) ?? false
+        instagramExportPath = try c.decodeIfPresent(String.self, forKey: .instagramExportPath)
     }
 }
 
