@@ -34,8 +34,6 @@ struct ChromeStep: OnboardingStep {
 
                 GroupBox {
                     VStack(alignment: .leading, spacing: 12) {
-                        StatusRow(icon: "globe", name: "Chrome", status: model.chromeStatus, warning: model.chromeHasStale)
-                        Divider()
                         VStack(alignment: .leading, spacing: 8) {
                             ForEach(Array(steps.enumerated()), id: \.offset) { i, step in
                                 HStack(alignment: .top, spacing: 10) {
