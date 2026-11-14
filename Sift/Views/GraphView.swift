@@ -21,6 +21,7 @@ struct GraphView: View {
     @State private var redraw = 0
     @State private var panBase: CGSize?
     @State private var pinchBase: CGFloat = 1
+    @Environment(\.colorScheme) private var scheme
 
     private static let chip = CGSize(width: 196, height: 54)
 
@@ -87,7 +88,7 @@ struct GraphView: View {
                 }
             }
         }
-        .background(GraphStyle.background)
+        .background(GraphStyle.background(scheme))
         .contentShape(Rectangle())
         .gesture(
             DragGesture(minimumDistance: 4)
@@ -120,7 +121,7 @@ struct GraphView: View {
         .overlay(alignment: .bottomLeading) {
             if focusTheme == nil {
                 Text("Click a theme to zoom in. Pinch or scroll to zoom, drag to move.")
-                    .font(.caption).foregroundStyle(.white.opacity(0.45)).padding(12)
+                    .font(.caption).foregroundStyle(.secondary).padding(12)
             }
         }
     }
@@ -178,9 +179,9 @@ struct GraphView: View {
             var path = Path(); path.move(to: pa); path.addLine(to: pb)
             let bridge = a.kind == .theme && b.kind == .theme
             let dim = lit != nil && b.theme != lit && !(bridge && a.theme == lit)
-            let opacity = dim ? 0.07 : (b.kind == .leaf ? 0.38 : 0.6)
+            let opacity = bridge ? (dim ? 0.04 : (lit != nil ? 0.5 : 0.16)) : (dim ? 0.07 : (b.kind == .leaf ? 0.4 : 0.6))
             ctx.stroke(path, with: .linearGradient(Gradient(colors: [a.color.opacity(opacity), b.color.opacity(opacity)]), startPoint: pa, endPoint: pb),
-                       lineWidth: (b.kind == .leaf ? 0.7 : b.kind == .group ? 1.1 : 1.6) * dotScale)
+                       lineWidth: (b.kind == .leaf ? 0.7 : b.kind == .group ? 1.1 : 1.2) * dotScale)
         }
         for n in sim.nodes where !hidden(n) {
             let dim = lit != nil && n.theme != lit
@@ -201,42 +202,41 @@ struct GraphView: View {
 
     // MARK: Cards around the focused theme
 
+    /// Every link of the focused theme as a card, in a grid that fits the
+    /// view and scrolls when the theme is large, so no card hides another.
     private func chips(theme: String, node: Int, size: CGSize) -> some View {
         let tabs = model.tabs(in: theme)
-        let origin = screen(sim.nodes[node].p, size: size)
-        let rings = Self.rings(count: tabs.count, start: 120 + sim.nodes[node].size * 2)
         let color = sim.nodes[node].color
-        let fade = min(1, max(0, (cam.scale - 1.1) / 0.6))
-        return ForEach(Array(tabs.enumerated()), id: \.element.id) { index, tab in
-            if rings.indices.contains(index) {
-                LinkChip(tab: tab, color: color, isPicked: picked == tab.url)
-                    .frame(width: Self.chip.width, height: Self.chip.height)
-                    .position(x: origin.x + rings[index].x, y: origin.y + rings[index].y)
-                    .opacity(fade)
-                    .onTapGesture(count: 2) { TabActions.openInSafari(tab.url) }
-                    .onTapGesture { withAnimation(.snappy) { picked = picked == tab.url ? nil : tab.url } }
+        let summary = model.projects.first(where: { $0.name == theme })?.summary ?? ""
+        let fade = min(1.0, max(0.0, Double(cam.scale - 1.1) / 0.6))
+        let columns = [GridItem(.adaptive(minimum: Self.chip.width, maximum: 260), spacing: 10)]
+        return ScrollView {
+            VStack(alignment: .leading, spacing: 14) {
+                VStack(alignment: .leading, spacing: 4) {
+                    Text(theme).font(.title2.weight(.semibold)).foregroundStyle(color)
+                    if !summary.isEmpty { Text(summary).font(.callout).foregroundStyle(.secondary) }
+                    Text("\(tabs.count) links").font(.caption).foregroundStyle(.tertiary)
+                }
+                LazyVGrid(columns: columns, spacing: 10) {
+                    ForEach(tabs) { tab in chipCell(tab, color: color) }
+                }
             }
+            .padding(.horizontal, 28)
+            .padding(.top, 56)
+            .padding(.bottom, 28)
+            .frame(maxWidth: 1180)
+            .frame(maxWidth: .infinity)
         }
+        .frame(width: size.width, height: size.height)
+        .background(.ultraThinMaterial.opacity(0.85))
+        .opacity(fade)
     }
 
-    /// Screen offsets on rings around a point, wide rather than tall, sized
-    /// so cards do not overlap.
-    static func rings(count: Int, start: CGFloat) -> [CGPoint] {
-        var out: [CGPoint] = []
-        var radius = start
-        var ring = 0
-        while out.count < count {
-            let capacity = max(4, Int(2 * .pi * radius / (chip.width * 0.6)))
-            let n = min(capacity, count - out.count)
-            let shift = ring.isMultiple(of: 2) ? 0.0 : .pi / Double(n)
-            for k in 0..<n {
-                let a = shift + 2 * .pi * Double(k) / Double(n) - .pi / 2
-                out.append(CGPoint(x: cos(a) * radius * 1.4, y: sin(a) * radius * 0.78))
-            }
-            radius += 82
-            ring += 1
-        }
-        return out
+    private func chipCell(_ tab: SafariTab, color: Color) -> some View {
+        LinkChip(tab: tab, color: color, isPicked: picked == tab.url)
+            .frame(height: Self.chip.height)
+            .onTapGesture(count: 2) { TabActions.openInSafari(tab.url) }
+            .onTapGesture { withAnimation(.snappy) { picked = picked == tab.url ? nil : tab.url } }
     }
 
     private func hit(_ point: CGPoint, size: CGSize) -> Int? {
@@ -343,20 +343,32 @@ struct GraphView: View {
     }
 }
 
-/// Colors and background for the graph. Dark on purpose, in both light and
-/// dark mode: the lights read better on night.
+/// Colors and background for the graph. Light in light mode, dark in dark
+/// mode. Each branch color has a deeper shade for light backgrounds and a
+/// brighter one for dark.
 enum GraphStyle {
-    static let background = LinearGradient(
-        colors: [Color(red: 0.12, green: 0.10, blue: 0.16), Color(red: 0.07, green: 0.09, blue: 0.14)],
-        startPoint: .topLeading, endPoint: .bottomTrailing)
-    static let root = Color(red: 1.0, green: 0.62, blue: 0.22)
-    /// Warm to cool, all bright enough to glow on dark.
+    static func background(_ scheme: ColorScheme) -> AnyShapeStyle {
+        scheme == .dark
+            ? AnyShapeStyle(LinearGradient(colors: [Color(red: 0.12, green: 0.11, blue: 0.16), Color(red: 0.08, green: 0.09, blue: 0.13)],
+                                           startPoint: .topLeading, endPoint: .bottomTrailing))
+            : AnyShapeStyle(Color(nsColor: .textBackgroundColor))
+    }
+
+    private static func pair(_ light: (Double, Double, Double), _ dark: (Double, Double, Double)) -> Color {
+        Color(nsColor: NSColor(name: nil) { appearance in
+            let isDark = appearance.bestMatch(from: [.darkAqua, .aqua]) == .darkAqua
+            let c = isDark ? dark : light
+            return NSColor(srgbRed: c.0, green: c.1, blue: c.2, alpha: 1)
+        })
+    }
+
+    /// Warm to cool. Light-mode shades are deep enough for text on white.
     static let branchColors: [Color] = [
-        Color(red: 1.00, green: 0.66, blue: 0.30), Color(red: 1.00, green: 0.82, blue: 0.40),
-        Color(red: 0.98, green: 0.52, blue: 0.42), Color(red: 0.56, green: 0.86, blue: 0.98),
-        Color(red: 0.70, green: 0.62, blue: 1.00), Color(red: 0.55, green: 0.95, blue: 0.75),
-        Color(red: 1.00, green: 0.60, blue: 0.75), Color(red: 0.95, green: 0.95, blue: 0.70),
-        Color(red: 0.62, green: 0.75, blue: 1.00), Color(red: 1.00, green: 0.74, blue: 0.55),
+        pair((0.85, 0.42, 0.05), (1.00, 0.66, 0.30)), pair((0.72, 0.55, 0.00), (1.00, 0.82, 0.40)),
+        pair((0.82, 0.27, 0.20), (0.98, 0.52, 0.42)), pair((0.05, 0.50, 0.72), (0.56, 0.86, 0.98)),
+        pair((0.42, 0.30, 0.85), (0.70, 0.62, 1.00)), pair((0.08, 0.58, 0.40), (0.55, 0.95, 0.75)),
+        pair((0.82, 0.22, 0.48), (1.00, 0.60, 0.75)), pair((0.50, 0.50, 0.10), (0.95, 0.95, 0.70)),
+        pair((0.20, 0.38, 0.85), (0.62, 0.75, 1.00)), pair((0.70, 0.40, 0.18), (1.00, 0.74, 0.55)),
     ]
 }
 
@@ -416,6 +428,7 @@ private struct LinkChip: View {
 }
 
 // MARK: - Simulation
+
 
 /// Where the canvas looks and how close. Kept out of SwiftUI state so it
 /// can glide every frame without rebuilding the view tree.
