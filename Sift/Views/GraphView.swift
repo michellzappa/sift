@@ -101,16 +101,31 @@ struct GraphView: View {
             let r = n.radius * scale
             let dim = hover != nil && hover != i && !neighbours.contains(i)
             let rect = CGRect(x: p.x - r, y: p.y - r, width: r * 2, height: r * 2)
-            ctx.fill(Path(ellipseIn: rect), with: .color(n.color.opacity(dim ? 0.12 : 0.22)))
-            ctx.stroke(Path(ellipseIn: rect), with: .color(n.color.opacity(dim ? 0.25 : 0.8)), lineWidth: hover == i ? 2.5 : 1.2)
+            ctx.fill(Path(ellipseIn: rect), with: .color(n.color.opacity(dim ? 0.04 : (hover == i ? 0.16 : 0.08))))
+            // One dot per link, packed in a sunflower spiral, so size and
+            // density read at a glance.
+            let dot = max(2.2, 3.2 * scale)
+            var dots = Path()
+            for k in 0..<n.count {
+                let q = GraphSimulation.dotOffset(k, scale: scale)
+                dots.addEllipse(in: CGRect(x: p.x + q.x - dot, y: p.y + q.y - dot, width: dot * 2, height: dot * 2))
+            }
+            ctx.fill(dots, with: .color(n.color.opacity(dim ? 0.2 : 0.85)))
         }
         for (i, n) in sim.nodes.enumerated() {
             let p = screen(n.p, center: center)
+            let r = n.radius * scale
             let dim = hover != nil && hover != i && !neighbours.contains(i)
-            let title = Text(n.label).font(.system(size: 13, weight: .semibold)).foregroundStyle(dim ? Color.secondary.opacity(0.5) : Color.primary)
-            let count = Text("\(n.count)").font(.system(size: 11).monospacedDigit()).foregroundStyle(.secondary)
-            ctx.draw(title, at: CGPoint(x: p.x, y: p.y - 7), anchor: .center)
-            ctx.draw(count, at: CGPoint(x: p.x, y: p.y + 10), anchor: .center)
+            let title = Text(n.label).font(.system(size: 12, weight: .semibold))
+                .foregroundStyle(dim ? Color.secondary.opacity(0.5) : Color.primary)
+            + Text("  \(n.count)").font(.system(size: 11).monospacedDigit()).foregroundStyle(.secondary)
+            var resolved = ctx.resolve(title)
+            resolved.shading = .color(.primary)
+            let maxWidth = GraphSimulation.labelWidth
+            let size = resolved.measure(in: CGSize(width: maxWidth, height: 60))
+            let box = CGRect(x: p.x - size.width / 2, y: p.y + r + 6, width: size.width, height: size.height)
+            ctx.fill(Path(roundedRect: box.insetBy(dx: -5, dy: -2), cornerRadius: 5), with: .color(Color(nsColor: .textBackgroundColor).opacity(0.85)))
+            ctx.draw(title, in: box)
         }
     }
 
@@ -162,7 +177,7 @@ struct GraphView: View {
         }
         let nodes = names.map { name in
             GraphSimulation.Node(key: name, label: name, color: color(for: name),
-                                 radius: 34 + sqrt(CGFloat(model.count(name))) * 7, count: model.count(name))
+                                 radius: GraphSimulation.clusterRadius(model.count(name)), count: model.count(name))
         }
         var edges: [GraphSimulation.Edge] = []
         for i in names.indices {
@@ -393,6 +408,20 @@ final class GraphSimulation {
 
     var isMoving: Bool { alpha > 0.01 }
 
+    static let labelWidth: CGFloat = 170
+    static let dotSpacing: CGFloat = 8.5
+
+    /// Where link `k` sits inside its cluster (sunflower spiral).
+    static func dotOffset(_ k: Int, scale: CGFloat) -> CGPoint {
+        let angle = Double(k) * 2.399963
+        let r = dotSpacing * scale * sqrt(Double(k) + 0.5)
+        return CGPoint(x: cos(angle) * r, y: sin(angle) * r)
+    }
+
+    static func clusterRadius(_ count: Int) -> CGFloat {
+        dotSpacing * sqrt(CGFloat(count) + 0.5) + 10
+    }
+
     static let palette: [Color] = [.blue, .orange, .green, .pink, .purple, .teal, .red, .indigo, .mint, .brown, .cyan, .yellow]
 
     func load(nodes new: [Node], edges newEdges: [Edge]) {
@@ -423,7 +452,10 @@ final class GraphSimulation {
             for j in (i + 1)..<count {
                 let dx = nodes[i].p.x - nodes[j].p.x, dy = nodes[i].p.y - nodes[j].p.y
                 let d = max(sqrt(dx * dx + dy * dy), 1)
-                let minGap = nodes[i].radius + nodes[j].radius + 24
+                // Room for both clusters and their labels underneath.
+                let horizontal = abs(dx) > abs(dy)
+                let reach = { (n: Node) in horizontal ? max(n.radius, Self.labelWidth / 2) : n.radius + 34 }
+                let minGap = reach(nodes[i]) + reach(nodes[j]) + 18
                 // Strong push inside the gap, soft charge outside it.
                 let f = d < minGap ? (minGap - d) * 0.5 : 2400 / (d * d)
                 let fx = f * dx / d, fy = f * dy / d
