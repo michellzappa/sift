@@ -368,10 +368,10 @@ private struct UnsortedBanner: View {
                         Text("\(count) link\(count == 1 ? " is" : "s are") not in a theme yet. They are under Unsorted, not on the graph.")
                         Spacer()
                         Button("Discover Themes Again") { Task { await model.discoverThemes() } }
+                            .help("Rare: Claude reads every source together and may propose new themes. You review them first.")
+                        Button("Sort into Themes") { Task { await model.sortUnsorted() } }
                             .buttonStyle(.borderedProminent)
-                            .help("Claude reads every source together and may propose new themes. You review them first.")
-                        Button("Sort into Current Themes") { Task { await model.sortUnsorted() } }
-                            .help("Cheaper: Claude puts each link into one of the themes you have.")
+                            .help("Puts each link into one of the themes you have.")
                     }
                 }
                 if model.isSorting || model.isDiscovering { Spacer() }
