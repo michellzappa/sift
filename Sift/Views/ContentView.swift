@@ -33,6 +33,11 @@ struct ContentView: View {
         .sheet(isPresented: .init(get: { model.themeProposal != nil }, set: { if !$0 { model.themeProposal = nil } })) {
             ThemeReview().environment(model)
         }
+        .alert("Export", isPresented: .init(get: { model.exportMessage != nil }, set: { if !$0 { model.exportMessage = nil } })) {
+            Button("OK") { model.exportMessage = nil }
+        } message: {
+            Text(model.exportMessage ?? "")
+        }
         .alert("Sorting stopped", isPresented: .init(get: { model.sortError != nil }, set: { if !$0 { model.sortError = nil } })) {
             Button("OK") { model.sortError = nil }
         } message: {
@@ -81,8 +86,8 @@ struct ContentView: View {
                 } label: {
                     Label("Sort \(model.unsortedCount) with Claude", systemImage: "sparkles")
                 }
-                .help("Send the titles and URLs of unsorted tabs to Claude and sort them into projects.")
-                .disabled(model.unsortedCount == 0)
+                .help(model.themes.isEmpty ? "Discover your themes first." : "Sort unsorted tabs into your themes with Claude.")
+                .disabled(model.unsortedCount == 0 || model.themes.isEmpty)
             }
         }
         ToolbarItem(placement: .primaryAction) {
@@ -94,6 +99,16 @@ struct ContentView: View {
                 }
                 .help("Ask Claude what to do next with \(model.tabsWithoutAction.count) sorted tabs that have no next action.")
             }
+        }
+        ToolbarItem(placement: .primaryAction) {
+            Menu {
+                ForEach(Exporters.all, id: \.id) { exporter in
+                    Button(exporter.name) { model.runExport(exporter) }
+                }
+            } label: {
+                Label("Export", systemImage: "square.and.arrow.up")
+            }
+            .help("Export your themes and links: Obsidian, Markdown, CSV or JSON.")
         }
         ToolbarItem(placement: .primaryAction) {
             Button { model.reload() } label: { Label("Reload", systemImage: "arrow.clockwise") }
@@ -115,7 +130,7 @@ private struct Sidebar: View {
                     .tag(SidebarItem.closeQueue)
             }
 
-            Section(model.themes.isEmpty ? "Projects" : "Themes") {
+            Section("Themes") {
                 ForEach(model.activeProjects, id: \.project) { item in
                     HStack { Text(item.project); Spacer(); count(item.count) }
                         .tag(SidebarItem.project(item.project))

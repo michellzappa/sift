@@ -132,7 +132,7 @@ struct Sorter: Sendable {
             hobby, noise), a suggested_destination (the best existing home from the list below, several joined \
             with " + ", or "none yet") and a short "why" for it.
 
-            Existing homes: \(places)
+            Existing homes: \(places.isEmpty ? "none listed; suggest the kind of home that would fit, for example a project, a reading list or nowhere yet" : places)
             """
         let user = "Links (id, site, title, text):\n" + items.enumerated().map { index, item in
             let host = URL(string: item.url)?.host() ?? ""

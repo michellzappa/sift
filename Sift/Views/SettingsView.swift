@@ -4,7 +4,7 @@ struct SettingsView: View {
     var body: some View {
         TabView {
             SortingSettings().tabItem { Label("Sorting", systemImage: "sparkles") }
-            ProjectSettings().tabItem { Label("Projects", systemImage: "folder") }
+            ThemeSettings().tabItem { Label("Themes", systemImage: "circle.hexagongrid") }
         }
         .frame(width: 560, height: 440)
     }
@@ -61,73 +61,59 @@ private struct SortingSettings: View {
     }
 }
 
-private struct ProjectSettings: View {
+private struct ThemeSettings: View {
     @Environment(AppModel.self) private var model
     @State private var newName = ""
     @State private var newSummary = ""
+    @State private var editing: String?
+    @State private var draft = ""
 
     var body: some View {
-        @Bindable var model = model
         Form {
-            if !model.themes.isEmpty {
-                Section("Themes") {
-                    Text("Sift sorts into \(model.themes.count) themes found in your links. Repos and the projects below are destinations.")
+            Section {
+                if model.themes.isEmpty {
+                    Text("No themes yet. Discover Themes reads all your links and proposes them.")
                         .foregroundStyle(.secondary)
-                    Button("Go Back to Repo Projects", role: .destructive) { model.removeThemes() }
                 }
-            }
-            Section("Projects folder") {
-                HStack {
-                    Text(model.state.projectsRoot).lineLimit(1).truncationMode(.middle)
-                    Spacer()
-                    Button("Choose…") { chooseRoot() }
-                }
-                Text("Sift finds git repos up to two levels down and reads each README for a description.")
-                    .font(.caption).foregroundStyle(.secondary)
-            }
-            Section("Projects without a repo") {
-                ForEach(model.state.extraProjects) { p in
-                    HStack {
-                        VStack(alignment: .leading) {
-                            Text(p.name)
-                            if !p.summary.isEmpty { Text(p.summary).font(.caption).foregroundStyle(.secondary) }
+                ForEach(model.projects) { theme in
+                    HStack(alignment: .top) {
+                        VStack(alignment: .leading, spacing: 2) {
+                            if editing == theme.name {
+                                TextField("Name", text: $draft)
+                                    .onSubmit { model.renameTheme(theme.name, to: draft); editing = nil }
+                            } else {
+                                Text(theme.name)
+                            }
+                            if !theme.summary.isEmpty {
+                                Text(theme.summary).font(.caption).foregroundStyle(.secondary).lineLimit(2)
+                            }
                         }
                         Spacer()
-                        Button(role: .destructive) { model.removeExtraProject(p.name) } label: { Image(systemName: "minus.circle") }
+                        Text("\(model.count(theme.name))").monospacedDigit().foregroundStyle(.secondary)
+                        Button { draft = theme.name; editing = theme.name } label: { Image(systemName: "pencil") }
                             .buttonStyle(.borderless)
+                            .help("Rename")
+                        Button(role: .destructive) { model.removeTheme(theme.name) } label: { Image(systemName: "minus.circle") }
+                            .buttonStyle(.borderless)
+                            .help("Delete the theme. Its links become unsorted.")
                     }
                 }
+            } header: {
+                Text("Themes")
+            } footer: {
+                Button("Discover Themes Again") { Task { await model.discoverThemes() } }
+                    .disabled(model.isDiscovering || model.isSorting)
+            }
+            Section("Add a theme by hand") {
                 TextField("Name", text: $newName)
                 TextField("What it is about (helps Claude sort)", text: $newSummary)
-                Button("Add Project") {
-                    model.addProject(name: newName, summary: newSummary)
+                Button("Add Theme") {
+                    model.addTheme(name: newName, summary: newSummary)
                     newName = ""; newSummary = ""
                 }
                 .disabled(newName.trimmingCharacters(in: .whitespaces).isEmpty)
             }
-            Section("Repos") {
-                ForEach(model.repoProjects) { p in
-                    Toggle(isOn: .init(
-                        get: { !model.state.hiddenProjects.contains(p.name) },
-                        set: { model.setHidden(p.name, hidden: !$0) }
-                    )) {
-                        VStack(alignment: .leading) {
-                            Text(p.name)
-                            if !p.summary.isEmpty { Text(p.summary).font(.caption).foregroundStyle(.secondary).lineLimit(1) }
-                        }
-                    }
-                }
-            }
         }
         .formStyle(.grouped)
-    }
-
-    private func chooseRoot() {
-        let panel = NSOpenPanel()
-        panel.canChooseDirectories = true
-        panel.canChooseFiles = false
-        guard panel.runModal() == .OK, let url = panel.url else { return }
-        model.state.projectsRoot = url.path(percentEncoded: false)
-        model.reload()
     }
 }

@@ -5,15 +5,14 @@ import Foundation
 struct SiftState: Codable, Sendable {
     /// Keyed by tab URL.
     var assignments: [String: Assignment] = [:]
-    /// Projects the user added that have no repo (for example a research theme).
+    /// Themes, plus any destinations the user added by hand.
     var extraProjects: [Project] = []
-    /// Repo names the user hid from the project list.
-    var hiddenProjects: [String] = []
-    var projectsRoot: String = FileManager.default.homeDirectoryForCurrentUser.appending(path: "Dev").path(percentEncoded: false)
     var deviceID: String?
     var backend: Sorter.Backend = .claudeCode
     /// URLs marked to close on the iPhone. Written to iCloud Drive/Sift/close.txt.
     var closeQueue: [String] = []
+    /// Last folder or file each exporter wrote to, keyed by exporter id.
+    var exportTargets: [String: String] = [:]
     /// Opt-in: X post previews from X's unofficial syndication endpoint, which
     /// returns images. Off by default because the endpoint can stop working.
     var xSyndication: Bool = false
@@ -22,14 +21,12 @@ struct SiftState: Codable, Sendable {
 
     init(from decoder: Decoder) throws {
         let c = try decoder.container(keyedBy: CodingKeys.self)
-        let defaults = SiftState()
         assignments = try c.decodeIfPresent([String: Assignment].self, forKey: .assignments) ?? [:]
         extraProjects = try c.decodeIfPresent([Project].self, forKey: .extraProjects) ?? []
-        hiddenProjects = try c.decodeIfPresent([String].self, forKey: .hiddenProjects) ?? []
-        projectsRoot = try c.decodeIfPresent(String.self, forKey: .projectsRoot) ?? defaults.projectsRoot
         deviceID = try c.decodeIfPresent(String.self, forKey: .deviceID)
         backend = try c.decodeIfPresent(Sorter.Backend.self, forKey: .backend) ?? .claudeCode
         closeQueue = try c.decodeIfPresent([String].self, forKey: .closeQueue) ?? []
+        exportTargets = try c.decodeIfPresent([String: String].self, forKey: .exportTargets) ?? [:]
         xSyndication = try c.decodeIfPresent(Bool.self, forKey: .xSyndication) ?? false
     }
 }

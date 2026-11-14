@@ -1,0 +1,52 @@
+# Contributing to Sift
+
+Issues and pull requests are welcome. The easiest way in is a new exporter.
+
+## Add an exporter
+
+An exporter takes a snapshot of your sorted links and writes it somewhere:
+a notes app, a read-later service, a file format. Each exporter is one Swift
+file. You do not need to touch the rest of the app.
+
+1. Copy `Sift/Export/MarkdownExporter.swift` to
+   `Sift/Export/<Name>Exporter.swift` and rename the struct.
+2. Set `id` (lowercase, stable), `name` (the menu title, ending in "…" when
+   it asks for a folder or file), `summary` (one sentence) and `output`:
+   - `.folder` when you write several files into a folder the user picks,
+   - `.file(extension:)` for one file,
+   - `.clipboard` when you return text to copy.
+3. Write `export(_:to:)`. You get an `ExportSnapshot` with `themes` and
+   `items`. Each item has the URL, title, theme, use, next action, site,
+   source, date, preview text and image URL. Return a short result message,
+   or the text to copy for `.clipboard`.
+4. Add one instance to `Exporters.all` in `Sift/Export/Exporter.swift`.
+5. Add one line for it to the Export section of `README.md`.
+
+Rules that keep exporters safe to merge:
+
+- Read only the snapshot. No network calls, no keychain, no app state. An
+  exporter that needs a service (an API, an account) should be proposed in an
+  issue first, so we can agree how credentials work.
+- Never delete files you did not write. If you rewrite files, keep user edits
+  the way `ObsidianExporter` keeps everything under "## Notes".
+- Plain, standard formats. No new dependencies.
+
+`ObsidianExporter` is the fullest example: notes with frontmatter, wikilinks
+between links and themes, unique file names and preserved notes.
+
+## Build
+
+You need macOS 14 or later, Xcode and `xcodegen`. Set your own
+`DEVELOPMENT_TEAM` in `project.yml`, then:
+
+```sh
+xcodegen generate && open Sift.xcodeproj
+```
+
+or `./scripts/build-app.sh` to build, sign and install to /Applications.
+
+## Other changes
+
+Open an issue first for anything bigger than an exporter or a fix, so we can
+agree on the shape before you spend time on it. Sift aims to stay small: it
+is the step between saving a link and filing it, not a notes app.

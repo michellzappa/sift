@@ -4,7 +4,7 @@ A native macOS app for the hundreds of Safari tabs you keep open "for later".
 
 Most of those tabs are not junk. Each one is a link you kept because it might
 help with something you are working on. Safari keeps the link and forgets why
-you kept it. Sift reads your tabs, sorts each one into the project it belongs
+you kept it. Sift reads your tabs, sorts each one into the theme it belongs
 to, writes one line on how you could use it, and suggests what to do with it
 next. Then you can close it.
 
@@ -17,20 +17,15 @@ Sift reads the tabs that Safari syncs to your Mac through iCloud, so your
 iPhone and iPad tabs show up too. It also reads your Reading List. You pick
 the source in the toolbar.
 
-Sift can sort into themes or into projects. **Discover Themes** sends every
-link it can see (your phone's tabs and the Reading List) to your own Claude in
-one call and asks what you keep coming back to. You get 12 to 20 themes with a
-description, the links behind each one and a suggested home for them. You
-rename, untick or accept them; nothing changes before you do. Run it again
-later and Claude keeps the theme names that still fit.
+There is no folder structure to set up. **Discover Themes** sends every link
+Sift can see (your phone's tabs and the Reading List) to your own Claude in
+one call and asks what you keep coming back to. You get 12 to 20 themes, each
+with a description, the links behind it and a suggested home. You rename,
+untick or accept them; nothing changes before you do. Run it again later and
+Claude keeps the theme names that still fit, so your links do not reshuffle.
 
-Without themes, Sift sorts into projects: git repos in a folder you choose
-(`~/Dev` by default), with a short description from each README, plus any
-projects you add by hand. With themes, those projects become the places a
-theme's links can go.
-
-Press **Sort with Claude**. For each tab, Claude picks a project, writes how
-the link could be used there, and picks a next action:
+After that, **Sort with Claude** handles new tabs: it picks a theme, writes
+how the link could be used, and picks a next action:
 
 | Action  | Meaning |
 | ------- | ------- |
@@ -38,16 +33,31 @@ the link could be used there, and picks a next action:
 | Try     | Install, test or prototype with it: a tool, repo, app or method |
 | Cite    | Quote or reference it in writing, a deck, a pitch or a spec |
 | Contact | Reach out to the person, company or community behind it |
-| File    | Keep it as reference for the project; nothing to do now |
+| File    | Keep it as reference; nothing to do now |
 | Close   | Already used, outdated or not worth more time |
 
-Tabs that belong to no project go to three buckets: personal, drop and
+Tabs that belong to no theme go to three buckets: personal, drop and
 unknown.
 
-The sidebar has four ways in: by project, by next action, by site (x.com,
+The sidebar has four ways in: by theme, by next action, by site (x.com,
 github.com and so on) and by bucket. Every list shows cards with the page's
-image, title and description. The overview draws one hub per project with a
-dot for each tab, so you can see where your attention went.
+image, title and description. The overview draws one hub per theme with a dot
+for each tab, so you can see where your attention went.
+
+### Export
+
+The Export menu (toolbar and File menu) writes your themes and links out:
+
+| Exporter | What you get |
+| --- | --- |
+| Obsidian Vault | One note per link and per theme with frontmatter and [[wikilinks]], so Obsidian's graph view shows themes as hubs. Your text under "## Notes" survives re-exports. |
+| Markdown File | One file, a section per theme |
+| Copy as Markdown | The same, on the clipboard |
+| CSV File | One row per link; File > Import Sorted CSV reads it back |
+| JSON File | The full snapshot, for scripts |
+
+Each exporter is one Swift file. Adding one is the easiest way to
+contribute; see [CONTRIBUTING.md](CONTRIBUTING.md).
 
 You can move any tab by hand. Sift never overwrites a choice you made.
 
@@ -60,7 +70,7 @@ iOS 17 or later). When you reload, closed tabs leave the list.
 
 ### What Sift sends where
 
-Sorting sends each tab's title, URL and preview text, plus your project names
+Sorting sends each tab's title, URL and preview text, plus your theme names
 and descriptions, to Claude. It never sends page contents.
 
 To build previews, Sift requests each page once from its own site. For posts on
@@ -124,24 +134,24 @@ runs `claude -p` with tools, MCP servers, skills and settings turned off, so
 each call costs about as many tokens as the tab list itself. With an API key,
 Sift calls the Messages API with `claude-opus-5-5` at low effort.
 
-**Projects** sets the projects folder, adds projects without a repo and hides
-repos you do not want as projects.
+**Themes** lists your themes. You can rename or delete one, add one by hand,
+or run Discover Themes again.
 
 File > Import Sorted CSV loads a sorting from a CSV with `project`, `url` and
 `possible use` columns. Imported rows count as sorted by hand.
 
 ## Architecture
 
-About 2,000 lines of SwiftUI. No dependencies.
+About 2,800 lines of SwiftUI. No dependencies.
 
 | | |
 | --- | --- |
 | `Storage/CloudTabsReader` | Reads `CloudTabs.db` (SQLite, read-only): devices and their tabs |
 | `Storage/ReadingListReader` | Reads the Reading List from `Bookmarks.plist` |
-| `Storage/ProjectScanner` | Finds git repos and reads a summary from each README |
 | `Storage/Previews` | Page previews (Open Graph, X oEmbed) and the iPhone close list |
 | `Storage/StateFile` | Everything Sift remembers, as one JSON file in Application Support |
-| `Sorting/Sorter` | One prompt and one JSON schema; runs through `claude -p` or the Messages API |
+| `Sorting/Sorter` | Theme discovery and sorting; runs through `claude -p` or the Messages API |
+| `Export/*` | The exporter protocol, the registry and one file per exporter |
 | `App/AppModel` | Loading, sorting, actions and the close list |
 | `Views/*` | Sidebar, card grid, overview network, preview pane, settings |
 
@@ -155,7 +165,7 @@ Swift has no official Anthropic SDK, so the API backend uses plain HTTP.
   `Bookmarks.plist` while it runs, and editing it from outside is not safe.
 - Previews for X posts have text but no image. Pages behind a login have no
   preview.
-- One tab belongs to one project.
+- One tab belongs to one theme.
 
 ## License
 

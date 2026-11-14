@@ -60,7 +60,20 @@ struct NetworkView: View {
         .navigationTitle("Overview")
         .navigationSubtitle("\(model.tabs.count) tabs · \(model.activeProjects.count) projects")
         .overlay {
-            if model.tabs.isEmpty { ContentUnavailableView("No tabs on this device", systemImage: "safari") }
+            if model.tabs.isEmpty {
+                ContentUnavailableView("No tabs on this device", systemImage: "safari")
+            } else if model.themes.isEmpty {
+                ContentUnavailableView {
+                    Label("What do you keep coming back to?", systemImage: "circle.hexagongrid")
+                } description: {
+                    Text("Sift sends your tabs and Reading List to your Claude, which finds the themes in them. You review the themes before anything changes.")
+                } actions: {
+                    Button("Discover Themes") { Task { await model.discoverThemes() } }
+                        .buttonStyle(.borderedProminent)
+                        .disabled(model.isDiscovering)
+                }
+                .background(.background)
+            }
         }
     }
 

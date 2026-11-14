@@ -15,7 +15,6 @@ final class AppModel {
     var fetchingPreviews = 0
     var devices: [SyncedDevice] = []
     var tabs: [SafariTab] = []
-    var repoProjects: [Project] = []
     var loadError: CloudTabsReader.Failure?
 
     var isSorting = false
@@ -30,7 +29,6 @@ final class AppModel {
     // MARK: Loading
 
     func reload() {
-        repoProjects = ProjectScanner.scan(root: URL(filePath: state.projectsRoot, directoryHint: .isDirectory))
         do {
             devices = try CloudTabsReader.devices()
             readingListCount = (try? ReadingListReader.items().count) ?? 0
@@ -131,24 +129,15 @@ final class AppModel {
 
     // MARK: Projects
 
-    /// What the sorter and the sidebar use, in name order: the themes when
-    /// there are any, otherwise repos and hand-made projects.
-    var projects: [Project] {
-        if !themes.isEmpty { return themes.sorted { $0.name < $1.name } }
-        return destinations
-    }
+    /// The themes Sift sorts into, in name order. Themes come from the
+    /// user's own links; there is no fixed list.
+    var projects: [Project] { themes.sorted { $0.name < $1.name } }
 
-    /// Themes found bottom-up in the user's links.
     var themes: [Project] { state.extraProjects.filter(\.isTheme) }
 
-    /// Repos and hand-made projects: where links can end up.
-    var destinations: [Project] {
-        let hidden = Set(state.hiddenProjects)
-        let repos = repoProjects.filter { !hidden.contains($0.name) }
-        let repoNames = Set(repos.map(\.name))
-        return (repos + state.extraProjects.filter { !$0.isTheme && !repoNames.contains($0.name) })
-            .sorted { $0.name < $1.name }
-    }
+    /// Places links can end up, added by hand. Used only as hints when
+    /// Claude suggests a home for a theme.
+    var destinations: [Project] { state.extraProjects.filter { !$0.isTheme } }
 
     // MARK: Themes
 
@@ -208,7 +197,7 @@ final class AppModel {
             let bucket: String? = theme.kind == "noise" ? Project.drop : theme.kind == "personal" ? Project.personal : nil
             let name = bucket ?? theme.name
             if bucket == nil {
-                s.extraProjects.append(Project(name: theme.name, summary: theme.description, isRepo: false, isTheme: true, destination: theme.destination))
+                s.extraProjects.append(Project(name: theme.name, summary: theme.description, destination: theme.destination))
             }
             for id in theme.itemIDs where proposalURLs.indices.contains(id) {
                 let url = proposalURLs[id]
@@ -224,12 +213,11 @@ final class AppModel {
         themeProposal = nil
     }
 
-    /// Goes back to repos and hand-made projects. Links in themes become unsorted.
-    func removeThemes() {
-        let names = Set(themes.map(\.name))
+    /// Deletes one theme. Its links become unsorted.
+    func removeTheme(_ name: String) {
         var s = state
-        s.extraProjects.removeAll(where: \.isTheme)
-        for (url, a) in s.assignments where names.contains(a.project) { s.assignments[url] = nil }
+        s.extraProjects.removeAll { $0.isTheme && $0.name == name }
+        for (url, a) in s.assignments where a.project == name { s.assignments[url] = nil }
         state = s
     }
 
@@ -267,19 +255,21 @@ final class AppModel {
         state.assignments[tab.url] = a
     }
 
-    func addProject(name: String, summary: String) {
-        let clean = name.trimmingCharacters(in: .whitespaces).lowercased()
-        guard !clean.isEmpty, !Project.buckets.contains(clean), !projects.contains(where: { $0.name == clean }) else { return }
-        state.extraProjects.append(Project(name: clean, summary: summary, isRepo: false))
+    /// Adds a theme by hand.
+    func addTheme(name: String, summary: String) {
+        let clean = name.trimmingCharacters(in: .whitespaces)
+        guard !clean.isEmpty, !Project.buckets.contains(clean.lowercased()),
+              !state.extraProjects.contains(where: { $0.name.lowercased() == clean.lowercased() }) else { return }
+        state.extraProjects.append(Project(name: clean, summary: summary))
     }
 
-    func removeExtraProject(_ name: String) {
-        state.extraProjects.removeAll { $0.name == name }
-    }
-
-    func setHidden(_ name: String, hidden: Bool) {
-        state.hiddenProjects.removeAll { $0 == name }
-        if hidden { state.hiddenProjects.append(name) }
+    func renameTheme(_ old: String, to new: String) {
+        let clean = new.trimmingCharacters(in: .whitespaces)
+        guard !clean.isEmpty, clean != old, !state.extraProjects.contains(where: { $0.name == clean }) else { return }
+        var s = state
+        if let i = s.extraProjects.firstIndex(where: { $0.isTheme && $0.name == old }) { s.extraProjects[i].name = clean }
+        for (url, a) in s.assignments where a.project == old { s.assignments[url]?.project = clean }
+        state = s
     }
 
     // MARK: Sorting
@@ -390,6 +380,76 @@ final class AppModel {
         return tabs.filter { q.contains($0.url) }
     }
 
+    // MARK: Exporters
+
+    var exportMessage: String?
+
+    /// What every exporter receives: sorted links in themes and the personal
+    /// bucket, never drop, unknown or unsorted ones.
+    func exportSnapshot() -> ExportSnapshot {
+        let source = isReadingList ? "reading-list" : (devices.first { $0.id == state.deviceID }?.name ?? "tabs")
+        let items: [ExportItem] = tabs.compactMap { tab in
+            guard let a = state.assignments[tab.url], a.project != Project.drop, a.project != Project.unknown else { return nil }
+            let p = previews[tab.url]
+            let usable = p?.failed == false ? p : nil
+            let title = tab.hasUsefulTitle ? tab.title : (usable.map { $0.site == "x.com" ? "\($0.title) on X" : $0.title } ?? tab.url)
+            return ExportItem(url: tab.url, title: title, theme: a.project, use: a.use, action: a.action?.rawValue ?? "",
+                              site: tab.host, source: source, lastViewed: tab.lastViewed,
+                              previewText: usable?.text ?? "", imageURL: usable?.imageURL)
+        }
+        var themeList = projects.map { theme in
+            ExportTheme(name: theme.name, summary: theme.summary, destination: theme.destination,
+                        count: items.filter { $0.theme == theme.name }.count)
+        }
+        let personal = items.filter { $0.theme == Project.personal }.count
+        if personal > 0 { themeList.append(ExportTheme(name: Project.personal, summary: "Personal life, not a theme.", destination: "", count: personal)) }
+        return ExportSnapshot(created: .now, themes: themeList.filter { $0.count > 0 }, items: items)
+    }
+
+    /// Asks for a folder or file when the exporter needs one, runs it, and
+    /// shows its message.
+    func runExport(_ exporter: any Exporter) {
+        let snapshot = exportSnapshot()
+        guard !snapshot.items.isEmpty else { exportMessage = "Nothing to export yet. Sort some tabs first."; return }
+        var target: URL?
+        switch exporter.output {
+        case .clipboard:
+            break
+        case .folder:
+            let panel = NSOpenPanel()
+            panel.canChooseDirectories = true
+            panel.canChooseFiles = false
+            panel.canCreateDirectories = true
+            panel.prompt = "Export Here"
+            panel.message = "\(exporter.name.replacingOccurrences(of: "…", with: "")): choose a folder"
+            if let last = state.exportTargets[exporter.id] { panel.directoryURL = URL(filePath: last) }
+            guard panel.runModal() == .OK, let url = panel.url else { return }
+            target = url
+        case .file(let ext):
+            let panel = NSSavePanel()
+            panel.nameFieldStringValue = "Sift \(ExportText.day.string(from: .now)).\(ext)"
+            panel.canCreateDirectories = true
+            if let last = state.exportTargets[exporter.id] { panel.directoryURL = URL(filePath: last) }
+            guard panel.runModal() == .OK, let url = panel.url else { return }
+            target = url
+        }
+        do {
+            let result = try exporter.export(snapshot, to: target)
+            if case .clipboard = exporter.output {
+                copy(result)
+                exportMessage = "Copied \(snapshot.items.count) links."
+            } else {
+                exportMessage = result
+                if let t = target {
+                    let remember = (exporter.output.isFolder ? t : t.deletingLastPathComponent()).path(percentEncoded: false)
+                    state.exportTargets[exporter.id] = remember
+                }
+            }
+        } catch {
+            exportMessage = "Export failed: \(error.localizedDescription)"
+        }
+    }
+
     // MARK: Import and export
 
     /// Imports a CSV with the columns project, title, url, possible use.
@@ -406,7 +466,7 @@ final class AppModel {
             let project = row[p].trimmingCharacters(in: .whitespaces).lowercased()
             guard !project.isEmpty else { continue }
             if !Project.buckets.contains(project), !projects.contains(where: { $0.name == project }) {
-                addProject(name: project, summary: "")
+                addTheme(name: project, summary: "")
             }
             let use = useIndex.flatMap { row.indices.contains($0) ? row[$0] : nil } ?? ""
             state.assignments[row[u]] = Assignment(project: project, use: use, manual: true, action: project == Project.drop ? .close : nil)
@@ -424,10 +484,6 @@ final class AppModel {
         return lines.joined(separator: "\n") + "\n"
     }
 
-    var allMarkdown: String {
-        let names = activeProjects.map(\.project) + Project.buckets
-        return names.map { markdown(for: $0) }.joined(separator: "\n")
-    }
 
     func copy(_ text: String) {
         NSPasteboard.general.clearContents()

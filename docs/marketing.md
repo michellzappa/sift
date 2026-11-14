@@ -2,12 +2,30 @@
 
 Working draft of the human value proposition. Not final copy.
 
+Lead: insight. Sift shows you what you actually care about. Fewer tabs is
+the side effect, not the pitch.
+
 ## One-liners to choose from
 
 - Your open tabs are a map of what you care about. Sift reads it back to you.
-- Keep your curiosity. Lose the tabs.
-- Every tab you keep open is a decision you postponed. Sift makes it a small one.
 - Your interests sprawl. That is fine. Now they have a shape.
+- See what you keep coming back to.
+- Keep your curiosity. Lose the tabs. (relief line, for later in the page)
+
+## What you see
+
+Point Sift at everything you have kept: your open tabs on every device and
+your Reading List. Your own Claude reads it and tells you what you keep
+circling around. Not the folders you meant to make. The themes you actually
+live in.
+
+Some of it you expected. Some of it you did not. A theme you thought was a
+passing thing turns out to have forty links behind it. A topic you call work
+has two. Your attention leaves a trail, and this is the first time you see
+it drawn.
+
+Run it again in a month and you see what grew, what faded and what you keep
+saving but never touch.
 
 ## The problem, in human terms
 
@@ -87,8 +105,7 @@ The person had been carrying all 520 around for most of a year.
 
 ## Open questions for the copy
 
-- Lead with relief (fewer tabs) or with insight (see your own interests)?
-  Relief sells the first install. Insight is why people stay.
+- Decided: lead with insight. Relief stays as a supporting line.
 - "Your own Claude" is a strong trust line for people who already use Claude
   and confusing for everyone else. Who is the first audience?
 - The name. "Sift" says sorting. The deeper promise is seeing yourself

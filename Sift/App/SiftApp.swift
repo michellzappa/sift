@@ -18,8 +18,12 @@ struct SiftApp: App {
                 Button("Import Sorted CSV…") { importCSV() }
                     .keyboardShortcut("i")
                 Divider()
-                Button("Copy All as Markdown") { model.copy(model.allMarkdown) }
-                    .keyboardShortcut("c", modifiers: [.command, .shift])
+                Menu("Export") {
+                    ForEach(Exporters.all, id: \.id) { exporter in
+                        Button(exporter.name) { model.runExport(exporter) }
+                            .help(exporter.summary)
+                    }
+                }
             }
         }
 

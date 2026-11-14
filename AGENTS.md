@@ -18,9 +18,6 @@ project and as an overview network (one hub per project, one dot per tab).
   writes to it. `last_viewed_time` is seconds since 2001-01-01.
 - Reading it needs Full Disk Access. TCC keys the grant to the code signature,
   so the app is signed with the Apple Development identity, never ad-hoc.
-- Projects: git repos up to two levels under the projects folder (default
-  `~/Dev`), with a summary from README.md or AGENTS.md. The user can add
-  projects with no repo and hide repos.
 - Sorting: `Sorter`, batches of 40, one prompt and one JSON schema (project
   enum), two backends. Default `claude -p` (`ClaudeCodeRunner`) with the
   user's Claude Code login: `--json-schema`, answer in `structured_output`.
@@ -45,12 +42,18 @@ project and as an overview network (one hub per project, one dot per tab).
 
 ## Decisions
 
-- Themes are bottom-up (2026-11-14). `Sorter.discoverThemes` clusters the
-  whole corpus (phone tabs + Reading List) in one Claude call through the
-  user's own backend. Themes are stored as `Project` with `isTheme`; when any
-  exist, `AppModel.projects` returns only themes and repos become
-  `destinations`. A rerun passes the current themes as names to keep, so
-  links do not reshuffle. The user accepts every proposal in `ThemeReview`.
+- Themes are the only categories, always generated (2026-11-14). There is
+  no repo scanning and no fixed project list. `Sorter.discoverThemes`
+  clusters the whole corpus (phone tabs + Reading List) in one Claude call
+  through the user's own backend. Themes are `Project` with `isTheme`;
+  non-theme entries are hand-added destinations, used only as hints. A rerun
+  passes the current themes as names to keep, so links do not reshuffle. The
+  user accepts every proposal in `ThemeReview`. Sorting is disabled until
+  themes exist.
+- Exporters are plugins: one file per exporter in `Sift/Export/`, conforming
+  to `Exporter`, registered in `Exporters.all`. They read only the
+  `ExportSnapshot`: no network, keychain or app state. CONTRIBUTING.md is the
+  checklist.
 - Next direction: a graph view (themes as hubs, links as nodes, edges where a
   link feeds two themes or destinations). Not built.
 
