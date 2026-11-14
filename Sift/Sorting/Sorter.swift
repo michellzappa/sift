@@ -121,8 +121,9 @@ struct Sorter: Sendable {
         let system = """
             You find the themes in one person's saved links: open browser tabs and their reading list. Work \
             bottom-up from the links themselves, not from any project list. A theme is a sustained interest or \
-            line of inquiry that several links feed, named the way the person would name it in a sentence \
-            (short, concrete, lowercase except proper nouns). Aim for 12 to 20 themes. Prefer themes that cut \
+            line of inquiry that several links feed, named the way the person would title it: short, \
+            concrete, in Title Case (capitalize the main words, keep "and", "of", "on", "for", "the" lowercase, \
+            write proper nouns and acronyms as they are written, for example AI, WhatsApp, Brazil). Aim for 12 to 20 themes. Prefer themes that cut \
             across tools and sources over themes that copy a product name. Put links with no lasting value \
             (viral bait, home pages, one-off curiosities) in one theme named "noise" with kind noise. Put \
             transactional pages, open for a task and not out of curiosity (orders, accounts, carts, listings \
