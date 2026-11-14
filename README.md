@@ -134,7 +134,9 @@ Inputs > X and click Connect.
 
 A Mac cannot close tabs on another device. Sift writes the tabs you mark to
 `iCloud Drive/Sift/close.txt`, and a Shortcut on the iPhone closes them. The
-app shows the steps to build the Shortcut once (iOS 17 or later).
+app shows the steps to build the Shortcut once (iOS 17 or later): split the
+list by lines, and for each address find the tab, switch to it and close
+it.
 
 ### Export
 

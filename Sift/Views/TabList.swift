@@ -479,15 +479,19 @@ struct PreviewPane: View {
 struct ShortcutGuide: View {
     @Environment(\.dismiss) private var dismiss
 
+    // The layout that works on iOS 26 (tested 2026-11-14): look each tab up
+    // right before closing it, and switch to it first; closing a tab object
+    // carried through a loop failed with "something went wrong".
     private let steps = [
         "Open Shortcuts on the iPhone and create a new shortcut named \"Sift: Close Tabs\".",
         "Add \"Get File\". Turn off \"Show Document Picker\" and set the path to Sift/close.txt in iCloud Drive.",
         "Add \"Get Text from Input\" so the file becomes text.",
-        "Add \"Find Tabs\" (Safari) with no filter, so it returns every open tab.",
-        "Add \"Repeat with Each\" on the found tabs.",
-        "Inside the repeat, add \"If\": the text from step 3 contains the Repeat Item's URL.",
-        "Inside the If, add \"Close Tab\" with the Repeat Item.",
-        "Run the shortcut. Then click Reload in Sift: closed tabs leave the list.",
+        "Add \"Split Text\" by New Lines: one address per item.",
+        "Add \"Repeat with Each\" on the split text.",
+        "Inside the repeat, add \"Find Tab\", then Add Filter: URL is Repeat Item.",
+        "Inside the repeat, add \"Switch to Tab\" with the Tab that Find Tab found.",
+        "Inside the repeat, add \"Close Tab\" with that same Tab.",
+        "Test with one throwaway tab first. Then click Reload in Sift: closed tabs leave the list.",
     ]
 
     var body: some View {
