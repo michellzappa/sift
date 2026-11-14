@@ -11,6 +11,8 @@ struct TabList: View {
     @State private var showInspector = false
     @State private var showShortcutGuide = false
     @State private var siteFilter: String?
+    /// A saved search's links, loaded from the search index.
+    @State private var savedHits: [SafariTab] = []
     @AppStorage("links.style") private var style: LinkStyle = .list
     /// Full-text matches for the filter: url to snippet, from the search index.
     @State private var textHits: [String: String] = [:]
@@ -26,6 +28,9 @@ struct TabList: View {
         case .unsorted: "Unsorted"
         case .closeQueue: "To close on iPhone"
         case .archive: "Archive"
+        case .duplicates: "Duplicates"
+        case .broken: "Broken Links"
+        case .saved(let q): "“\(q)”"
         case .project(let p): Project.displayName(p)
         case .site(let host): host
         case .action(let a): "Next: \(a.label)"
@@ -38,6 +43,9 @@ struct TabList: View {
         case .unsorted: model.tabs(in: nil)
         case .closeQueue: model.closeQueueTabs
         case .archive: model.archivedTabs
+        case .duplicates: model.duplicateTabs
+        case .broken: model.brokenTabs
+        case .saved: savedHits
         case .project(let p): model.tabs(in: p)
         case .site(let host): model.tabs(onSite: host)
         case .action(let a): model.tabs(withAction: a)
@@ -65,6 +73,7 @@ struct TabList: View {
     var body: some View {
         VStack(spacing: 0) {
             if item == .closeQueue { closeHeader }
+            if item == .duplicates { duplicatesHeader }
             ScrollView {
                 if let project, model.themes.contains(where: { $0.name == project }) {
                     ThemeMemory(theme: project).frame(maxWidth: 640, alignment: .leading)
@@ -108,6 +117,9 @@ struct TabList: View {
             }
         }
         .searchable(text: $search, prompt: "Search titles, page text and transcripts")
+        .task(id: item) {
+            if case .saved(let q) = item { savedHits = await model.links(matching: q) }
+        }
         .task(id: search) {
             guard search.count > 1 else { textHits = [:]; return }
             try? await Task.sleep(for: .milliseconds(250))
@@ -141,6 +153,11 @@ struct TabList: View {
     @ToolbarContentBuilder
     private var listToolbar: some ToolbarContent {
         ToolbarItem { LinkStyleToggle() }
+        ToolbarItem {
+            Button { model.saveSearch(search) } label: { Label("Save Search", systemImage: "bookmark") }
+                .disabled(search.count < 2 || model.state.savedSearches.contains(search))
+                .help("Keep this search in the sidebar.")
+        }
         ToolbarItemGroup {
             if listSites.count > 1 {
                 Menu {
@@ -211,6 +228,17 @@ struct TabList: View {
             .onTapGesture { withAnimation(.snappy) { selected = tab.id; showInspector = true } }
     }
 
+    private var duplicatesHeader: some View {
+        HStack {
+            Text("Each page appears once per copy. Merge keeps one per page (the one you sorted, else the newest) and hides the rest. The kept link takes over their theme and note.")
+                .font(.callout).foregroundStyle(.secondary)
+            Spacer()
+            Button("Merge All") { model.mergeDuplicates() }
+        }
+        .padding(12)
+        .background(.bar)
+    }
+
     private func step(_ by: Int) {
         guard !rows.isEmpty else { return }
         let i = rows.firstIndex { $0.id == selected }.map { min(max($0 + by, 0), rows.count - 1) } ?? 0
@@ -261,6 +289,8 @@ struct TabCard: View {
     /// A row in the list, or a card in the grid.
     var style: LinkStyle = .list
     @State private var hovering = false
+    @State private var editingNote = false
+    @State private var noteDraft = ""
     @State private var editingUse = false
     @State private var draft = ""
 
@@ -279,6 +309,10 @@ struct TabCard: View {
                 model.exportMessage = TabActions.addToReadingList(tab.url, title: cardTitle(preview), preview: bodyText(preview) ?? "")
             }
             Button("Copy Link") { model.copy(tab.url) }
+            Button(model.note(for: tab.url) == nil ? "Add Note…" : "Edit Note…") {
+                noteDraft = model.note(for: tab.url) ?? ""
+                editingNote = true
+            }
             if a != nil { Menu("Next Action") { actionMenu } }
             Divider()
             if !model.isSavedList {
@@ -286,6 +320,18 @@ struct TabCard: View {
             }
             Menu("Move to") { moveMenu }
             Button("Mark as Noise") { model.move(tab, to: Project.drop) }
+        }
+        .popover(isPresented: $editingNote) {
+            VStack(alignment: .leading) {
+                Text("Your note on this link").font(.headline)
+                TextField("What it taught you, why you kept it", text: $noteDraft, axis: .vertical).frame(width: 340).lineLimit(2...8)
+                HStack {
+                    Spacer()
+                    Button("Cancel") { editingNote = false }
+                    Button("Save") { model.setNote(noteDraft, for: tab.url); editingNote = false }.keyboardShortcut(.defaultAction)
+                }
+            }
+            .padding()
         }
         .popover(isPresented: $editingUse) {
             VStack(alignment: .leading) {
@@ -334,6 +380,9 @@ struct TabCard: View {
                 }
                 .font(.caption)
                 .foregroundStyle(.secondary)
+                if let note = model.note(for: tab.url) {
+                    Label(note, systemImage: "pencil.line").font(.caption).lineLimit(1).foregroundStyle(.primary.opacity(0.75))
+                }
             }
             Spacer(minLength: 8)
             if a?.manual == true { Image(systemName: "hand.point.up.left").foregroundStyle(.tertiary).help("Sorted by hand") }
@@ -442,6 +491,9 @@ struct TabCard: View {
                         .fixedSize(horizontal: false, vertical: true)
                 } else if preview == nil {
                     Text("Loading preview…").font(.callout).foregroundStyle(.tertiary)
+                }
+                if let note = model.note(for: tab.url) {
+                    Label(note, systemImage: "pencil.line").font(.callout).lineLimit(3)
                 }
                 if let out = preview?.outboundURL, let url = URL(string: out) {
                     Button { TabActions.openInSafari(out) } label: {

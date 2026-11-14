@@ -23,7 +23,26 @@ struct Capture: Sendable {
 /// - PDF: the document text through PDFKit.
 /// - X posts: the post text Sift already has.
 enum Capturer {
-    static func capture(_ urlString: String, knownText: String? = nil) async -> Capture? {
+    enum Outcome: Sendable {
+        case captured(Capture)
+        /// The page is gone: 404 or 410, or its site no longer exists.
+        case gone
+        /// Anything else: a timeout, a login wall, a blocked fetch, a paused site.
+        case failed
+    }
+
+    private struct Gone: Error {}
+
+    static func capture(_ urlString: String, knownText: String? = nil) async -> Outcome {
+        do {
+            if let c = try await extract(urlString, knownText: knownText) { return .captured(c) }
+            return .failed
+        } catch {
+            return .gone
+        }
+    }
+
+    private static func extract(_ urlString: String, knownText: String?) async throws -> Capture? {
         guard let url = URL(string: urlString) else { return nil }
         if let knownText, !knownText.isEmpty {
             return Capture(url: urlString, title: "", author: nil, site: url.host() ?? "", published: nil, kind: "post", text: knownText)
@@ -33,9 +52,16 @@ enum Capturer {
         guard await HostGate.shared.admit(host) else { return nil }
         var request = URLRequest(url: url, timeoutInterval: 20)
         request.setValue("Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/18.0 Safari/605.1.15", forHTTPHeaderField: "User-Agent")
-        guard let (data, response) = try? await URLSession.shared.data(for: request),
-              let http = response as? HTTPURLResponse
-        else { return nil }
+        let data: Data, response: URLResponse
+        do {
+            (data, response) = try await URLSession.shared.data(for: request)
+        } catch let e as URLError where e.code == .cannotFindHost || e.code == .dnsLookupFailed {
+            throw Gone()
+        } catch {
+            return nil
+        }
+        guard let http = response as? HTTPURLResponse else { return nil }
+        if http.statusCode == 404 || http.statusCode == 410 { throw Gone() }
         if http.statusCode == 429 || http.statusCode == 503 {
             await HostGate.shared.pause(host, seconds: 3600)
             return nil
@@ -145,7 +171,8 @@ enum Library {
         var captured: Date
         var words: Int
         var kind: String
-        /// ok, thin (too little text: paywall or login), failed
+        /// ok, thin (too little text: paywall or login), failed, gone (404,
+        /// 410 or the site no longer exists)
         var status: String
         /// YouTube only: true when a transcript is in the file, false when
         /// the video has none, nil when not tried yet.

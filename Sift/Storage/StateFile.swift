@@ -26,6 +26,10 @@ struct SiftState: Codable, Sendable {
     var reelTranscripts = true
     /// Ask Claude which links feed a second theme, for the graph's connections.
     var findConnections = true
+    /// Duplicates merged by the user: duplicate URL to the URL kept.
+    var mergedInto: [String: String] = [:]
+    /// Searches kept in the sidebar.
+    var savedSearches: [String] = []
     var xClientID: String = ""
     var xUserID: String?
     var xUsername: String?
@@ -51,6 +55,8 @@ struct SiftState: Codable, Sendable {
         instagramImages = try c.decodeIfPresent(Bool.self, forKey: .instagramImages) ?? true
         reelTranscripts = try c.decodeIfPresent(Bool.self, forKey: .reelTranscripts) ?? true
         findConnections = try c.decodeIfPresent(Bool.self, forKey: .findConnections) ?? true
+        mergedInto = try c.decodeIfPresent([String: String].self, forKey: .mergedInto) ?? [:]
+        savedSearches = try c.decodeIfPresent([String].self, forKey: .savedSearches) ?? []
         xClientID = try c.decodeIfPresent(String.self, forKey: .xClientID) ?? ""
         xUserID = try c.decodeIfPresent(String.self, forKey: .xUserID)
         xUsername = try c.decodeIfPresent(String.self, forKey: .xUsername)

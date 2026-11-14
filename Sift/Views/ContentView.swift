@@ -5,6 +5,10 @@ enum SidebarItem: Hashable {
     case unsorted
     case closeQueue
     case archive
+    case duplicates
+    case broken
+    /// A saved full-text search.
+    case saved(String)
     /// The overview, showing one source (see AppModel.selectDevice).
     case source(String)
     case site(String)
@@ -166,11 +170,32 @@ private struct Sidebar: View {
             Label { HStack { Text("Archive"); Spacer(); count(model.archivedTabs.count) } } icon: { Image(systemName: "archivebox") }
                 .tag(SidebarItem.archive)
                 .help("Links that left their source. Sift keeps their theme, use and action.")
+            let dupes = model.duplicateTabs.count
+            if dupes > 0 {
+                Label { HStack { Text("Duplicates"); Spacer(); count(dupes) } } icon: { Image(systemName: "square.on.square") }
+                    .tag(SidebarItem.duplicates)
+                    .help("The same page saved more than once, from different sources or with tracking parameters.")
+            }
+            let broken = model.brokenTabs.count
+            if broken > 0 {
+                Label { HStack { Text("Broken Links"); Spacer(); count(broken) } } icon: { Image(systemName: "link.badge.plus") }
+                    .tag(SidebarItem.broken)
+                    .help("Pages that are gone: not found, or the site no longer exists. Sift keeps what it saved.")
+            }
             if !model.isSavedList {
                 Label { HStack { Text("To close on iPhone"); Spacer(); count(model.state.closeQueue.count) } } icon: { Image(systemName: "xmark.square") }
                     .tag(SidebarItem.closeQueue)
             }
 
+            if !model.state.savedSearches.isEmpty {
+                Section("Saved searches") {
+                    ForEach(model.state.savedSearches, id: \.self) { q in
+                        Label(q, systemImage: "magnifyingglass")
+                            .tag(SidebarItem.saved(q))
+                            .contextMenu { Button("Remove Saved Search", role: .destructive) { model.removeSavedSearch(q) } }
+                    }
+                }
+            }
             Section("Themes", isExpanded: $showThemes) {
                 ForEach(model.activeProjects, id: \.project) { item in
                     HStack { Text(item.project); Spacer(); count(item.count) }

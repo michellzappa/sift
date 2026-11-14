@@ -247,6 +247,12 @@ page text and transcripts (SQLite full-text index on this Mac).
 Claude can then search your links, page text and transcripts, list your
 themes and read a link in full. It only reads Sift's index.
 
+**Upkeep.** Duplicates (the same page from two sources, or with tracking
+parameters) show under Duplicates, with Merge All. Pages that are gone
+(not found, or the site no longer exists) show under Broken Links; Sift
+keeps what it saved. Each link can carry your own note (right-click > Add
+Note), which search and Claude see. Any search can be saved to the sidebar.
+
 **Theme memory.** Each theme has your own notes (Claude reads them when it
 sorts and rediscovers themes) and a dated history. Notes follow a theme when
 Discover Themes renames or merges it.

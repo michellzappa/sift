@@ -19,6 +19,8 @@ enum SearchIndex {
         let also: [String]
         /// Used when there is no library file.
         let fallback: String
+        /// The user's own note on the link.
+        let note: String
     }
 
     struct Theme: Sendable {
@@ -52,7 +54,8 @@ enum SearchIndex {
         let link = prepare(db, "INSERT OR REPLACE INTO links VALUES (?,?,?,?,?,?,?,?)")
         let fts = prepare(db, "INSERT INTO fts VALUES (?,?,?,?)")
         for d in docs {
-            let body = d.file.isEmpty ? d.fallback : (Library.text(for: d.url) ?? d.fallback)
+            let text = d.file.isEmpty ? d.fallback : (Library.text(for: d.url) ?? d.fallback)
+            let body = d.note.isEmpty ? text : "Note: \(d.note)\n\n\(text)"
             run(link, [d.url, d.title, d.theme, d.source, d.kind, iso.string(from: d.saved), d.file, d.also.joined(separator: "\n")])
             run(fts, [d.url, d.title, body, ([d.theme] + d.also).joined(separator: " ")])
         }

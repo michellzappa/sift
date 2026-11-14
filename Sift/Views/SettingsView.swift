@@ -196,12 +196,14 @@ private struct LibrarySettings: View {
         let entries = model.library.values
         let thin = entries.filter { $0.status == "thin" }.count
         let failed = entries.filter { $0.status == "failed" }.count
+        let gone = entries.filter { $0.status == "gone" }.count
         Form {
             Section {
                 Toggle("Save the text of every link", isOn: $model.state.autoCapture)
                 LabeledContent("Saved", value: "\(model.capturedCount) of \(model.archive.count) links")
                 LabeledContent("Thin (paywall or login)", value: "\(thin)")
                 LabeledContent("Failed", value: "\(failed)")
+                LabeledContent("Gone (page or site no longer exists)", value: "\(gone)")
                 if model.isCapturing {
                     ProgressView(value: Double(model.captureProgress.done), total: Double(max(model.captureProgress.total, 1))) {
                         Text("Saving \(model.captureProgress.done) of \(model.captureProgress.total)").font(.caption)

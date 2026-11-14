@@ -16,7 +16,9 @@ final class AppModel {
     var previews: [String: Preview] = PreviewFetcher.loadCache()
     var fetchingPreviews = 0
     var devices: [SyncedDevice] = []
-    var tabs: [SafariTab] = []
+    var tabs: [SafariTab] = [] {
+        didSet { duplicateGroups = Self.duplicates(in: tabs) }
+    }
     var loadError: CloudTabsReader.Failure?
 
     var isSorting = false
@@ -116,6 +118,9 @@ final class AppModel {
                 let key = currentSourceKey
                 tabs = tabs.map { var t = $0; t.source = key; return t }
             }
+            // Merged duplicates hide while the link they were merged into is here.
+            let here = Set(tabs.map(\.url))
+            tabs.removeAll { state.mergedInto[$0.url].map(here.contains) ?? false }
             recordArchive()
             separateErrands()
             // YouTube videos get their transcript in the background.
@@ -369,19 +374,22 @@ final class AppModel {
             let text = xPost(for: r.url).map { XPostView.attributed($0).characters.map(String.init).joined() } ?? previews[r.url]?.text
             return (r, text?.isEmpty == false ? text : nil)
         }
-        await withTaskGroup(of: (ArchiveRecord, Capture?).self) { group in
+        await withTaskGroup(of: (ArchiveRecord, Capturer.Outcome).self) { group in
             var iterator = jobs.makeIterator()
             func next(_ job: (ArchiveRecord, String?)) {
                 let (r, known) = job
                 group.addTask { (r, await Capturer.capture(r.url, knownText: known)) }
             }
             for _ in 0..<4 { if let j = iterator.next() { next(j) } }
-            for await (r, capture) in group {
-                if let capture {
+            for await (r, outcome) in group {
+                switch outcome {
+                case .captured(let capture):
                     library[r.url] = Library.write(capture, title: r.title, theme: r.theme, source: r.source)
-                } else if await HostGate.shared.isPaused((URL(string: r.url)?.host() ?? "").lowercased()) {
-                    // The site asked to slow down: leave it for a later run.
-                } else {
+                case .gone:
+                    library[r.url] = Library.Entry(file: "", captured: .now, words: 0, kind: "page", status: "gone")
+                case .failed:
+                    // A site that asked to slow down is left for a later run.
+                    if await HostGate.shared.isPaused((URL(string: r.url)?.host() ?? "").lowercased()) { break }
                     library[r.url] = Library.Entry(file: "", captured: .now, words: 0, kind: "page", status: "failed")
                 }
                 captureProgress.done += 1
@@ -962,6 +970,72 @@ final class AppModel {
         return GraphStyle.color(index: i, of: names.count)
     }
 
+    // MARK: Duplicates, broken links, notes, saved searches
+
+    /// Links here that are the same page as another link here. Worked out
+    /// when the tabs change, not on every redraw.
+    private(set) var duplicateGroups: [[SafariTab]] = []
+
+    private static func duplicates(in tabs: [SafariTab]) -> [[SafariTab]] {
+        Dictionary(grouping: tabs, by: { URLKey.normalize($0.url) }).values
+            .filter { $0.count > 1 }
+            .sorted { ($0.first?.title ?? "") < ($1.first?.title ?? "") }
+    }
+
+    var duplicateTabs: [SafariTab] { duplicateGroups.flatMap { $0 } }
+
+    /// Keeps one link per page: the one sorted by hand, else a sorted one,
+    /// else the newest. The others hide; their theme, action and note move
+    /// to the kept link when it has none.
+    func mergeDuplicates() {
+        for group in duplicateGroups {
+            let keep = group.first { state.assignments[$0.url]?.manual == true }
+                ?? group.first { state.assignments[$0.url] != nil }
+                ?? group.max { ($0.lastViewed ?? .distantPast) < ($1.lastViewed ?? .distantPast) }!
+            for tab in group where tab.url != keep.url {
+                state.mergedInto[tab.url] = keep.url
+                if state.assignments[keep.url] == nil, let a = state.assignments[tab.url] { state.assignments[keep.url] = a }
+                if note(for: keep.url) == nil, let n = note(for: tab.url) { setNote(n, for: keep.url) }
+            }
+        }
+        let gone = Set(state.mergedInto.keys)
+        tabs.removeAll { gone.contains($0.url) }
+    }
+
+    /// Links whose page is gone (404, 410 or no such site).
+    var brokenTabs: [SafariTab] {
+        let urls = Set(library.filter { $0.value.status == "gone" }.map(\.key))
+        return tabs.filter { urls.contains($0.url) } + archivedTabs.filter { urls.contains($0.url) }
+    }
+
+    /// The user's own note on a link. Kept in the archive, so it outlives the tab.
+    func note(for url: String) -> String? {
+        guard let n = archive[url]?.takeaway, !n.isEmpty else { return nil }
+        return n
+    }
+
+    func setNote(_ note: String, for url: String) {
+        guard archive[url] != nil else { return }
+        let clean = note.trimmingCharacters(in: .whitespacesAndNewlines)
+        archive[url]?.takeaway = clean.isEmpty ? nil : clean
+        ArchiveStore.save(archive)
+        scheduleSearchIndex()
+    }
+
+    func saveSearch(_ query: String) {
+        let q = query.trimmingCharacters(in: .whitespaces)
+        guard !q.isEmpty, !state.savedSearches.contains(q) else { return }
+        state.savedSearches.append(q)
+    }
+
+    func removeSavedSearch(_ query: String) { state.savedSearches.removeAll { $0 == query } }
+
+    /// A saved search's links, best match first, from every source and the archive.
+    func links(matching query: String) async -> [SafariTab] {
+        let hits = await searchLibrary(query)
+        return hits.compactMap { h in tabs.first { $0.url == h.url } ?? archive[h.url]?.asTab }
+    }
+
     /// The theme the graph is zoomed into. The sidebar selects it too.
     var graphTheme: String?
 
@@ -1020,7 +1094,7 @@ final class AppModel {
                 let e = library[r.url]
                 return SearchIndex.Doc(url: r.url, title: r.title, theme: a?.project ?? "", source: r.source,
                                        kind: e?.kind ?? "", saved: r.firstSeen, file: e?.file ?? "",
-                                       also: a?.also ?? [], fallback: r.previewText)
+                                       also: a?.also ?? [], fallback: r.previewText, note: r.takeaway ?? "")
             }
             let counts = Dictionary(grouping: state.assignments.values, by: \.project).mapValues(\.count)
             let themes = themes.map { SearchIndex.Theme(name: $0.name, summary: $0.summary, notes: $0.notes, memory: $0.memory, links: counts[$0.name] ?? 0) }

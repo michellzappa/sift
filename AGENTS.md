@@ -101,6 +101,12 @@ project and as an overview network (one hub per project, one dot per tab).
   which other themes a link feeds (`Assignment.also`, max 2; nil = not
   checked). The graph weighs shared links 3x a shared site and draws a dashed
   line from such a link to the other hub. New themes reset `also`.
+- Raindrop-style upkeep (2026-11-14): `URLKey.normalize` (tracking
+  parameters, www/m., twitter.com, youtu.be) finds duplicates; Merge All
+  writes `state.mergedInto` and hides merged links while the kept one is
+  present. Capture marks 404/410/no-such-host as status "gone" (Broken
+  Links). Notes per link live in `ArchiveRecord.takeaway` and go into the
+  search index. Saved searches (`state.savedSearches`) list FTS hits.
 - Links show as rows by default (`LinkStyle`, `@AppStorage("links.style")`,
   `LinkStyleToggle`); cards are the grid option. `TabCard` draws both and
   shares menus. Lists take arrow keys and space (browser). In the graph,
