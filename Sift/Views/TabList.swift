@@ -1,4 +1,5 @@
 import AppKit
+import CoreImage
 import SwiftUI
 
 /// The tabs in one sidebar item: unsorted, a project or bucket, or the close list.
@@ -478,6 +479,10 @@ struct PreviewPane: View {
 /// How to build the iPhone Shortcut that closes the listed tabs.
 struct ShortcutGuide: View {
     @Environment(\.dismiss) private var dismiss
+    @State private var showSteps = false
+
+    /// The ready-made "Sift: Close Tabs" shortcut, shared from iCloud.
+    static let installURL = URL(string: "https://www.icloud.com/shortcuts/6afe4511e1064e4297e749b5b7e55290")!
 
     // The layout that works on iOS 26 (tested 2026-11-14): look each tab up
     // right before closing it, and switch to it first; closing a tab object
@@ -497,13 +502,37 @@ struct ShortcutGuide: View {
     var body: some View {
         VStack(alignment: .leading, spacing: 14) {
             Text("Close tabs on the iPhone").font(.title2.weight(.semibold))
-            Text("A Mac cannot close tabs on another device, so Sift writes the close list to iCloud Drive and a Shortcut on the iPhone closes them. You build the Shortcut once.")
+            Text("A Mac cannot close tabs on another device, so Sift writes the close list to iCloud Drive and a Shortcut on the iPhone closes them. Install the Shortcut once.")
                 .foregroundStyle(.secondary)
-            ForEach(Array(steps.enumerated()), id: \.offset) { i, step in
-                HStack(alignment: .top, spacing: 10) {
-                    Text("\(i + 1)").font(.callout.monospacedDigit().weight(.semibold)).frame(width: 18, alignment: .trailing)
-                    Text(step)
+            HStack(alignment: .center, spacing: 18) {
+                if let qr = QRCode.image(for: Self.installURL.absoluteString) {
+                    Image(nsImage: qr).interpolation(.none).resizable().frame(width: 150, height: 150)
+                        .padding(8).background(.white, in: RoundedRectangle(cornerRadius: 10))
+                        .accessibilityLabel("QR code for the Sift: Close Tabs shortcut")
                 }
+                VStack(alignment: .leading, spacing: 8) {
+                    Text("Scan with the iPhone camera").font(.headline)
+                    Text("It opens Shortcuts and adds \"Sift: Close Tabs\". Run it whenever you want the marked tabs closed, or from Siri or the Share sheet.")
+                        .font(.callout).foregroundStyle(.secondary)
+                    HStack {
+                        Button("Open Link") { NSWorkspace.shared.open(Self.installURL) }
+                        Button("Copy Link") {
+                            NSPasteboard.general.clearContents()
+                            NSPasteboard.general.setString(Self.installURL.absoluteString, forType: .string)
+                        }
+                    }
+                }
+            }
+            DisclosureGroup("Or build it yourself", isExpanded: $showSteps) {
+                VStack(alignment: .leading, spacing: 8) {
+                    ForEach(Array(steps.enumerated()), id: \.offset) { i, step in
+                        HStack(alignment: .top, spacing: 10) {
+                            Text("\(i + 1)").font(.callout.monospacedDigit().weight(.semibold)).frame(width: 18, alignment: .trailing)
+                            Text(step)
+                        }
+                    }
+                }
+                .padding(.top, 6)
             }
             Text("Safari's Shortcut actions need iOS 17 or later. Action names can differ slightly between iOS versions.")
                 .font(.caption).foregroundStyle(.secondary)
@@ -526,5 +555,19 @@ struct ShortcutGuide: View {
 enum BrowserOverlay {
     static func width(for available: CGFloat) -> CGFloat {
         min(max(available * 0.46, 420), max(available - 280, 320))
+    }
+}
+
+/// A QR code from Core Image, no dependencies.
+enum QRCode {
+    static func image(for text: String) -> NSImage? {
+        guard let filter = CIFilter(name: "CIQRCodeGenerator") else { return nil }
+        filter.setValue(Data(text.utf8), forKey: "inputMessage")
+        filter.setValue("M", forKey: "inputCorrectionLevel")
+        guard let output = filter.outputImage?.transformed(by: CGAffineTransform(scaleX: 8, y: 8)) else { return nil }
+        let rep = NSCIImageRep(ciImage: output)
+        let image = NSImage(size: rep.size)
+        image.addRepresentation(rep)
+        return image
     }
 }
