@@ -141,7 +141,8 @@ struct GraphView: View {
             let a = sim.nodes[e.a], b = sim.nodes[e.b]
             let pa = screen(a.p, center: center), pb = screen(b.p, center: center)
             var path = Path(); path.move(to: pa); path.addLine(to: pb)
-            let dim = lit != nil && b.theme != lit
+            let isBridge = a.kind == .theme && b.kind == .theme
+            let dim = lit != nil && b.theme != lit && !(isBridge && a.theme == lit)
             let base = b.color
             let opacity = dim ? 0.08 : (b.kind == .leaf ? 0.38 : 0.6)
             ctx.stroke(path, with: .linearGradient(Gradient(colors: [a.color.opacity(opacity), base.opacity(opacity)]), startPoint: pa, endPoint: pb),
@@ -193,7 +194,14 @@ struct GraphView: View {
         return GraphStyle.branchColors[i % GraphStyle.branchColors.count]
     }
 
-    /// Builds the tree: you at the root, a branch per theme, a twig per site
+    /// Hosts too general to say two themes are related.
+    private static let genericHosts: Set<String> = [
+        "x.com", "twitter.com", "youtube.com", "m.youtube.com", "youtu.be", "reddit.com", "old.reddit.com",
+        "threads.com", "threads.net", "linkedin.com", "google.com", "t.co", "medium.com", "substack.com",
+    ]
+
+    /// Builds the graph: themes joined to each other where they share
+    /// sources, a branch per theme, a twig per site
     /// that holds three or more of the theme's links, and a leaf per link.
     private func rebuild() {
         var nodes: [GraphSimulation.Node] = []
@@ -218,6 +226,27 @@ struct GraphView: View {
                     nodes.append(.init(kind: .leaf, key: tab.url, label: "", theme: name, color: tint, size: 2.1, count: 1))
                     edges.append(.init(a: parent, b: leaf, length: parent == t ? 26 : 16))
                 }
+            }
+        }
+        // Theme to theme: the more sources two themes share (the same site,
+        // or posts that link to the same domain), the shorter the line.
+        var sources: [String: Set<String>] = [:]
+        var themeNode: [String: Int] = [:]
+        for (i, n) in nodes.enumerated() where n.kind == .theme { themeNode[n.key] = i }
+        for tab in model.tabs {
+            guard let theme = model.assignment(for: tab)?.project, themeNode[theme] != nil else { continue }
+            var hosts = [tab.host]
+            if let out = model.previews[tab.url]?.outboundURL, let h = URL(string: out)?.host() {
+                hosts.append(h.hasPrefix("www.") ? String(h.dropFirst(4)) : h)
+            }
+            for h in hosts where !Self.genericHosts.contains(h) { sources[theme, default: []].insert(h) }
+        }
+        let names = Array(themeNode.keys).sorted()
+        for (x, a) in names.enumerated() {
+            for b in names[(x + 1)...] {
+                let shared = (sources[a] ?? []).intersection(sources[b] ?? []).count
+                guard shared > 0, let ia = themeNode[a], let ib = themeNode[b] else { continue }
+                edges.append(.init(a: ia, b: ib, length: max(120, 300 - CGFloat(shared) * 40)))
             }
         }
         sim.load(nodes: nodes, edges: edges)
