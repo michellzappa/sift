@@ -1,4 +1,5 @@
-import Foundation
+import AppKit
+import SwiftUI
 
 // MARK: - Adding a destination kind
 //
@@ -23,6 +24,35 @@ struct Destination: Codable, Identifiable, Hashable, Sendable {
     var config: [String: String] = [:]
 
     var symbol: String { Senders.sender(for: kind)?.symbol ?? "paperplane" }
+
+    /// The destination's icon. Starlings has its own mark; the others are
+    /// SF Symbols. A template image, so it takes the menu or label color.
+    var image: Image { symbol == "starlings" ? Image(nsImage: StarlingsMark.image) : Image(systemName: symbol) }
+}
+
+/// The Starlings mark: a four by four grid of dots of different sizes
+/// (web/public/starlings.svg in the Starlings repo), drawn as a template.
+enum StarlingsMark {
+    private static let radii: [CGFloat] = [
+        1.956, 2.494, 2.6, 2.05,
+        1.4, 2.494, 3.05, 2.494,
+        1, 1.7, 2.494, 1.956,
+        0.45, 1, 1.7, 1.4,
+    ]
+
+    static let image: NSImage = {
+        let image = NSImage(size: NSSize(width: 16, height: 16), flipped: true) { rect in
+            let scale = rect.width / 28
+            NSColor.black.setFill()
+            for (i, r) in radii.enumerated() {
+                let cx = (4.4 + CGFloat(i % 4) * 6.4) * scale, cy = (4.4 + CGFloat(i / 4) * 6.4) * scale
+                NSBezierPath(ovalIn: NSRect(x: cx - r * scale, y: cy - r * scale, width: 2 * r * scale, height: 2 * r * scale)).fill()
+            }
+            return true
+        }
+        image.isTemplate = true
+        return image
+    }()
 }
 
 /// One link, as a sender sees it.

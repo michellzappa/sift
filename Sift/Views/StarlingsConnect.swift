@@ -15,11 +15,10 @@ struct StarlingsConnect: View {
         VStack(alignment: .leading, spacing: 12) {
             Text("Connect Starlings").font(.title3.weight(.semibold))
             if let origin {
-                Text("Connected to \(URL(string: origin)?.host() ?? origin). Find the projects to send links to.")
+                Text("Connected to \(URL(string: origin)?.host() ?? origin). Add the projects to send links to.")
                     .foregroundStyle(.secondary)
-                TextField("Project name", text: $query)
-                    .onSubmit { Task { await search(origin) } }
-                List(projects) { p in
+                TextField("Filter", text: $query)
+                List(shown) { p in
                     HStack {
                         Text(p.title)
                         Spacer()
@@ -32,10 +31,10 @@ struct StarlingsConnect: View {
                 }
                 .frame(minHeight: 180)
             } else {
-                Text("Your workspace address, for example bipe.starlings.work. Sift opens your browser to sign in; tick “Also write” there so Sift can file links.")
+                Text("Your workspace name, for example bipe (or a full address). Sift opens your browser to sign in; tick “Also write” there so Sift can file links.")
                     .foregroundStyle(.secondary)
                     .fixedSize(horizontal: false, vertical: true)
-                TextField("workspace.starlings.work", text: $address)
+                TextField("workspace", text: $address)
                     .onSubmit { Task { await connect() } }
             }
             if let message { Text(message).font(.caption).foregroundStyle(.secondary) }
@@ -47,10 +46,6 @@ struct StarlingsConnect: View {
                     Button("Connect") { Task { await connect() } }
                         .keyboardShortcut(.defaultAction)
                         .disabled(Starlings.origin(address) == nil || busy)
-                } else {
-                    Button("Search") { Task { await search(origin!) } }
-                        .keyboardShortcut(.defaultAction)
-                        .disabled(query.isEmpty || busy)
                 }
             }
         }
@@ -68,17 +63,16 @@ struct StarlingsConnect: View {
         }
         message = nil
         origin = o
-    }
-
-    private func search(_ origin: String) async {
-        busy = true
-        defer { busy = false }
         do {
-            projects = try await Starlings.projects(origin, matching: query)
-            message = projects.isEmpty ? "No projects match." : nil
+            projects = try await Starlings.allProjects(o)
+            if projects.isEmpty { message = "No open projects in this workspace." }
         } catch {
             message = error.localizedDescription
         }
+    }
+
+    private var shown: [Starlings.Project] {
+        query.isEmpty ? projects : projects.filter { $0.title.localizedCaseInsensitiveContains(query) }
     }
 
     private func added(_ p: Starlings.Project, _ origin: String) -> Bool {

@@ -40,7 +40,7 @@ struct SendButton: View {
         ForEach(model.destinations) { d in
             let sent = records.contains { $0.destination == d.id }
             Button { Task { await model.send(tab, to: d) } } label: {
-                Label(d.detail.isEmpty ? d.name : "\(d.name) · \(d.detail)", systemImage: sent ? "checkmark" : d.symbol)
+                Label { Text(d.detail.isEmpty ? d.name : "\(d.name) · \(d.detail)") } icon: { sent ? Image(systemName: "checkmark") : d.image }
             }
             .disabled(sent)
         }

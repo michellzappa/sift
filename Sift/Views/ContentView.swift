@@ -205,7 +205,7 @@ private struct Sidebar: View {
             }
             Section("Sent to", isExpanded: $showActions) {
                 ForEach(model.destinations) { d in
-                    Label { HStack { Text(d.name).lineLimit(1); Spacer(); count(model.sentTabs(to: d.id).count) } } icon: { Image(systemName: d.symbol) }
+                    Label { HStack { Text(d.name).lineLimit(1); Spacer(); count(model.sentTabs(to: d.id).count) } } icon: { d.image }
                         .help(d.detail.isEmpty ? d.name : "\(d.name) · \(d.detail)")
                         .tag(SidebarItem.destination(d.id))
                 }

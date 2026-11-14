@@ -355,7 +355,7 @@ private struct OutputSettings: View {
             Section {
                 ForEach(model.destinations) { d in
                     HStack {
-                        Image(systemName: d.symbol).frame(width: 18).foregroundStyle(.secondary)
+                        d.image.frame(width: 18).foregroundStyle(.secondary)
                         VStack(alignment: .leading, spacing: 1) {
                             Text(d.name)
                             if !d.detail.isEmpty { Text(d.detail).font(.caption).foregroundStyle(.secondary).lineLimit(1).truncationMode(.middle) }

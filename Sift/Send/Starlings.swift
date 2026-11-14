@@ -26,9 +26,12 @@ enum Starlings {
         let door: String
     }
 
-    /// "bipe.starlings.work" or a full address, as https://host.
+    /// "bipe", "bipe.starlings.work" or a full address, as https://host. A
+    /// bare name is a workspace on starlings.work.
     static func origin(_ text: String) -> String? {
-        var t = text.trimmingCharacters(in: .whitespaces)
+        var t = text.trimmingCharacters(in: .whitespaces).lowercased()
+        guard !t.isEmpty else { return nil }
+        if !t.contains("."), !t.contains("/") { t += ".starlings.work" }
         if !t.contains("://") { t = "https://" + t }
         guard let u = URL(string: t), u.scheme == "https", let host = u.host(), host.contains(".") else { return nil }
         return "https://\(host.lowercased())"
@@ -81,7 +84,7 @@ enum Starlings {
             .init(name: "code_challenge_method", value: "S256"),
             .init(name: "resource", value: origin + "/mcp"),
         ]
-        let callback = LoopbackServer(port: port)
+        let callback = LoopbackServer(port: port, service: "Starlings")
         try callback.start()
         await MainActor.run { _ = NSWorkspace.shared.open(c.url!) }
         let query = try await callback.waitForQuery(timeout: 300)
@@ -130,6 +133,22 @@ enum Starlings {
     /// Calls one MCP tool and returns its structured answer (or the text,
     /// parsed as JSON when it is JSON).
     static func call(_ origin: String, tool: String, arguments: [String: Any]) async throws -> [String: Any] {
+        let result = try await rpc(origin, method: "tools/call", params: ["name": tool, "arguments": arguments])
+        let text = ((result["content"] as? [[String: Any]])?.first?["text"] as? String) ?? ""
+        if result["isError"] as? Bool == true { throw SendFailure(message: text.isEmpty ? "Starlings refused the call." : text) }
+        if let structured = result["structuredContent"] as? [String: Any] { return structured }
+        return ((try? JSONSerialization.jsonObject(with: Data(text.utf8))) as? [String: Any]) ?? ["text": text]
+    }
+
+    /// Reads one MCP resource as JSON.
+    static func resource(_ origin: String, uri: String) async throws -> [String: Any] {
+        let result = try await rpc(origin, method: "resources/read", params: ["uri": uri])
+        let text = ((result["contents"] as? [[String: Any]])?.first?["text"] as? String) ?? ""
+        return ((try? JSONSerialization.jsonObject(with: Data(text.utf8))) as? [String: Any]) ?? [:]
+    }
+
+    /// One JSON-RPC request; a 401 refreshes the token and tries once more.
+    private static func rpc(_ origin: String, method: String, params: [String: Any]) async throws -> [String: Any] {
         var retried = false
         while true {
             let token = try await access(origin, force: retried)
@@ -140,7 +159,7 @@ enum Starlings {
             request.setValue("application/json, text/event-stream", forHTTPHeaderField: "Accept")
             request.setValue("2025-06-18", forHTTPHeaderField: "MCP-Protocol-Version")
             request.httpBody = try JSONSerialization.data(withJSONObject: [
-                "jsonrpc": "2.0", "id": 1, "method": "tools/call", "params": ["name": tool, "arguments": arguments],
+                "jsonrpc": "2.0", "id": 1, "method": method, "params": params,
             ])
             let (data, response) = try await URLSession.shared.data(for: request)
             let status = (response as? HTTPURLResponse)?.statusCode ?? 0
@@ -150,11 +169,7 @@ enum Starlings {
             if let error = message["error"] as? [String: Any] {
                 throw SendFailure(message: error["message"] as? String ?? "Starlings refused the call.")
             }
-            let result = message["result"] as? [String: Any] ?? [:]
-            let text = ((result["content"] as? [[String: Any]])?.first?["text"] as? String) ?? ""
-            if result["isError"] as? Bool == true { throw SendFailure(message: text.isEmpty ? "Starlings refused the call." : text) }
-            if let structured = result["structuredContent"] as? [String: Any] { return structured }
-            return ((try? JSONSerialization.jsonObject(with: Data(text.utf8))) as? [String: Any]) ?? ["text": text]
+            return message["result"] as? [String: Any] ?? [:]
         }
     }
 
@@ -171,6 +186,17 @@ enum Starlings {
             throw SendFailure(message: "Starlings sent an answer Sift cannot read.")
         }
         return object
+    }
+
+    /// Every open project in the workspace, by name.
+    static func allProjects(_ origin: String) async throws -> [Project] {
+        let answer = try await resource(origin, uri: "starlings://subjects/project")
+        let rows = answer["subjects"] as? [[String: Any]] ?? []
+        return rows.compactMap { row -> Project? in
+            guard let id = row["id"] as? String, let title = row["title"] as? String else { return nil }
+            return Project(id: id, title: title, door: "subject:project:\(id)")
+        }
+        .sorted { $0.title.localizedCaseInsensitiveCompare($1.title) == .orderedAscending }
     }
 
     /// Projects whose name matches.
@@ -206,7 +232,7 @@ enum Starlings {
 struct StarlingsSender: Sender {
     let kind = "starlings"
     let label = "Starlings"
-    let symbol = "bird"
+    let symbol = "starlings"
 
     func send(_ item: SendItem, to destination: Destination) async throws -> String? {
         guard let origin = destination.config["origin"], let project = destination.config["project"] else {

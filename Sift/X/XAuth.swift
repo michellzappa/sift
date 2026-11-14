@@ -54,7 +54,7 @@ enum XAuth {
             .init(name: "code_challenge", value: challenge),
             .init(name: "code_challenge_method", value: "S256"),
         ]
-        let callback = LoopbackServer(port: port)
+        let callback = LoopbackServer(port: port, service: "X")
         try callback.start()
         await MainActor.run { _ = NSWorkspace.shared.open(c.url!) }
         let query = try await callback.waitForQuery(timeout: 300)
@@ -121,7 +121,10 @@ final class LoopbackServer: @unchecked Sendable {
     private var continuation: CheckedContinuation<[String: String], Error>?
     private var result: Result<[String: String], Error>?
 
-    init(port: UInt16) { self.port = port }
+    /// Named on the page the browser shows after sign-in.
+    private let service: String
+
+    init(port: UInt16, service: String) { self.port = port; self.service = service }
 
     func start() throws {
         let params = NWParameters.tcp
@@ -150,13 +153,14 @@ final class LoopbackServer: @unchecked Sendable {
 
     private func handle(_ connection: NWConnection) {
         connection.start(queue: .global())
+        let service = self.service
         connection.receive(minimumIncompleteLength: 1, maximumLength: 16_384) { [weak self] data, _, _, _ in
             let request = data.map { String(decoding: $0, as: UTF8.self) } ?? ""
             let line = request.split(separator: "\r\n").first.map(String.init) ?? ""
             let path = line.split(separator: " ").dropFirst().first.map(String.init) ?? ""
             var query: [String: String] = [:]
             for item in URLComponents(string: "http://127.0.0.1" + path)?.queryItems ?? [] { query[item.name] = item.value ?? "" }
-            let page = "<html><body style=\"font: 15px -apple-system; padding: 40px\"><h3>Sift is connected to X.</h3><p>You can close this tab.</p></body></html>"
+            let page = "<html><body style=\"font: 15px -apple-system; padding: 40px\"><h3>Sift is connected to \(service).</h3><p>You can close this tab.</p></body></html>"
             let response = "HTTP/1.1 200 OK\r\nContent-Type: text/html; charset=utf-8\r\nContent-Length: \(page.utf8.count)\r\nConnection: close\r\n\r\n\(page)"
             connection.send(content: Data(response.utf8), completion: .contentProcessed { _ in connection.cancel() })
             if !query.isEmpty { self?.finish(.success(query)) }
