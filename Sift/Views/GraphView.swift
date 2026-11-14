@@ -272,23 +272,11 @@ struct GraphView: View {
     private func panel(theme: String, node: Int, size: CGSize) -> some View {
         let tabs = links(in: theme)
         let color = sim.nodes[node].color
-        let summary = model.projects.first(where: { $0.name == theme })?.summary ?? ""
         let fade = min(1.0, max(0.0, Double(cam.scale - 1.1) / 0.6))
         return HStack(spacing: 0) {
             ScrollView {
-                VStack(alignment: .leading, spacing: 10) {
-                    HStack(alignment: .firstTextBaseline) {
-                        Text(theme).font(.title3.weight(.semibold)).foregroundStyle(color)
-                        Spacer()
-                        LinkStyleToggle()
-                    }
-                    if !summary.isEmpty { Text(summary).font(.callout).foregroundStyle(.secondary) }
-                    HStack {
-                        Text("\(tabs.count) links").font(.caption).foregroundStyle(.tertiary)
-                        Spacer()
-                        LinkStyleToggle()
-                    }
-                    if model.themes.contains(where: { $0.name == theme }) { ThemeMemory(theme: theme) }
+                VStack(alignment: .leading, spacing: 12) {
+                    ThemeHeader(theme: theme, color: color, count: tabs.count)
                     LazyVStack(spacing: 2) {
                         ForEach(tabs) { tab in chipCell(tab, color: color) }
                     }
@@ -310,19 +298,12 @@ struct GraphView: View {
     private func grid(theme: String, node: Int, size: CGSize) -> some View {
         let tabs = links(in: theme)
         let color = sim.nodes[node].color
-        let summary = model.projects.first(where: { $0.name == theme })?.summary ?? ""
         let fade = min(1.0, max(0.0, Double(cam.scale - 1.1) / 0.6))
         let columns = [TabCard.column]
         return ScrollView {
             VStack(alignment: .leading, spacing: 14) {
-                VStack(alignment: .leading, spacing: 4) {
-                    Text(theme).font(.title2.weight(.semibold)).foregroundStyle(color)
-                    if !summary.isEmpty { Text(summary).font(.callout).foregroundStyle(.secondary) }
-                    Text("\(tabs.count) links").font(.caption).foregroundStyle(.tertiary)
-                    if model.themes.contains(where: { $0.name == theme }) {
-                        ThemeMemory(theme: theme).frame(maxWidth: 640, alignment: .leading).padding(.top, 4)
-                    }
-                }
+                ThemeHeader(theme: theme, color: color, count: tabs.count)
+                    .frame(maxWidth: 720, alignment: .leading)
                 LazyVGrid(columns: columns, spacing: 14) {
                     ForEach(tabs) { tab in chipCell(tab, color: color) }
                 }

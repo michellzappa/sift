@@ -76,7 +76,7 @@ struct TabList: View {
             if item == .duplicates { duplicatesHeader }
             ScrollView {
                 if let project, model.themes.contains(where: { $0.name == project }) {
-                    ThemeMemory(theme: project).frame(maxWidth: 640, alignment: .leading)
+                    ThemeHeader(theme: project, count: rows.count, showTitle: false).frame(maxWidth: 640, alignment: .leading)
                         .frame(maxWidth: .infinity, alignment: .leading)
                         .padding([.horizontal, .top], 16)
                 }
