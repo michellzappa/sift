@@ -24,7 +24,7 @@ struct GraphView: View {
         GeometryReader { geo in
             ZStack {
                 if let theme = focusTheme {
-                    LinkLevel(theme: theme, size: geo.size, color: color(for: theme), others: otherThemes(than: theme)) { next in
+                    LinkLevel(theme: theme, size: geo.size, color: color(for: theme)) { next in
                         withAnimation(.snappy) { focusTheme = next }
                     }
                     .transition(.opacity.combined(with: .scale(scale: 0.92)))
@@ -68,8 +68,12 @@ struct GraphView: View {
                 .onEnded { _ in panBase = offset }
         )
         .simultaneousGesture(MagnifyGesture()
-            .onChanged { scale = min(3, max(0.4, pinchBase * $0.magnification)) }
+            .onChanged { zoom(to: pinchBase * $0.magnification, around: $0.startLocation, size: size) }
             .onEnded { _ in pinchBase = scale })
+        .background(ScrollZoom { delta, location in
+            zoom(to: scale * (1 + delta * 0.01), around: location, size: size)
+            pinchBase = scale
+        })
         .onTapGesture { p in
             if let i = hit(p, center: center) { withAnimation(.snappy) { focusTheme = sim.nodes[i].key } }
         }
@@ -82,26 +86,49 @@ struct GraphView: View {
         }
     }
 
+    /// Zooms so the point under the cursor stays where it is.
+    private func zoom(to newScale: CGFloat, around point: CGPoint, size: CGSize) {
+        let clamped = min(4, max(0.3, newScale))
+        let center = CGPoint(x: size.width / 2 + offset.width, y: size.height / 2 + offset.height)
+        let world = CGPoint(x: (point.x - center.x) / scale, y: (point.y - center.y) / scale)
+        let newCenter = CGPoint(x: point.x - world.x * clamped, y: point.y - world.y * clamped)
+        offset = CGSize(width: newCenter.x - size.width / 2, height: newCenter.y - size.height / 2)
+        panBase = offset
+        scale = clamped
+    }
+
     private func screen(_ p: CGPoint, center: CGPoint) -> CGPoint {
         CGPoint(x: center.x + p.x * scale, y: center.y + p.y * scale)
     }
 
     private func drawThemes(_ ctx: inout GraphicsContext, center: CGPoint) {
         let neighbours = hover.map { sim.neighbours(of: $0) } ?? []
+        // Edges first, as gradients from one theme's color to the other's,
+        // trimmed to the cluster edges so they run under the nodes.
         for e in sim.edges {
-            let a = screen(sim.nodes[e.a].p, center: center), b = screen(sim.nodes[e.b].p, center: center)
-            var path = Path(); path.move(to: a); path.addLine(to: b)
+            let na = sim.nodes[e.a], nb = sim.nodes[e.b]
+            let a = screen(na.p, center: center), b = screen(nb.p, center: center)
+            let d = max(hypot(b.x - a.x, b.y - a.y), 1)
+            let ux = (b.x - a.x) / d, uy = (b.y - a.y) / d
+            let ra = na.radius * scale, rb = nb.radius * scale
+            guard d > ra + rb else { continue }
+            let start = CGPoint(x: a.x + ux * ra, y: a.y + uy * ra)
+            let end = CGPoint(x: b.x - ux * rb, y: b.y - uy * rb)
+            var path = Path(); path.move(to: start); path.addLine(to: end)
             let lit = hover == e.a || hover == e.b
-            let opacity = hover == nil ? min(0.08 + 0.05 * Double(e.weight), 0.4) : (lit ? 0.6 : 0.04)
-            ctx.stroke(path, with: .color((lit ? Color.accentColor : Color.primary).opacity(opacity)),
-                       style: StrokeStyle(lineWidth: min(1 + CGFloat(e.weight) * 0.8, 6), lineCap: .round))
+            let opacity = hover == nil ? min(0.35 + 0.08 * Double(e.weight), 0.8) : (lit ? 0.95 : 0.08)
+            let gradient = Gradient(colors: [na.color.opacity(opacity), nb.color.opacity(opacity)])
+            ctx.stroke(path, with: .linearGradient(gradient, startPoint: start, endPoint: end),
+                       style: StrokeStyle(lineWidth: min(1.2 + CGFloat(e.weight) * 0.9, 7) * (lit ? 1.4 : 1), lineCap: .round))
         }
         for (i, n) in sim.nodes.enumerated() {
             let p = screen(n.p, center: center)
             let r = n.radius * scale
             let dim = hover != nil && hover != i && !neighbours.contains(i)
             let rect = CGRect(x: p.x - r, y: p.y - r, width: r * 2, height: r * 2)
+            ctx.fill(Path(ellipseIn: rect), with: .color(Color(nsColor: .textBackgroundColor)))
             ctx.fill(Path(ellipseIn: rect), with: .color(n.color.opacity(dim ? 0.04 : (hover == i ? 0.16 : 0.08))))
+            ctx.stroke(Path(ellipseIn: rect), with: .color(n.color.opacity(dim ? 0.15 : 0.45)), lineWidth: 1)
             // One dot per link, packed in a sunflower spiral, so size and
             // density read at a glance.
             let dot = max(2.2, 3.2 * scale)
@@ -152,9 +179,6 @@ struct GraphView: View {
         return GraphSimulation.palette[i % GraphSimulation.palette.count]
     }
 
-    private func otherThemes(than theme: String) -> [(name: String, color: Color)] {
-        themeNames.filter { $0 != theme }.map { ($0, color(for: $0)) }
-    }
 
     /// Hosts too general to say two themes are related.
     private static let genericHosts: Set<String> = [
@@ -199,9 +223,12 @@ private struct LinkLevel: View {
     let theme: String
     let size: CGSize
     let color: Color
-    let others: [(name: String, color: Color)]
     let go: (String) -> Void
     @State private var picked: String?
+    @State private var zoom: CGFloat = 1
+    @State private var zoomBase: CGFloat = 1
+    @State private var pan: CGSize = .zero
+    @State private var panBase: CGSize = .zero
 
     private static let chip = CGSize(width: 210, height: 58)
 
@@ -241,7 +268,20 @@ private struct LinkLevel: View {
             }
         }
         .frame(width: size.width, height: size.height)
-        .overlay(alignment: .trailing) { otherThemesRail }
+        .scaleEffect(zoom)
+        .offset(pan)
+        .contentShape(Rectangle())
+        .gesture(DragGesture(minimumDistance: 4)
+            .onChanged { v in pan = CGSize(width: panBase.width + v.translation.width, height: panBase.height + v.translation.height) }
+            .onEnded { _ in panBase = pan })
+        .simultaneousGesture(MagnifyGesture()
+            .onChanged { zoom = min(3, max(0.4, zoomBase * $0.magnification)) }
+            .onEnded { _ in zoomBase = zoom })
+        .background(ScrollZoom { delta, _ in
+            zoom = min(3, max(0.4, zoom * (1 + delta * 0.01)))
+            zoomBase = zoom
+        })
+        .clipped()
         .overlay(alignment: .bottom) { pickedCard(tabs) }
     }
 
@@ -264,27 +304,6 @@ private struct LinkLevel: View {
             ring += 1
         }
         return out
-    }
-
-    private var otherThemesRail: some View {
-        ScrollView {
-            VStack(alignment: .trailing, spacing: 6) {
-                ForEach(others, id: \.name) { other in
-                    Button { go(other.name) } label: {
-                        HStack(spacing: 6) {
-                            Text(other.name).lineLimit(1)
-                            Text("\(model.count(other.name))").monospacedDigit().foregroundStyle(.secondary)
-                            Circle().fill(other.color).frame(width: 8, height: 8)
-                        }
-                        .font(.caption)
-                    }
-                    .buttonStyle(.plain)
-                }
-            }
-            .padding(12)
-        }
-        .frame(maxWidth: 260)
-        .background(.regularMaterial.opacity(0.6))
     }
 
     @ViewBuilder
@@ -482,5 +501,46 @@ final class GraphSimulation {
             nodes[i].p.y += nodes[i].v.dy
         }
         alpha *= 0.985
+    }
+}
+
+/// Turns two-finger trackpad scroll and the mouse wheel into zoom.
+/// Reports the delta and the cursor position in the view's coordinates.
+struct ScrollZoom: NSViewRepresentable {
+    let onZoom: (CGFloat, CGPoint) -> Void
+
+    func makeNSView(context: Context) -> ZoomView {
+        let view = ZoomView()
+        view.onZoom = onZoom
+        return view
+    }
+
+    func updateNSView(_ view: ZoomView, context: Context) { view.onZoom = onZoom }
+
+    final class ZoomView: NSView {
+        var onZoom: ((CGFloat, CGPoint) -> Void)?
+        private var monitor: Any?
+
+        override var isFlipped: Bool { true }
+
+        override func viewDidMoveToWindow() {
+            super.viewDidMoveToWindow()
+            if let monitor { NSEvent.removeMonitor(monitor); self.monitor = nil }
+            guard window != nil else { return }
+            monitor = NSEvent.addLocalMonitorForEvents(matching: .scrollWheel) { [weak self] event in
+                guard let self, let window = self.window, event.window === window else { return event }
+                let point = self.convert(event.locationInWindow, from: nil)
+                guard self.bounds.contains(point) else { return event }
+                let delta = event.scrollingDeltaY * (event.hasPreciseScrollingDeltas ? 1 : 6)
+                self.onZoom?(delta, point)
+                return nil
+            }
+        }
+
+        override func removeFromSuperview() {
+            if let monitor { NSEvent.removeMonitor(monitor) }
+            monitor = nil
+            super.removeFromSuperview()
+        }
     }
 }
