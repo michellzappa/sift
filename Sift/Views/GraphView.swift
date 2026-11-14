@@ -34,7 +34,7 @@ struct GraphView: View {
                 }
             }
         }
-        .background(Color(nsColor: .textBackgroundColor))
+        .background(focusTheme == nil ? AnyShapeStyle(GraphStyle.background) : AnyShapeStyle(Color(nsColor: .textBackgroundColor)))
         .overlay(alignment: .topLeading) {
             if let theme = focusTheme {
                 Button { withAnimation(.snappy) { focusTheme = nil } } label: {
@@ -73,12 +73,13 @@ struct GraphView: View {
     private func themeLevel(size: CGSize) -> some View {
         let center = CGPoint(x: size.width / 2 + offset.width, y: size.height / 2 + offset.height)
         return TimelineView(.animation(paused: !sim.isMoving)) { timeline in
-            Canvas { ctx, _ in
+            Canvas { ctx, canvasSize in
                 _ = timeline.date
                 sim.tick()
-                drawThemes(&ctx, center: center)
+                drawTree(&ctx, center: center, size: canvasSize)
             }
         }
+        .background(GraphStyle.background)
         .contentShape(Rectangle())
         .gesture(
             DragGesture(minimumDistance: 4)
@@ -93,20 +94,26 @@ struct GraphView: View {
             pinchBase = scale
         })
         .onTapGesture { p in
-            if let i = hit(p, center: center) { withAnimation(.snappy) { focusTheme = sim.nodes[i].key } }
+            guard let i = hit(p, center: center) else { return }
+            let n = sim.nodes[i]
+            switch n.kind {
+            case .theme: withAnimation(.snappy) { focusTheme = n.key }
+            case .group, .leaf: if let t = n.theme { withAnimation(.snappy) { focusTheme = t } }
+            case .root: break
+            }
         }
         .onContinuousHover { phase in
             if case .active(let p) = phase { hover = hit(p, center: center) } else { hover = nil }
         }
         .overlay(alignment: .bottomLeading) {
-            Text("Click a theme to see its links. Lines join themes that share sources.")
-                .font(.caption).foregroundStyle(.secondary).padding(12)
+            Text("Each branch is a theme, each light a link. Click a branch to open it.")
+                .font(.caption).foregroundStyle(.white.opacity(0.45)).padding(12)
         }
     }
 
     /// Zooms so the point under the cursor stays where it is.
     private func zoom(to newScale: CGFloat, around point: CGPoint, size: CGSize) {
-        let clamped = min(4, max(0.3, newScale))
+        let clamped = min(5, max(0.25, newScale))
         let center = CGPoint(x: size.width / 2 + offset.width, y: size.height / 2 + offset.height)
         let world = CGPoint(x: (point.x - center.x) / scale, y: (point.y - center.y) / scale)
         let newCenter = CGPoint(x: point.x - world.x * clamped, y: point.y - world.y * clamped)
@@ -119,67 +126,71 @@ struct GraphView: View {
         CGPoint(x: center.x + p.x * scale, y: center.y + p.y * scale)
     }
 
-    private func drawThemes(_ ctx: inout GraphicsContext, center: CGPoint) {
-        let neighbours = hover.map { sim.neighbours(of: $0) } ?? []
-        // Edges first, as gradients from one theme's color to the other's,
-        // trimmed to the cluster edges so they run under the nodes.
+    /// The branch a node belongs to, for hover highlighting.
+    private func branch(of i: Int?) -> String? {
+        guard let i, sim.nodes.indices.contains(i) else { return nil }
+        return sim.nodes[i].theme
+    }
+
+    private func drawTree(_ ctx: inout GraphicsContext, center: CGPoint, size: CGSize) {
+        let lit = branch(of: hover)
+        let zoomDot = max(0.7, min(scale, 2.2))
+
+        // Lines: thin, warm, colored by their branch.
         for e in sim.edges {
-            let na = sim.nodes[e.a], nb = sim.nodes[e.b]
-            let a = screen(na.p, center: center), b = screen(nb.p, center: center)
-            let d = max(hypot(b.x - a.x, b.y - a.y), 1)
-            let ux = (b.x - a.x) / d, uy = (b.y - a.y) / d
-            let ra = na.radius * scale, rb = nb.radius * scale
-            guard d > ra + rb else { continue }
-            let start = CGPoint(x: a.x + ux * ra, y: a.y + uy * ra)
-            let end = CGPoint(x: b.x - ux * rb, y: b.y - uy * rb)
-            var path = Path(); path.move(to: start); path.addLine(to: end)
-            let lit = hover == e.a || hover == e.b
-            let opacity = hover == nil ? min(0.35 + 0.08 * Double(e.weight), 0.8) : (lit ? 0.95 : 0.08)
-            let gradient = Gradient(colors: [na.color.opacity(opacity), nb.color.opacity(opacity)])
-            ctx.stroke(path, with: .linearGradient(gradient, startPoint: start, endPoint: end),
-                       style: StrokeStyle(lineWidth: min(1.2 + CGFloat(e.weight) * 0.9, 7) * (lit ? 1.4 : 1), lineCap: .round))
+            let a = sim.nodes[e.a], b = sim.nodes[e.b]
+            let pa = screen(a.p, center: center), pb = screen(b.p, center: center)
+            var path = Path(); path.move(to: pa); path.addLine(to: pb)
+            let dim = lit != nil && b.theme != lit
+            let base = b.color
+            let opacity = dim ? 0.08 : (b.kind == .leaf ? 0.38 : 0.6)
+            ctx.stroke(path, with: .linearGradient(Gradient(colors: [a.color.opacity(opacity), base.opacity(opacity)]), startPoint: pa, endPoint: pb),
+                       lineWidth: (b.kind == .leaf ? 0.7 : b.kind == .group ? 1.1 : 1.6) * zoomDot)
         }
-        for (i, n) in sim.nodes.enumerated() {
-            let p = screen(n.p, center: center)
-            let r = n.radius * scale
-            let dim = hover != nil && hover != i && !neighbours.contains(i)
-            let rect = CGRect(x: p.x - r, y: p.y - r, width: r * 2, height: r * 2)
-            ctx.fill(Path(ellipseIn: rect), with: .color(Color(nsColor: .textBackgroundColor)))
-            ctx.fill(Path(ellipseIn: rect), with: .color(n.color.opacity(dim ? 0.04 : (hover == i ? 0.16 : 0.08))))
-            ctx.stroke(Path(ellipseIn: rect), with: .color(n.color.opacity(dim ? 0.15 : 0.45)), lineWidth: 1)
-            // One dot per link, packed in a sunflower spiral, so size and
-            // density read at a glance.
-            let dot = max(2.2, 3.2 * scale)
-            var dots = Path()
-            for k in 0..<n.count {
-                let q = GraphSimulation.dotOffset(k, scale: scale)
-                dots.addEllipse(in: CGRect(x: p.x + q.x - dot, y: p.y + q.y - dot, width: dot * 2, height: dot * 2))
+
+        // Glow: the same nodes, larger and blurred, under the sharp ones.
+        ctx.drawLayer { glow in
+            glow.addFilter(.blur(radius: 7 * zoomDot))
+            for n in sim.nodes {
+                let dim = lit != nil && n.theme != lit && n.kind != .root
+                let p = screen(n.p, center: center)
+                let r = n.size * zoomDot * 2.1
+                glow.fill(Path(ellipseIn: CGRect(x: p.x - r, y: p.y - r, width: r * 2, height: r * 2)),
+                          with: .color(n.color.opacity(dim ? 0.08 : 0.55)))
             }
-            ctx.fill(dots, with: .color(n.color.opacity(dim ? 0.2 : 0.85)))
         }
-        for (i, n) in sim.nodes.enumerated() {
+
+        // Cores: a radial gradient from a hot white center to the node color.
+        for n in sim.nodes {
+            let dim = lit != nil && n.theme != lit && n.kind != .root
             let p = screen(n.p, center: center)
-            let r = n.radius * scale
-            let dim = hover != nil && hover != i && !neighbours.contains(i)
-            let ink = dim ? n.color.opacity(0.35) : n.color
-            let title = Text(n.label).font(.system(size: 12.5, weight: .bold)).foregroundStyle(ink)
-            + Text("  \(n.count)").font(.system(size: 11, weight: .medium).monospacedDigit()).foregroundStyle(ink.opacity(0.7))
-            let size = ctx.resolve(title).measure(in: CGSize(width: GraphSimulation.labelWidth, height: 60))
-            // Centered on the cluster, above the dots, on a soft pill.
-            let box = CGRect(x: p.x - size.width / 2, y: p.y - size.height / 2, width: size.width, height: size.height)
-            let pill = Path(roundedRect: box.insetBy(dx: -7, dy: -3), cornerRadius: (size.height + 6) / 2)
-            ctx.fill(pill, with: .color(Color(nsColor: .textBackgroundColor).opacity(dim ? 0.5 : 0.92)))
-            ctx.stroke(pill, with: .color(n.color.opacity(dim ? 0.15 : 0.5)), lineWidth: 1)
-            ctx.draw(title, in: box)
-            _ = r
+            let r = n.size * zoomDot
+            let rect = CGRect(x: p.x - r, y: p.y - r, width: r * 2, height: r * 2)
+            let hot = n.kind == .leaf ? Color.white : Color(red: 1, green: 0.93, blue: 0.78)
+            ctx.fill(Path(ellipseIn: rect), with: .radialGradient(
+                Gradient(colors: [hot.opacity(dim ? 0.25 : 1), n.color.opacity(dim ? 0.2 : 0.95)]),
+                center: CGPoint(x: p.x - r * 0.25, y: p.y - r * 0.25), startRadius: 0, endRadius: r * 1.2))
+        }
+
+        // Labels: themes only, in the branch color, under the node.
+        for n in sim.nodes where n.kind == .theme {
+            let dim = lit != nil && n.theme != lit
+            let p = screen(n.p, center: center)
+            let text = Text(n.label).font(.system(size: 11.5, weight: .semibold)).foregroundStyle(n.color.opacity(dim ? 0.3 : 1))
+                + Text("  \(n.count)").font(.system(size: 10.5).monospacedDigit()).foregroundStyle(.white.opacity(dim ? 0.2 : 0.55))
+            ctx.draw(text, at: CGPoint(x: p.x, y: p.y + n.size * zoomDot + 9), anchor: .top)
         }
     }
 
     private func hit(_ point: CGPoint, center: CGPoint) -> Int? {
-        sim.nodes.indices.first { i in
-            let p = screen(sim.nodes[i].p, center: center)
-            return hypot(p.x - point.x, p.y - point.y) <= sim.nodes[i].radius * scale + 4
+        var best: (Int, CGFloat)?
+        let zoomDot = max(0.7, min(scale, 2.2))
+        for (i, n) in sim.nodes.enumerated() {
+            let p = screen(n.p, center: center)
+            let d = hypot(p.x - point.x, p.y - point.y)
+            if d <= max(8, n.size * zoomDot + 6), best == nil || d < best!.1 { best = (i, d) }
         }
+        return best?.0
     }
 
     // MARK: Data
@@ -195,43 +206,59 @@ struct GraphView: View {
     private func color(for theme: String) -> Color {
         let names = model.projects.map(\.name)
         let i = names.firstIndex(of: theme) ?? 0
-        return GraphSimulation.palette[i % GraphSimulation.palette.count]
+        return GraphStyle.branchColors[i % GraphStyle.branchColors.count]
     }
 
-
-    /// Hosts too general to say two themes are related.
-    private static let genericHosts: Set<String> = [
-        "x.com", "twitter.com", "youtube.com", "m.youtube.com", "youtu.be", "reddit.com", "old.reddit.com",
-        "threads.com", "threads.net", "linkedin.com", "google.com", "t.co", "medium.com", "substack.com",
-    ]
-
+    /// Builds the tree: you at the root, a branch per theme, a twig per site
+    /// that holds three or more of the theme's links, and a leaf per link.
     private func rebuild() {
-        let names = themeNames
-        // The sources of each theme: the tab's site and, for X posts, the
-        // domain the post links to.
-        var sources: [String: Set<String>] = [:]
-        for tab in model.tabs {
-            guard let theme = model.assignment(for: tab)?.project, names.contains(theme) else { continue }
-            var hosts: [String] = [tab.host]
-            if let out = model.previews[tab.url]?.outboundURL, let h = URL(string: out)?.host() {
-                hosts.append(h.hasPrefix("www.") ? String(h.dropFirst(4)) : h)
-            }
-            for h in hosts where !Self.genericHosts.contains(h) { sources[theme, default: []].insert(h) }
-        }
-        let nodes = names.map { name in
-            GraphSimulation.Node(key: name, label: name, color: color(for: name),
-                                 radius: GraphSimulation.clusterRadius(model.count(name)), count: model.count(name))
-        }
+        var nodes: [GraphSimulation.Node] = [
+            .init(kind: .root, key: "root", label: "", theme: nil, color: GraphStyle.root, size: 11, count: model.tabs.count),
+        ]
         var edges: [GraphSimulation.Edge] = []
-        for i in names.indices {
-            for j in names.indices where j > i {
-                let shared = (sources[names[i]] ?? []).intersection(sources[names[j]] ?? []).count
-                if shared > 0 { edges.append(.init(a: i, b: j, weight: shared)) }
+        for name in themeNames {
+            let tabs = model.tabs(in: name)
+            let tint = color(for: name)
+            let t = nodes.count
+            nodes.append(.init(kind: .theme, key: name, label: name, theme: name, color: tint,
+                               size: 4.5 + sqrt(CGFloat(tabs.count)) * 0.9, count: tabs.count))
+            edges.append(.init(a: 0, b: t, length: 70 + sqrt(CGFloat(tabs.count)) * 12))
+            let bySite = Dictionary(grouping: tabs, by: \.host)
+            for (site, group) in bySite.sorted(by: { $0.value.count > $1.value.count }) {
+                var parent = t
+                if group.count >= 3 {
+                    parent = nodes.count
+                    nodes.append(.init(kind: .group, key: "\(name)|\(site)", label: site, theme: name, color: tint,
+                                       size: 2.8 + sqrt(CGFloat(group.count)) * 0.5, count: group.count))
+                    edges.append(.init(a: t, b: parent, length: 34 + sqrt(CGFloat(group.count)) * 4))
+                }
+                for tab in group {
+                    let leaf = nodes.count
+                    nodes.append(.init(kind: .leaf, key: tab.url, label: "", theme: name, color: tint, size: 2.1, count: 1))
+                    edges.append(.init(a: parent, b: leaf, length: parent == t ? 26 : 16))
+                }
             }
         }
         sim.load(nodes: nodes, edges: edges)
-        if let f = focusTheme, !names.contains(f) { focusTheme = nil }
+        if let f = focusTheme, !themeNames.contains(f) { focusTheme = nil }
     }
+}
+
+/// Colors and background for the graph. Dark on purpose, in both light and
+/// dark mode: the lights read better on night.
+enum GraphStyle {
+    static let background = LinearGradient(
+        colors: [Color(red: 0.12, green: 0.10, blue: 0.16), Color(red: 0.07, green: 0.09, blue: 0.14)],
+        startPoint: .topLeading, endPoint: .bottomTrailing)
+    static let root = Color(red: 1.0, green: 0.62, blue: 0.22)
+    /// Warm to cool, all bright enough to glow on dark.
+    static let branchColors: [Color] = [
+        Color(red: 1.00, green: 0.66, blue: 0.30), Color(red: 1.00, green: 0.82, blue: 0.40),
+        Color(red: 0.98, green: 0.52, blue: 0.42), Color(red: 0.56, green: 0.86, blue: 0.98),
+        Color(red: 0.70, green: 0.62, blue: 1.00), Color(red: 0.55, green: 0.95, blue: 0.75),
+        Color(red: 1.00, green: 0.60, blue: 0.75), Color(red: 0.95, green: 0.95, blue: 0.70),
+        Color(red: 0.62, green: 0.75, blue: 1.00), Color(red: 1.00, green: 0.74, blue: 0.55),
+    ]
 }
 
 // MARK: - Link level
@@ -396,107 +423,103 @@ private struct LinkChip: View {
 
 // MARK: - Simulation
 
-/// Physics for the theme level: repulsion, springs that pull related themes
-/// closer the more sources they share, and cooling so it settles.
+/// Physics for the tree: every node pushes every other away, edges act as
+/// springs with their own rest length, and the root stays in the middle.
+/// It cools down and stops, so a settled graph costs nothing.
 @MainActor
 final class GraphSimulation {
+    enum Kind { case root, theme, group, leaf }
+
     struct Node {
+        let kind: Kind
         let key: String
         let label: String
+        let theme: String?
         let color: Color
-        let radius: CGFloat
+        let size: CGFloat
         let count: Int
         var p: CGPoint = .zero
         var v: CGVector = .zero
 
-        init(key: String, label: String, color: Color, radius: CGFloat, count: Int) {
-            self.key = key; self.label = label; self.color = color; self.radius = radius; self.count = count
+        init(kind: Kind, key: String, label: String, theme: String?, color: Color, size: CGFloat, count: Int) {
+            self.kind = kind; self.key = key; self.label = label; self.theme = theme
+            self.color = color; self.size = size; self.count = count
         }
     }
 
-    struct Edge { let a: Int; let b: Int; let weight: Int }
+    struct Edge { let a: Int; let b: Int; let length: CGFloat }
 
     private(set) var nodes: [Node] = []
     private(set) var edges: [Edge] = []
-    private var adjacency: [Set<Int>] = []
     private var alpha: CGFloat = 1
 
-    var isMoving: Bool { alpha > 0.01 }
+    var isMoving: Bool { alpha > 0.008 }
 
-    static let labelWidth: CGFloat = 170
-    static let dotSpacing: CGFloat = 8.5
-
-    /// Where link `k` sits inside its cluster (sunflower spiral).
-    static func dotOffset(_ k: Int, scale: CGFloat) -> CGPoint {
-        let angle = Double(k) * 2.399963
-        let r = dotSpacing * scale * sqrt(Double(k) + 0.5)
-        return CGPoint(x: cos(angle) * r, y: sin(angle) * r)
-    }
-
-    static func clusterRadius(_ count: Int) -> CGFloat {
-        dotSpacing * sqrt(CGFloat(count) + 0.5) + 10
-    }
-
-    static let palette: [Color] = [.blue, .orange, .green, .pink, .purple, .teal, .red, .indigo, .mint, .brown, .cyan, .yellow]
+    /// Kept for the link level, which tints chips by theme.
+    static var palette: [Color] { GraphStyle.branchColors }
 
     func load(nodes new: [Node], edges newEdges: [Edge]) {
         let old = Dictionary(nodes.map { ($0.key, $0.p) }, uniquingKeysWith: { a, _ in a })
         nodes = new
-        for i in nodes.indices {
-            if let p = old[nodes[i].key] {
-                nodes[i].p = p
-            } else {
-                let angle = Double(i) * 2.399963
-                let r = 60 * sqrt(Double(i) + 1)
-                nodes[i].p = CGPoint(x: cos(angle) * r * 1.4, y: sin(angle) * r)
-            }
-        }
         edges = newEdges
-        adjacency = Array(repeating: [], count: nodes.count)
-        for e in edges { adjacency[e.a].insert(e.b); adjacency[e.b].insert(e.a) }
-        alpha = old.isEmpty ? 1 : 0.4
+        // New nodes start next to their parent so branches grow outward.
+        var parent: [Int: Int] = [:]
+        for e in edges { parent[e.b] = e.a }
+        for i in nodes.indices {
+            if let p = old[nodes[i].key] { nodes[i].p = p; continue }
+            if i == 0 { nodes[i].p = .zero; continue }
+            let base = parent[i].map { nodes[$0].p } ?? .zero
+            let angle = Double(i) * 2.399963
+            let r: Double = nodes[i].kind == .theme ? 120 : 14
+            nodes[i].p = CGPoint(x: base.x + cos(angle) * r, y: base.y + sin(angle) * r)
+        }
+        alpha = old.isEmpty ? 1 : 0.5
     }
 
-    func neighbours(of i: Int) -> Set<Int> { adjacency.indices.contains(i) ? adjacency[i] : [] }
-
     func tick() {
-        guard isMoving, !nodes.isEmpty else { return }
+        guard isMoving, nodes.count > 1 else { return }
         let count = nodes.count
-        var force = [CGVector](repeating: .zero, count: count)
+        var fx = [CGFloat](repeating: 0, count: count)
+        var fy = [CGFloat](repeating: 0, count: count)
+        let charge: (Kind) -> CGFloat = { k in
+            switch k { case .root: 900; case .theme: 520; case .group: 90; case .leaf: 26 }
+        }
         for i in 0..<count {
+            let pi = nodes[i].p, qi = charge(nodes[i].kind)
             for j in (i + 1)..<count {
-                let dx = nodes[i].p.x - nodes[j].p.x, dy = nodes[i].p.y - nodes[j].p.y
-                let d = max(sqrt(dx * dx + dy * dy), 1)
-                // Room for both clusters and their labels underneath.
-                let horizontal = abs(dx) > abs(dy)
-                let reach = { (n: Node) in horizontal ? max(n.radius, Self.labelWidth / 2) : max(n.radius, 16) }
-                let minGap = reach(nodes[i]) + reach(nodes[j]) + 18
-                // Strong push inside the gap, soft charge outside it.
-                let f = d < minGap ? (minGap - d) * 0.5 : 2400 / (d * d)
-                let fx = f * dx / d, fy = f * dy / d
-                force[i].dx += fx; force[i].dy += fy
-                force[j].dx -= fx; force[j].dy -= fy
+                let dx = pi.x - nodes[j].p.x, dy = pi.y - nodes[j].p.y
+                let d2 = max(dx * dx + dy * dy, 9)
+                if d2 > 160_000 { continue }
+                let f = sqrt(qi * charge(nodes[j].kind)) / d2
+                let d = sqrt(d2)
+                let ux = dx / d * f, uy = dy / d * f
+                fx[i] += ux; fy[i] += uy
+                fx[j] -= ux; fy[j] -= uy
             }
         }
         for e in edges {
-            let a = nodes[e.a], b = nodes[e.b]
-            let dx = b.p.x - a.p.x, dy = b.p.y - a.p.y
-            let d = max(sqrt(dx * dx + dy * dy), 1)
-            let rest = a.radius + b.radius + max(30, 140 - CGFloat(e.weight) * 18)
-            let f = (d - rest) * 0.012 * min(CGFloat(e.weight), 4)
-            let fx = f * dx / d, fy = f * dy / d
-            force[e.a].dx += fx; force[e.a].dy += fy
-            force[e.b].dx -= fx; force[e.b].dy -= fy
+            let a = nodes[e.a].p, b = nodes[e.b].p
+            let dx = b.x - a.x, dy = b.y - a.y
+            let d = max(sqrt(dx * dx + dy * dy), 0.1)
+            let f = (d - e.length) * 0.08
+            let ux = f * dx / d, uy = f * dy / d
+            fx[e.a] += ux * 0.3; fy[e.a] += uy * 0.3
+            fx[e.b] -= ux; fy[e.b] -= uy
         }
-        for i in 0..<count {
-            force[i].dx -= nodes[i].p.x * 0.01
-            force[i].dy -= nodes[i].p.y * 0.016
-            nodes[i].v.dx = (nodes[i].v.dx + force[i].dx * alpha) * 0.7
-            nodes[i].v.dy = (nodes[i].v.dy + force[i].dy * alpha) * 0.7
-            nodes[i].p.x += nodes[i].v.dx
-            nodes[i].p.y += nodes[i].v.dy
+        for i in 1..<count {
+            fx[i] -= nodes[i].p.x * 0.002
+            fy[i] -= nodes[i].p.y * 0.002
+            var v = nodes[i].v
+            v.dx = (v.dx + fx[i] * alpha) * 0.62
+            v.dy = (v.dy + fy[i] * alpha) * 0.62
+            let speed = hypot(v.dx, v.dy)
+            if speed > 24 { v.dx *= 24 / speed; v.dy *= 24 / speed }
+            nodes[i].v = v
+            nodes[i].p.x += v.dx
+            nodes[i].p.y += v.dy
         }
-        alpha *= 0.985
+        nodes[0].p = .zero
+        alpha *= 0.988
     }
 }
 
