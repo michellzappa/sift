@@ -115,7 +115,7 @@ enum PreviewFetcher {
             imageURL: photo ?? media ?? poster,
             site: "x.com",
             fetched: .now,
-            avatarURL: user?["profile_image_url_https"] as? String
+            avatarURL: (user?["profile_image_url_https"] as? String)?.replacingOccurrences(of: "_normal.", with: "_bigger.")
         )
     }
 

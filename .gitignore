@@ -11,3 +11,6 @@ Sift.xcodeproj/
 tabs-*.md
 tabs-*.txt
 iphone-tabs.*
+
+# Agent worktrees
+.claude/
