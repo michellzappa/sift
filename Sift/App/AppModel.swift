@@ -328,6 +328,10 @@ final class AppModel {
         archive.values.filter { r in
             guard r.theme != Project.errands, r.theme != Project.drop, !Errands.isErrand(r.url) else { return false }
             guard let e = library[r.url] else { return true }
+            // Posts captured as thin before posts were exempt: redo once.
+            if e.status == "thin", Self.isPostURL(r.url) { return true }
+            // Failed posts that now have known text (an Instagram caption) retry now.
+            if e.status == "failed", Self.isPostURL(r.url), !(previews[r.url]?.text ?? "").isEmpty { return true }
             return e.status == "failed" && Date().timeIntervalSince(e.captured) > 7 * 24 * 3600
         }
     }
@@ -341,11 +345,12 @@ final class AppModel {
         isCapturing = true
         captureProgress = (0, todo.count)
         defer { isCapturing = false; Library.saveIndex(library) }
-        // X posts are captured from the text Sift already has.
+        // Posts (X, Instagram) are captured from the text Sift already has:
+        // their pages need a login or JavaScript.
         let jobs: [(ArchiveRecord, String?)] = todo.map { r in
-            guard XClient.statusID(r.url) != nil else { return (r, nil) }
+            guard Self.isPostURL(r.url) else { return (r, nil) }
             let text = xPost(for: r.url).map { XPostView.attributed($0).characters.map(String.init).joined() } ?? previews[r.url]?.text
-            return (r, text)
+            return (r, text?.isEmpty == false ? text : nil)
         }
         await withTaskGroup(of: (ArchiveRecord, Capture?).self) { group in
             var iterator = jobs.makeIterator()
@@ -365,6 +370,12 @@ final class AppModel {
                 if let j = iterator.next() { next(j) }
             }
         }
+    }
+
+    static func isPostURL(_ url: String) -> Bool {
+        if XClient.statusID(url) != nil { return true }
+        let host = URL(string: url)?.host()?.lowercased() ?? ""
+        return host.hasSuffix("instagram.com")
     }
 
     var capturedCount: Int { library.values.filter { $0.status != "failed" }.count }

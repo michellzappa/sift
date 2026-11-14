@@ -265,6 +265,8 @@ private struct LibraryStatus: View {
             }
         }
         .padding(.horizontal, 14).padding(.vertical, 10)
+        .background(.bar)
+        .overlay(alignment: .top) { Divider() }
         .help("Sift saves the readable text of your links on this Mac, so it stays when a tab closes.")
     }
 }

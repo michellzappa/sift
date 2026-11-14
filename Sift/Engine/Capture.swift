@@ -175,7 +175,9 @@ enum Library {
         if let theme { lines.append("theme: \(y(theme))") }
         lines += ["source: \(y(source))", "captured: \(ISO8601DateFormatter().string(from: .now))", "words: \(c.words)", "---", "", c.text, ""]
         try? lines.joined(separator: "\n").write(to: folder.appending(path: file), atomically: true, encoding: .utf8)
-        return Entry(file: file, captured: .now, words: c.words, kind: c.kind, status: c.words < 150 ? "thin" : "ok")
+        // Posts are short by nature; only articles and PDFs can be "thin".
+        let thin = c.kind != "post" && c.words < 150
+        return Entry(file: file, captured: .now, words: c.words, kind: c.kind, status: thin ? "thin" : "ok")
     }
 
     /// The captured text (without front matter), if any.
