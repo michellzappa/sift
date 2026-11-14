@@ -122,6 +122,11 @@ struct ContentView: View {
 private struct Sidebar: View {
     @Environment(AppModel.self) private var model
     @Binding var selection: SidebarItem?
+    // Each section folds; the choice is remembered.
+    @AppStorage("sidebar.themes") private var showThemes = true
+    @AppStorage("sidebar.actions") private var showActions = true
+    @AppStorage("sidebar.sites") private var showSites = true
+    @AppStorage("sidebar.outside") private var showOutside = true
 
     var body: some View {
         List(selection: $selection) {
@@ -157,26 +162,26 @@ private struct Sidebar: View {
                     .tag(SidebarItem.closeQueue)
             }
 
-            Section("Themes") {
+            Section("Themes", isExpanded: $showThemes) {
                 ForEach(model.activeProjects, id: \.project) { item in
                     HStack { Text(item.project); Spacer(); count(item.count) }
                         .tag(SidebarItem.project(item.project))
                 }
             }
-            Section("Next action") {
+            Section("Next action", isExpanded: $showActions) {
                 ForEach(NextAction.allCases, id: \.self) { action in
                     Label { HStack { Text(action.label); Spacer(); count(model.tabs(withAction: action).count) } } icon: { Image(systemName: action.symbol) }
                         .help(action.meaning)
                         .tag(SidebarItem.action(action))
                 }
             }
-            Section("Sites") {
+            Section("Sites", isExpanded: $showSites) {
                 ForEach(model.sites, id: \.host) { site in
                     HStack { Text(site.host).lineLimit(1); Spacer(); count(site.count) }
                         .tag(SidebarItem.site(site.host))
                 }
             }
-            Section("Outside your themes") {
+            Section("Outside your themes", isExpanded: $showOutside) {
                 ForEach(Project.buckets, id: \.self) { bucket in
                     HStack { Text(Project.displayName(bucket)); Spacer(); count(model.count(bucket)) }
                         .tag(SidebarItem.project(bucket))
