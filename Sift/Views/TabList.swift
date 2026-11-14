@@ -11,6 +11,7 @@ struct TabList: View {
     @State private var showInspector = false
     @State private var showShortcutGuide = false
     @State private var siteFilter: String?
+    @AppStorage("links.style") private var style: LinkStyle = .list
     /// Full-text matches for the filter: url to snippet, from the search index.
     @State private var textHits: [String: String] = [:]
 
@@ -70,16 +71,36 @@ struct TabList: View {
                         .frame(maxWidth: .infinity, alignment: .leading)
                         .padding([.horizontal, .top], 16)
                 }
-                LazyVGrid(columns: [TabCard.column], spacing: 14) {
-                    ForEach(rows) { tab in
-                        TabCard(tab: tab, isSelected: selected == tab.id, showTheme: project == nil || Project.buckets.contains(project ?? ""))
-                            .onTapGesture(count: 2) { TabActions.openInSafari(tab.url) }
-                            .onTapGesture { withAnimation(.snappy) { selected = tab.id; showInspector = true } }
+                if style == .list {
+                    LazyVStack(spacing: 2) {
+                        ForEach(rows) { tab in
+                            cell(tab).id(tab.id)
+                        }
                     }
+                    .padding(.horizontal, 10)
+                    .padding(.vertical, 8)
+                    // Rows stay clear of the browser pane, so none hides under it.
+                    .padding(.trailing, showInspector ? BrowserOverlay.width(for: listWidth) : 0)
+                } else {
+                    LazyVGrid(columns: [TabCard.column], spacing: 14) {
+                        ForEach(rows) { tab in cell(tab) }
+                    }
+                    .padding(16)
                 }
-                .padding(16)
             }
-            .background(Color(nsColor: .underPageBackgroundColor))
+            .background(style == .list ? Color(nsColor: .textBackgroundColor) : Color(nsColor: .underPageBackgroundColor))
+            .background(GeometryReader { g in Color.clear.onAppear { listWidth = g.size.width }.onChange(of: g.size.width) { _, w in listWidth = w } })
+            .scrollPosition(id: $scrolledTo, anchor: .center)
+            // Keyboard: arrows move, space opens or closes the browser.
+            .focusable()
+            .focusEffectDisabled()
+            .onKeyPress(.downArrow) { step(1); return .handled }
+            .onKeyPress(.upArrow) { step(-1); return .handled }
+            .onKeyPress(.space) {
+                guard selected != nil else { return .ignored }
+                withAnimation(.snappy) { showInspector.toggle() }
+                return .handled
+            }
         }
         .overlay {
             if rows.isEmpty {
@@ -119,6 +140,7 @@ struct TabList: View {
 
     @ToolbarContentBuilder
     private var listToolbar: some ToolbarContent {
+        ToolbarItem { LinkStyleToggle() }
         ToolbarItemGroup {
             if listSites.count > 1 {
                 Menu {
@@ -180,6 +202,22 @@ struct TabList: View {
         .background(.bar)
     }
 
+    @State private var listWidth: CGFloat = 900
+    @State private var scrolledTo: String?
+
+    private func cell(_ tab: SafariTab) -> some View {
+        TabCard(tab: tab, isSelected: selected == tab.id, showTheme: project == nil || Project.buckets.contains(project ?? ""), style: style)
+            .onTapGesture(count: 2) { TabActions.openInSafari(tab.url) }
+            .onTapGesture { withAnimation(.snappy) { selected = tab.id; showInspector = true } }
+    }
+
+    private func step(_ by: Int) {
+        guard !rows.isEmpty else { return }
+        let i = rows.firstIndex { $0.id == selected }.map { min(max($0 + by, 0), rows.count - 1) } ?? 0
+        selected = rows[i].id
+        scrolledTo = rows[i].id
+    }
+
     private var subtitle: String {
         let n = rows.count
         let text = model.projects.first(where: { $0.name == project })?.summary ?? ""
@@ -187,7 +225,27 @@ struct TabList: View {
     }
 }
 
-/// One tab as a card: preview image, title, text, use, footer.
+/// How lists show links: rows (the default) or cards.
+enum LinkStyle: String {
+    case list, grid
+}
+
+/// List or grid, remembered for every list and the graph's theme view.
+struct LinkStyleToggle: View {
+    @AppStorage("links.style") private var style: LinkStyle = .list
+
+    var body: some View {
+        Picker("Layout", selection: $style) {
+            Image(systemName: "list.bullet").tag(LinkStyle.list).help("List")
+            Image(systemName: "square.grid.2x2").tag(LinkStyle.grid).help("Grid")
+        }
+        .pickerStyle(.segmented)
+        .labelsHidden()
+        .fixedSize()
+    }
+}
+
+/// One tab as a row or a card: preview image, title, text, theme, action.
 /// The card fetches its own preview when it scrolls into view.
 struct TabCard: View {
     /// One fixed card width everywhere. When the browser opens, rows hold
@@ -200,6 +258,9 @@ struct TabCard: View {
     let isSelected: Bool
     /// Off inside a theme's own list, where the theme would repeat on every card.
     var showTheme = true
+    /// A row in the list, or a card in the grid.
+    var style: LinkStyle = .list
+    @State private var hovering = false
     @State private var editingUse = false
     @State private var draft = ""
 
@@ -207,6 +268,151 @@ struct TabCard: View {
         let a = model.assignment(for: tab)
         let preview = model.previews[tab.url]
         let closing = model.isQueuedToClose(tab)
+        Group {
+            if style == .list { row(a, preview, closing) } else { card(a, preview, closing) }
+        }
+        .contentShape(Rectangle())
+        .task(id: tab.url) { await model.preview(for: tab) }
+        .contextMenu {
+            Button("Open in Safari") { TabActions.openInSafari(tab.url) }
+            Button("Add to Reading List") {
+                model.exportMessage = TabActions.addToReadingList(tab.url, title: cardTitle(preview), preview: bodyText(preview) ?? "")
+            }
+            Button("Copy Link") { model.copy(tab.url) }
+            if a != nil { Menu("Next Action") { actionMenu } }
+            Divider()
+            if !model.isSavedList {
+                Button(closing ? "Keep Open on iPhone" : "Close on iPhone") { model.toggleClose(tab) }
+            }
+            Menu("Move to") { moveMenu }
+            Button("Mark as Noise") { model.move(tab, to: Project.drop) }
+        }
+        .popover(isPresented: $editingUse) {
+            VStack(alignment: .leading) {
+                Text("How could this link be used?").font(.headline)
+                TextField("Use", text: $draft, axis: .vertical).frame(width: 340).lineLimit(2...5)
+                HStack {
+                    Spacer()
+                    Button("Cancel") { editingUse = false }
+                    Button("Save") { model.setUse(draft, for: tab); editingUse = false }.keyboardShortcut(.defaultAction)
+                }
+            }
+            .padding()
+        }
+    }
+
+    // MARK: Row
+
+    /// One link as a row: thumbnail, title, a meta line with one line of
+    /// preview, then the theme and the next action. The text truncates, so a
+    /// row fits any width.
+    private func row(_ a: Assignment?, _ preview: Preview?, _ closing: Bool) -> some View {
+        HStack(spacing: 12) {
+            thumbnail(preview)
+                .frame(width: 48, height: 48)
+                .clipShape(RoundedRectangle(cornerRadius: 8))
+                .overlay(RoundedRectangle(cornerRadius: 8).strokeBorder(Color.primary.opacity(0.06)))
+            VStack(alignment: .leading, spacing: 3) {
+                Text(cardTitle(preview))
+                    .font(.body.weight(.semibold))
+                    .lineLimit(1)
+                    .strikethrough(closing, color: .secondary)
+                HStack(spacing: 5) {
+                    Image(systemName: tab.sourceSymbol).help("From \(tab.source)")
+                    Text(tab.host).lineLimit(1).fixedSize()
+                    if let d = tab.lastViewed {
+                        Text("·")
+                        Text(d, format: Self.dateFormat(d)).fixedSize()
+                    }
+                    if let saved = savedSymbol {
+                        Image(systemName: saved.symbol).help(saved.help)
+                    }
+                    if let text = bodyText(preview) ?? xText(preview) {
+                        Text("·")
+                        Text(text).lineLimit(1).foregroundStyle(.tertiary)
+                    }
+                }
+                .font(.caption)
+                .foregroundStyle(.secondary)
+            }
+            Spacer(minLength: 8)
+            if a?.manual == true { Image(systemName: "hand.point.up.left").foregroundStyle(.tertiary).help("Sorted by hand") }
+            if closing { Image(systemName: "xmark.square").foregroundStyle(.secondary).help("Closes on iPhone") }
+            if let a {
+                if showTheme {
+                    Menu { moveMenu } label: {
+                        HStack(spacing: 5) {
+                            Circle().fill(model.themeColor(a.project)).frame(width: 7, height: 7)
+                            Text(Project.displayName(a.project)).lineLimit(1)
+                        }
+                    }
+                    .menuStyle(.button)
+                    .buttonStyle(.borderless)
+                    .controlSize(.small)
+                    .foregroundStyle(.secondary)
+                    .frame(maxWidth: 170, alignment: .trailing)
+                    .fixedSize(horizontal: false, vertical: true)
+                    .help("Theme: \(a.project)")
+                }
+                Menu { actionMenu } label: {
+                    Image(systemName: a.action?.symbol ?? "plus.circle")
+                }
+                .menuStyle(.button)
+                .buttonStyle(.borderless)
+                .menuIndicator(.hidden)
+                .fixedSize()
+                .foregroundStyle(a.action == nil ? .tertiary : .secondary)
+                .opacity(a.action != nil || hovering || isSelected ? 1 : 0)
+                .help(a.action.map { "Next: \($0.label). \($0.meaning)" } ?? "Choose what to do with this link next.")
+            }
+        }
+        .padding(.horizontal, 12)
+        .padding(.vertical, 8)
+        .background(isSelected ? Color.accentColor.opacity(0.14) : hovering ? Color.primary.opacity(0.04) : .clear,
+                    in: RoundedRectangle(cornerRadius: 8))
+        .opacity(closing ? 0.6 : 1)
+        .onHover { hovering = $0 }
+    }
+
+    /// What Sift saved of this link, as one small symbol.
+    private var savedSymbol: (symbol: String, help: String)? {
+        guard let e = model.library[tab.url] else { return nil }
+        if e.transcript == true { return ("captions.bubble", "Transcript saved") }
+        if e.status == "ok", e.words > 0 { return ("doc.text", "Text saved: \(e.words) words") }
+        return nil
+    }
+
+    /// X posts carry their text in the title; the meta line shows the author.
+    private func xText(_ p: Preview?) -> String? {
+        guard p?.site == "x.com", let t = p?.title, !t.isEmpty else { return nil }
+        return t
+    }
+
+    static func dateFormat(_ d: Date) -> Date.FormatStyle {
+        // The year shows when it is not this year.
+        Calendar.current.isDate(d, equalTo: .now, toGranularity: .year)
+            ? .dateTime.day().month(.abbreviated) : .dateTime.day().month(.abbreviated).year()
+    }
+
+    /// Page image, author avatar, or the site's icon.
+    @ViewBuilder
+    private func thumbnail(_ p: Preview?) -> some View {
+        let source = p?.imageURL ?? p?.avatarURL ?? "https://\(tab.host)/favicon.ico"
+        AsyncImage(url: URL(string: source)) { phase in
+            if let image = phase.image {
+                image.resizable().aspectRatio(contentMode: .fill)
+            } else {
+                ZStack {
+                    Color.primary.opacity(0.05)
+                    Image(systemName: tab.sourceSymbol).foregroundStyle(.tertiary)
+                }
+            }
+        }
+    }
+
+    // MARK: Card
+
+    private func card(_ a: Assignment?, _ preview: Preview?, _ closing: Bool) -> some View {
         VStack(alignment: .leading, spacing: 0) {
             header(preview)
             VStack(alignment: .leading, spacing: 8) {
@@ -217,9 +423,7 @@ struct TabCard: View {
                     if let d = tab.lastViewed {
                         Text("·")
                         // The year shows when it is not this year.
-                        Text(d, format: Calendar.current.isDate(d, equalTo: .now, toGranularity: .year)
-                             ? .dateTime.day().month(.abbreviated) : .dateTime.day().month(.abbreviated).year())
-                            .fixedSize()
+                        Text(d, format: Self.dateFormat(d)).fixedSize()
                     }
                     Spacer(minLength: 0)
                     if a?.manual == true { Image(systemName: "hand.point.up.left").help("Sorted by hand") }
@@ -285,34 +489,6 @@ struct TabCard: View {
         .clipShape(RoundedRectangle(cornerRadius: 12))
         .shadow(color: .black.opacity(0.05), radius: 4, y: 2)
         .opacity(closing ? 0.6 : 1)
-        .contentShape(RoundedRectangle(cornerRadius: 10))
-        .task(id: tab.url) { await model.preview(for: tab) }
-        .contextMenu {
-            Button("Open in Safari") { TabActions.openInSafari(tab.url) }
-            Button("Add to Reading List") {
-                model.exportMessage = TabActions.addToReadingList(tab.url, title: cardTitle(preview), preview: bodyText(preview) ?? "")
-            }
-            Button("Copy Link") { model.copy(tab.url) }
-            if a != nil { Menu("Next Action") { actionMenu } }
-            Divider()
-            if !model.isSavedList {
-                Button(closing ? "Keep Open on iPhone" : "Close on iPhone") { model.toggleClose(tab) }
-            }
-            Menu("Move to") { moveMenu }
-            Button("Mark as Noise") { model.move(tab, to: Project.drop) }
-        }
-        .popover(isPresented: $editingUse) {
-            VStack(alignment: .leading) {
-                Text("How could this link be used?").font(.headline)
-                TextField("Use", text: $draft, axis: .vertical).frame(width: 340).lineLimit(2...5)
-                HStack {
-                    Spacer()
-                    Button("Cancel") { editingUse = false }
-                    Button("Save") { model.setUse(draft, for: tab); editingUse = false }.keyboardShortcut(.defaultAction)
-                }
-            }
-            .padding()
-        }
     }
 
     /// Page image when there is one. X posts get a band with the author's

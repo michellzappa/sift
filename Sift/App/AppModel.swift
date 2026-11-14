@@ -1,6 +1,7 @@
 import AppKit
 import Foundation
 import Observation
+import SwiftUI
 import UniformTypeIdentifiers
 
 @MainActor
@@ -953,6 +954,13 @@ final class AppModel {
     }
 
     // MARK: Connections between themes
+
+    /// A theme's color, the same in the graph and in lists. Buckets are grey.
+    func themeColor(_ theme: String) -> Color {
+        let names = projects.map(\.name)
+        guard let i = names.firstIndex(of: theme) else { return .gray }
+        return GraphStyle.color(index: i, of: names.count)
+    }
 
     /// The theme the graph is zoomed into. The sidebar selects it too.
     var graphTheme: String?

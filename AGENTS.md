@@ -101,6 +101,13 @@ project and as an overview network (one hub per project, one dot per tab).
   which other themes a link feeds (`Assignment.also`, max 2; nil = not
   checked). The graph weighs shared links 3x a shared site and draws a dashed
   line from such a link to the other hub. New themes reset `also`.
+- Links show as rows by default (`LinkStyle`, `@AppStorage("links.style")`,
+  `LinkStyleToggle`); cards are the grid option. `TabCard` draws both and
+  shares menus. Lists take arrow keys and space (browser). In the graph,
+  the list layout opens a left panel and keeps the cluster in view.
+- Cluster layout (2026-11-14): no site twigs. Leaves spiral out by recency
+  (newest nearest the hub). Solid dot = text or transcript saved; ring =
+  title only.
 - Graph focus selects the theme in the sidebar (`AppModel.graphTheme`);
   Overview or a source in the sidebar zooms back out.
   link feeds two themes or destinations). Not built.

@@ -19,6 +19,7 @@ struct GraphView: View {
     @State private var picked: String?
     @State private var hover: Int?
     @State private var redraw = 0
+    @AppStorage("links.style") private var linkStyle: LinkStyle = .list
     /// Where the sidebar was before a theme was focused.
     @State private var returnTo: SidebarItem?
     /// A link to another theme it also feeds: leaf index, theme hub index.
@@ -35,6 +36,7 @@ struct GraphView: View {
             // card grid underneath keep their size and position.
             ZStack(alignment: .trailing) {
                 canvas(size: geo.size)
+                    .onChange(of: linkStyle) { if let t = focusTheme { focus(t, size: geo.size) } }
                     .frame(width: geo.size.width, height: geo.size.height)
                     .clipped()
                 if let url = picked, let tab = model.tabs.first(where: { $0.url == url }) ?? model.archivedTabs.first(where: { $0.url == url }) {
@@ -146,7 +148,8 @@ struct GraphView: View {
         guard let i = nodeIndex(theme) else { return }
         let target: CGFloat = 1.8
         let p = sim.nodes[i].p
-        cam.animate(to: CGSize(width: -p.x * target, height: -p.y * target), scale: target)
+        let shift = linkStyle == .list ? Self.panelWidth(size) / 2 : 0
+        cam.animate(to: CGSize(width: -p.x * target + shift, height: -p.y * target), scale: target)
         withAnimation(.easeOut(duration: 0.3)) { focusTheme = theme }
         redraw += 1
         // The sidebar selects the theme too.
@@ -191,8 +194,9 @@ struct GraphView: View {
         func blend(_ normal: Double, _ dimmed: Double, _ isDim: Bool) -> Double { isDim ? normal + (dimmed - normal) * f : normal }
         let dotScale = max(0.7, min(cam.scale, 2.2))
         // Focused: the theme's own links are drawn as cards, not dots.
+        // In the list layout the cluster stays visible beside the list.
         let hidden: (GraphSimulation.Node) -> Bool = { n in
-            focusTheme != nil && n.theme == focusTheme && n.kind != .theme
+            linkStyle == .grid && focusTheme != nil && n.theme == focusTheme && n.kind != .theme
         }
 
         for e in sim.edges {
@@ -227,8 +231,13 @@ struct GraphView: View {
             let dim = lit != nil && n.theme != lit
             let p = screen(n.p, size: size)
             let r = n.size * dotScale
-            ctx.fill(Path(ellipseIn: CGRect(x: p.x - r, y: p.y - r, width: r * 2, height: r * 2)),
-                     with: .color(n.color.opacity(blend(n.kind == .leaf ? 0.75 : 1, 0.18, dim))))
+            let dot = Path(ellipseIn: CGRect(x: p.x - r, y: p.y - r, width: r * 2, height: r * 2))
+            let shade = GraphicsContext.Shading.color(n.color.opacity(blend(n.kind == .leaf ? 0.75 : 1, 0.18, dim)))
+            if n.hollow {
+                ctx.stroke(dot, with: shade, lineWidth: max(0.6, 0.45 * dotScale))
+            } else {
+                ctx.fill(dot, with: shade)
+            }
         }
         for (i, n) in sim.nodes.enumerated() where n.kind == .theme {
             let dim = lit != nil && n.theme != lit
@@ -251,7 +260,54 @@ struct GraphView: View {
 
     /// Every link of the focused theme as a card, in a grid that fits the
     /// view and scrolls when the theme is large, so no card hides another.
+    static func panelWidth(_ size: CGSize) -> CGFloat { min(460, max(320, size.width * 0.4)) }
+
+    @ViewBuilder
     private func chips(theme: String, node: Int, size: CGSize) -> some View {
+        if linkStyle == .list { panel(theme: theme, node: node, size: size) } else { grid(theme: theme, node: node, size: size) }
+    }
+
+    /// The theme's links as a list in a panel on the left; the cluster stays
+    /// in view on the right.
+    private func panel(theme: String, node: Int, size: CGSize) -> some View {
+        let tabs = links(in: theme)
+        let color = sim.nodes[node].color
+        let summary = model.projects.first(where: { $0.name == theme })?.summary ?? ""
+        let fade = min(1.0, max(0.0, Double(cam.scale - 1.1) / 0.6))
+        return HStack(spacing: 0) {
+            ScrollView {
+                VStack(alignment: .leading, spacing: 10) {
+                    HStack(alignment: .firstTextBaseline) {
+                        Text(theme).font(.title3.weight(.semibold)).foregroundStyle(color)
+                        Spacer()
+                        LinkStyleToggle()
+                    }
+                    if !summary.isEmpty { Text(summary).font(.callout).foregroundStyle(.secondary) }
+                    HStack {
+                        Text("\(tabs.count) links").font(.caption).foregroundStyle(.tertiary)
+                        Spacer()
+                        LinkStyleToggle()
+                    }
+                    if model.themes.contains(where: { $0.name == theme }) { ThemeMemory(theme: theme) }
+                    LazyVStack(spacing: 2) {
+                        ForEach(tabs) { tab in chipCell(tab, color: color) }
+                    }
+                    .padding(.horizontal, -8)
+                }
+                .padding(.horizontal, 16)
+                .padding(.top, 52)
+                .padding(.bottom, 16)
+            }
+            .frame(width: Self.panelWidth(size), height: size.height)
+            .background(.regularMaterial)
+            .overlay(alignment: .trailing) { Divider() }
+            Spacer(minLength: 0)
+        }
+        .frame(width: size.width, height: size.height)
+        .opacity(fade)
+    }
+
+    private func grid(theme: String, node: Int, size: CGSize) -> some View {
         let tabs = links(in: theme)
         let color = sim.nodes[node].color
         let summary = model.projects.first(where: { $0.name == theme })?.summary ?? ""
@@ -284,7 +340,7 @@ struct GraphView: View {
 
     /// The same card the lists use: image, full title, summary, use, action.
     private func chipCell(_ tab: SafariTab, color: Color) -> some View {
-        TabCard(tab: tab, isSelected: picked == tab.url, showTheme: focusTheme == Self.unsortedKey)
+        TabCard(tab: tab, isSelected: picked == tab.url, showTheme: false, style: linkStyle)
             .onTapGesture(count: 2) { TabActions.openInSafari(tab.url) }
             .onTapGesture { withAnimation(.snappy) { picked = picked == tab.url ? nil : tab.url } }
     }
@@ -321,10 +377,7 @@ struct GraphView: View {
     }
 
     private func color(for theme: String) -> Color {
-        if theme == Self.unsortedKey { return .gray }
-        let names = model.projects.map(\.name)
-        let i = names.firstIndex(of: theme) ?? 0
-        return GraphStyle.color(index: i, of: names.count)
+        model.themeColor(theme)
     }
 
     /// Hosts too general to say two themes are related.
@@ -333,48 +386,30 @@ struct GraphView: View {
         "threads.com", "threads.net", "linkedin.com", "google.com", "t.co", "medium.com", "substack.com",
     ]
 
-    /// Builds the graph: themes joined to each other where they share
-    /// sources, a branch per theme, a twig per site
-    /// that holds three or more of the theme's links, and a leaf per link.
+    /// Builds the graph: themes joined to each other where they share sources
+    /// or links, and a leaf per link around its theme, newest closest.
     private func rebuild() {
         var nodes: [GraphSimulation.Node] = []
         var edges: [GraphSimulation.Edge] = []
         for name in themeNames {
-            // Links sorted by site, so each site's links sit together.
-            let tabs = links(in: name).sorted { ($0.host, $0.url) < ($1.host, $1.url) }
+            // Newest links sit closest to the theme, oldest at the edge.
+            let tabs = links(in: name).sorted { ($0.lastViewed ?? .distantPast) > ($1.lastViewed ?? .distantPast) }
             let tint = color(for: name)
             let t = nodes.count
             let size = 5 + sqrt(CGFloat(tabs.count)) * 0.8
             nodes.append(.init(kind: .theme, key: name, label: name, theme: name, color: tint, size: size, count: tabs.count))
-            // A sunflower of links around the theme, compact and fixed.
-            var local: [String: CGPoint] = [:]
             for (k, tab) in tabs.enumerated() {
                 let angle = Double(k) * 2.399963
                 let r = Double(size) + 7 + 6.2 * sqrt(Double(k) + 1)
-                local[tab.url] = CGPoint(x: cos(angle) * r, y: sin(angle) * r)
-            }
-            let bySite = Dictionary(grouping: tabs, by: \.host)
-            for (site, group) in bySite.sorted(by: { $0.key < $1.key }) {
-                var parent = t
-                if group.count >= 3 {
-                    // The twig sits at the middle of its links.
-                    let pts = group.compactMap { local[$0.url] }
-                    let mid = CGPoint(x: pts.map(\.x).reduce(0, +) / CGFloat(pts.count) * 0.6,
-                                      y: pts.map(\.y).reduce(0, +) / CGFloat(pts.count) * 0.6)
-                    parent = nodes.count
-                    var twig = GraphSimulation.Node(kind: .group, key: "\(name)|\(site)", label: site, theme: name, color: tint,
-                                                    size: 2.4 + sqrt(CGFloat(group.count)) * 0.4, count: group.count)
-                    twig.anchor = t; twig.local = mid
-                    nodes.append(twig)
-                    edges.append(.init(a: t, b: parent, length: 0))
-                }
-                for tab in group {
-                    var leaf = GraphSimulation.Node(kind: .leaf, key: tab.url, label: "", theme: name, color: tint, size: 1.9, count: 1)
-                    leaf.anchor = t; leaf.local = local[tab.url] ?? .zero
-                    let i = nodes.count
-                    nodes.append(leaf)
-                    edges.append(.init(a: parent, b: i, length: 0))
-                }
+                var leaf = GraphSimulation.Node(kind: .leaf, key: tab.url, label: "", theme: name, color: tint, size: 1.9, count: 1)
+                leaf.anchor = t
+                leaf.local = CGPoint(x: cos(angle) * r, y: sin(angle) * r)
+                // Solid: Sift saved its text or transcript. Hollow: only the title.
+                let e = model.library[tab.url]
+                leaf.hollow = !(e?.transcript == true || (e?.status == "ok" && (e?.words ?? 0) > 0))
+                let i = nodes.count
+                nodes.append(leaf)
+                edges.append(.init(a: t, b: i, length: 0))
             }
         }
         // Theme to theme: the more sources two themes share (the same site,
@@ -466,61 +501,6 @@ enum GraphStyle {
     }
 }
 
-/// A link card around a focused theme: thumbnail (page image, author avatar or site icon),
-/// title and site.
-private struct LinkChip: View {
-    @Environment(AppModel.self) private var model
-    let tab: SafariTab
-    let color: Color
-    let isPicked: Bool
-
-    var body: some View {
-        let p = model.previews[tab.url]
-        HStack(spacing: 8) {
-            thumbnail(p)
-                .frame(width: 42, height: 42)
-                .clipShape(RoundedRectangle(cornerRadius: p?.site == "x.com" && p?.imageURL == nil ? 21 : 6))
-            VStack(alignment: .leading, spacing: 2) {
-                Text(Self.title(tab, p)).font(.caption.weight(.medium)).lineLimit(2)
-                HStack(spacing: 4) {
-                    if let action = model.assignment(for: tab)?.action { Image(systemName: action.symbol) }
-                    Text(p?.site == "x.com" ? (p?.title ?? "x.com") : tab.host).lineLimit(1)
-                }
-                .font(.caption2).foregroundStyle(.secondary)
-            }
-            Spacer(minLength: 0)
-        }
-        .padding(6)
-        .background(.background, in: RoundedRectangle(cornerRadius: 9))
-        .overlay(RoundedRectangle(cornerRadius: 9).strokeBorder(isPicked ? Color.accentColor : color.opacity(0.35), lineWidth: isPicked ? 2 : 1))
-        .shadow(color: .black.opacity(0.06), radius: 3, y: 1)
-        .task(id: tab.url) { await model.preview(for: tab) }
-        .help(tab.url)
-    }
-
-    @ViewBuilder
-    private func thumbnail(_ p: Preview?) -> some View {
-        let source = p?.imageURL ?? p?.avatarURL ?? "https://\(tab.host)/favicon.ico"
-        AsyncImage(url: URL(string: source)) { phase in
-            if let image = phase.image {
-                image.resizable().aspectRatio(contentMode: .fill)
-            } else {
-                ZStack {
-                    color.opacity(0.15)
-                    Text(String(tab.host.prefix(1)).uppercased()).font(.caption.weight(.bold)).foregroundStyle(color)
-                }
-            }
-        }
-    }
-
-    static func title(_ tab: SafariTab, _ p: Preview?) -> String {
-        if let p, !p.failed, p.site == "x.com", !p.text.isEmpty { return p.text }
-        if tab.hasUsefulTitle { return tab.title.replacingOccurrences(of: #" / X$"#, with: "", options: .regularExpression) }
-        if let p, !p.failed, !p.title.isEmpty { return p.title }
-        return tab.url
-    }
-}
-
 // MARK: - Simulation
 
 
@@ -608,6 +588,8 @@ final class GraphSimulation {
         /// For links and twigs: the theme node they move with, and where.
         var anchor: Int?
         var local: CGPoint = .zero
+        /// Links Sift has saved no text for are drawn as rings.
+        var hollow = false
 
         init(kind: Kind, key: String, label: String, theme: String?, color: Color, size: CGFloat, count: Int) {
             self.kind = kind; self.key = key; self.label = label; self.theme = theme
