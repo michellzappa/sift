@@ -37,7 +37,7 @@ struct ContentView: View {
         .sheet(isPresented: .init(get: { model.themeProposal != nil }, set: { if !$0 { model.themeProposal = nil } })) {
             ThemeReview().environment(model)
         }
-        .alert("Export", isPresented: .init(get: { model.exportMessage != nil }, set: { if !$0 { model.exportMessage = nil } })) {
+        .alert("Sift", isPresented: .init(get: { model.exportMessage != nil }, set: { if !$0 { model.exportMessage = nil } })) {
             Button("OK") { model.exportMessage = nil }
         } message: {
             Text(model.exportMessage ?? "")

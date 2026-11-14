@@ -30,6 +30,11 @@ struct WebPane: View {
                         .toggleStyle(.button)
                         .help("Reader: the text Sift captured into your library")
                 }
+                Button {
+                    let p = model.previews[tab.url]
+                    model.exportMessage = TabActions.addToReadingList(tab.url, title: model.archiveRecord(for: tab.url)?.title ?? tab.displayTitle, preview: p?.text ?? "")
+                } label: { Image(systemName: "eyeglasses") }
+                    .help("Add to Safari's Reading List")
                 Button { TabActions.openInSafari(page.url?.absoluteString ?? tab.url) } label: { Image(systemName: "safari") }
                     .help("Open in Safari")
                 if let onClose {

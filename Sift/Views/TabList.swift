@@ -274,6 +274,9 @@ struct TabCard: View {
         .task(id: tab.url) { await model.preview(for: tab) }
         .contextMenu {
             Button("Open in Safari") { TabActions.openInSafari(tab.url) }
+            Button("Add to Reading List") {
+                model.exportMessage = TabActions.addToReadingList(tab.url, title: cardTitle(preview), preview: bodyText(preview) ?? "")
+            }
             Button("Copy Link") { model.copy(tab.url) }
             if a != nil, !Project.buckets.contains(a?.project ?? "") {
                 Button("Edit Use…") { draft = a?.use ?? ""; editingUse = true }
@@ -391,6 +394,25 @@ struct TabCard: View {
 }
 
 enum TabActions {
+    /// Adds the link to Safari's Reading List through Safari's own scripting
+    /// command. macOS asks the user once to allow Sift to control Safari.
+    /// Returns an error message, or nil on success.
+    @MainActor
+    static func addToReadingList(_ url: String, title: String, preview: String) -> String? {
+        func quoted(_ s: String) -> String {
+            "\"" + s.replacingOccurrences(of: "\\", with: "\\\\").replacingOccurrences(of: "\"", with: "\\\"")
+                .replacingOccurrences(of: "\n", with: " ") + "\""
+        }
+        var source = "tell application \"Safari\" to add reading list item \(quoted(url))"
+        if !title.isEmpty { source += " with title \(quoted(String(title.prefix(200))))" }
+        if !preview.isEmpty { source += " and preview text \(quoted(String(preview.prefix(400))))" }
+        var error: NSDictionary?
+        NSAppleScript(source: source)?.executeAndReturnError(&error)
+        guard let error else { return nil }
+        let code = error[NSAppleScript.errorNumber] as? Int ?? 0
+        return code == -1743 ? "Allow Sift to control Safari in System Settings > Privacy & Security > Automation." : (error[NSAppleScript.errorMessage] as? String ?? "Safari did not add the link.")
+    }
+
     @MainActor
     static func openInSafari(_ string: String) {
         guard let url = URL(string: string) else { return }
