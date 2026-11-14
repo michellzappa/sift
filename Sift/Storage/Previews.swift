@@ -274,7 +274,9 @@ enum CloseList {
     static func write(_ urls: [String]) {
         guard iCloudDriveAvailable else { return }
         try? FileManager.default.createDirectory(at: folder, withIntermediateDirectories: true)
-        let text = urls.sorted().joined(separator: "\n") + (urls.isEmpty ? "" : "\n")
+        // No line break after the last URL: the Shortcut splits by new lines,
+        // and an empty last item makes Safari's Close Tab fail.
+        let text = urls.sorted().joined(separator: "\n")
         try? text.write(to: fileURL, atomically: true, encoding: .utf8)
     }
 }
