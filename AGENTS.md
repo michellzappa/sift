@@ -145,3 +145,18 @@ transcripts), not only the link. Never add a Sift server or account.
   author avatar. It is unofficial and can break; oEmbed is the fallback.
   Added 2026-11-14 at the owner's request. The paid X API, crawler user
   agents and third-party preview services are not used.
+- On-device model (2026-11-14, issues 5, 6, 7): `Engine/LocalModel.swift`
+  wraps Apple's Foundation Models (macOS 26+, Apple Intelligence on), behind
+  `#available` and `SystemLanguageModel.default.availability`; the framework
+  is weak-linked in project.yml so the app still runs on macOS 14. In
+  `sortUnsorted`, `AppModel.sortOnDevice` runs first: a sure errand or noise
+  verdict (`@Generable` enums) goes to errands or drop, then a sure pick from
+  the current themes (`DynamicGenerationSchema` enum of names + "none") goes
+  into that theme. Everything else goes to Claude. `Assignment.sortedBy` is
+  "device" or "claude" and survives a hand move, for audits. Summaries run
+  after capture, one at a time, newest first, not on battery, in chunks of
+  6,000 characters (the macOS 26 SDK has no context size API; the window is
+  4,096 tokens). They live in `Library.Entry.summary`, the file's `summary:`
+  front matter and `links.summary`, which sift-mcp shows. Theme discovery
+  and connections stay on Claude. Switches: `localFirstPass`,
+  `localSorting`, `localSummaries` (on by default).

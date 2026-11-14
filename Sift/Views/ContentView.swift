@@ -301,7 +301,7 @@ private struct UnsortedBanner: View {
             HStack(spacing: 10) {
                 if model.isSorting {
                     ProgressView().controlSize(.small)
-                    Text("Sorting with Claude: \(model.sortProgress.done) of \(model.sortProgress.total)")
+                    Text("\(model.sortingOnDevice ? "Sorting on this Mac" : "Sorting with Claude"): \(model.sortProgress.done) of \(model.sortProgress.total)")
                 } else if model.isDiscovering {
                     ProgressView().controlSize(.small)
                     Text("Claude is reading all your links to find themes…")

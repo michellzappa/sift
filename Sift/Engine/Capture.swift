@@ -177,6 +177,10 @@ enum Library {
         /// YouTube only: true when a transcript is in the file, false when
         /// the video has none, nil when not tried yet.
         var transcript: Bool?
+        /// On-device summary (`LocalModel.summarize`), also in the file's
+        /// front matter as `summary:`. Nil: not tried yet; "": the model
+        /// declined this text.
+        var summary: String?
     }
 
     static var folder: URL {
@@ -230,6 +234,8 @@ enum Library {
             var e = existing
             e.words += text.split { $0 == " " || $0 == "\n" }.count
             e.transcript = true
+            // The summary is written again with the transcript.
+            e.summary = nil
             if e.status == "failed" || e.status == "thin" { e.status = "ok" }
             return e
         }
@@ -238,6 +244,22 @@ enum Library {
                               text: "## Transcript\n\n" + text), title: r.title, theme: r.theme, source: r.source)
         e.transcript = true
         return e
+    }
+
+    /// Writes the summary into the file's front matter as `summary:`,
+    /// replacing an earlier one.
+    static func setSummary(_ summary: String, file: String) {
+        let path = folder.appending(path: file)
+        guard !file.isEmpty, let raw = try? String(contentsOf: path, encoding: .utf8), raw.hasPrefix("---\n"),
+              let end = raw.range(of: "\n---\n", range: raw.index(raw.startIndex, offsetBy: 3)..<raw.endIndex)
+        else { return }
+        var front = raw[raw.index(raw.startIndex, offsetBy: 4)..<end.lowerBound]
+            .split(separator: "\n", omittingEmptySubsequences: false)
+            .filter { !$0.hasPrefix("summary:") }
+            .map(String.init)
+        front.append("summary: \(ExportText.yaml(summary))")
+        let out = "---\n" + front.joined(separator: "\n") + "\n---\n" + raw[end.upperBound...]
+        try? out.write(to: path, atomically: true, encoding: .utf8)
     }
 
     /// The captured text (without front matter), if any.

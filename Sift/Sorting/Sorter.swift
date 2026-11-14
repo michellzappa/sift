@@ -55,7 +55,7 @@ struct Sorter: Sendable {
         var out: [String: Assignment] = [:]
         let valid = Set(names)
         for r in results where items.indices.contains(r.id) && valid.contains(r.project) {
-            out[items[r.id].url] = Assignment(project: r.project, use: "", manual: false, action: nil)
+            out[items[r.id].url] = Assignment(project: r.project, use: "", manual: false, action: nil, sortedBy: "claude")
         }
         return out
     }

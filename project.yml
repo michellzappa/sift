@@ -48,6 +48,9 @@ targets:
         ASSETCATALOG_COMPILER_APPICON_NAME: ""
         COMBINE_HIDPI_IMAGES: YES
         ENABLE_PREVIEWS: YES
+        # Apple's on-device model needs macOS 26; Sift runs on macOS 14.
+        # Weak-linked so the app launches where the framework does not exist.
+        OTHER_LDFLAGS: "$(inherited) -weak_framework FoundationModels"
     dependencies:
       # The MCP server ships inside the app at Contents/MacOS/sift-mcp,
       # signed on copy with the app's identity.

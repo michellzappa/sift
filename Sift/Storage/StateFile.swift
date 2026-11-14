@@ -44,6 +44,11 @@ struct SiftState: Codable, Sendable {
     var xSyndication: Bool = false
     /// The Instagram data export (zip or folder) the user chose in Settings.
     var instagramExportPath: String?
+    /// Apple's on-device model (`LocalModel`), per feature. Used only when the
+    /// model is available on this Mac.
+    var localFirstPass = true
+    var localSorting = true
+    var localSummaries = true
 
     init() {}
 
@@ -71,6 +76,9 @@ struct SiftState: Codable, Sendable {
         xUsername = try c.decodeIfPresent(String.self, forKey: .xUsername)
         xSyndication = try c.decodeIfPresent(Bool.self, forKey: .xSyndication) ?? false
         instagramExportPath = try c.decodeIfPresent(String.self, forKey: .instagramExportPath)
+        localFirstPass = try c.decodeIfPresent(Bool.self, forKey: .localFirstPass) ?? true
+        localSorting = try c.decodeIfPresent(Bool.self, forKey: .localSorting) ?? true
+        localSummaries = try c.decodeIfPresent(Bool.self, forKey: .localSummaries) ?? true
     }
 }
 
