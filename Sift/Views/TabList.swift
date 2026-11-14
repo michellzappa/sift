@@ -7,7 +7,7 @@ struct TabList: View {
     let item: SidebarItem
     @State private var search = ""
     @State private var selected: SafariTab.ID?
-    @State private var showInspector = true
+    @State private var showInspector = false
     @State private var showShortcutGuide = false
 
     private var project: String? {
@@ -45,9 +45,17 @@ struct TabList: View {
     var body: some View {
         VStack(spacing: 0) {
             if item == .closeQueue { closeHeader }
-            List(rows, selection: $selected) { tab in
-                TabRow(tab: tab).tag(tab.id)
+            ScrollView {
+                LazyVGrid(columns: [GridItem(.adaptive(minimum: 250, maximum: 360), spacing: 14)], spacing: 14) {
+                    ForEach(rows) { tab in
+                        TabCard(tab: tab, isSelected: selected == tab.id)
+                            .onTapGesture(count: 2) { TabActions.openInSafari(tab.url) }
+                            .onTapGesture { selected = tab.id }
+                    }
+                }
+                .padding(16)
             }
+            .background(Color(nsColor: .underPageBackgroundColor))
         }
         .overlay {
             if rows.isEmpty {
@@ -129,9 +137,12 @@ struct TabList: View {
     }
 }
 
-struct TabRow: View {
+/// One tab as a card: preview image, title, text, use, footer.
+/// The card fetches its own preview when it scrolls into view.
+struct TabCard: View {
     @Environment(AppModel.self) private var model
     let tab: SafariTab
+    let isSelected: Bool
     @State private var editingUse = false
     @State private var draft = ""
 
@@ -139,32 +150,47 @@ struct TabRow: View {
         let a = model.assignment(for: tab)
         let preview = model.previews[tab.url]
         let closing = model.isQueuedToClose(tab)
-        HStack(alignment: .top, spacing: 10) {
-            VStack(alignment: .leading, spacing: 3) {
-                Text(rowTitle(preview)).lineLimit(2).strikethrough(closing, color: .secondary)
-                if let use = a?.use, !use.isEmpty {
-                    Text(use).font(.callout).foregroundStyle(.tint)
-                } else if !tab.hasUsefulTitle, let text = preview?.text, !text.isEmpty {
-                    Text(text).font(.callout).foregroundStyle(.secondary).lineLimit(2)
+        VStack(alignment: .leading, spacing: 0) {
+            header(preview)
+            VStack(alignment: .leading, spacing: 6) {
+                Text(cardTitle(preview))
+                    .font(.headline).lineLimit(2)
+                    .strikethrough(closing, color: .secondary)
+                if let text = bodyText(preview) {
+                    Text(text).font(.callout).foregroundStyle(.secondary).lineLimit(5)
+                } else if preview == nil {
+                    Text("Loading preview…").font(.callout).foregroundStyle(.tertiary)
                 }
-                HStack(spacing: 6) {
-                    Text(tab.host)
-                    if let d = tab.lastViewed { Text("·"); Text(d, format: .dateTime.day().month().year()) }
-                    if a?.manual == true { Text("·"); Image(systemName: "hand.point.up.left").help("Sorted by hand") }
-                    if closing { Text("·"); Label("closes on iPhone", systemImage: "xmark.square").labelStyle(.titleAndIcon) }
+                if let use = a?.use, !use.isEmpty {
+                    Text(use).font(.callout).foregroundStyle(.tint).lineLimit(3)
+                }
+                Spacer(minLength: 0)
+                HStack(spacing: 5) {
+                    Text(tab.host).lineLimit(1)
+                    if let d = tab.lastViewed { Text("·"); Text(d, format: .dateTime.day().month(.abbreviated)) }
+                    if a?.manual == true { Image(systemName: "hand.point.up.left").help("Sorted by hand") }
+                    if closing { Image(systemName: "xmark.square").help("Closes on iPhone") }
+                    Spacer(minLength: 4)
+                    Menu { moveMenu } label: { Text(a?.project ?? "Move to…") }
+                        .menuStyle(.borderlessButton)
+                        .fixedSize()
                 }
                 .font(.caption).foregroundStyle(.secondary)
             }
-            Spacer()
-            Menu { moveMenu } label: { Text(a?.project ?? "Move to…") }
-                .menuStyle(.borderlessButton)
-                .fixedSize()
+            .padding(12)
         }
-        .padding(.vertical, 3)
-        .contentShape(Rectangle())
-        .onTapGesture(count: 2) { open() }
+        .frame(maxWidth: .infinity, minHeight: 250, alignment: .topLeading)
+        .background(.background, in: RoundedRectangle(cornerRadius: 10))
+        .overlay(
+            RoundedRectangle(cornerRadius: 10)
+                .strokeBorder(isSelected ? Color.accentColor : Color.primary.opacity(0.1), lineWidth: isSelected ? 2 : 1)
+        )
+        .clipShape(RoundedRectangle(cornerRadius: 10))
+        .opacity(closing ? 0.6 : 1)
+        .contentShape(RoundedRectangle(cornerRadius: 10))
+        .task(id: tab.url) { await model.preview(for: tab) }
         .contextMenu {
-            Button("Open in Safari") { open() }
+            Button("Open in Safari") { TabActions.openInSafari(tab.url) }
             Button("Copy Link") { model.copy(tab.url) }
             if a != nil, !Project.buckets.contains(a?.project ?? "") {
                 Button("Edit Use…") { draft = a?.use ?? ""; editingUse = true }
@@ -188,10 +214,53 @@ struct TabRow: View {
         }
     }
 
-    private func rowTitle(_ preview: Preview?) -> String {
-        if tab.hasUsefulTitle { return tab.title }
-        if let p = preview, !p.failed, !p.title.isEmpty { return p.site == "x.com" ? "\(p.title) on X" : p.title }
+    /// Page image when there is one. X posts have none from oEmbed, so they
+    /// get a quiet band with the author's initial.
+    @ViewBuilder
+    private func header(_ p: Preview?) -> some View {
+        if let s = p?.imageURL, let url = URL(string: s) {
+            Color.clear
+                .frame(height: 130)
+                .overlay {
+                    AsyncImage(url: url) { phase in
+                        if let image = phase.image {
+                            image.resizable().aspectRatio(contentMode: .fill)
+                        } else {
+                            Rectangle().fill(.quaternary)
+                        }
+                    }
+                }
+                .clipped()
+        } else if p?.site == "x.com" {
+            HStack(spacing: 8) {
+                Text(String((p?.title ?? "X").prefix(1)).uppercased())
+                    .font(.callout.weight(.semibold))
+                    .frame(width: 26, height: 26)
+                    .background(Circle().fill(.quaternary))
+                Text(p?.title ?? "").font(.callout.weight(.medium)).lineLimit(1)
+                Spacer()
+                Text("𝕏").foregroundStyle(.secondary)
+            }
+            .padding(.horizontal, 12).padding(.top, 12)
+        }
+    }
+
+    private func cardTitle(_ p: Preview?) -> String {
+        if p?.site == "x.com", let text = p?.text, !text.isEmpty, !p!.failed {
+            // The post itself is the title; the header carries the author.
+            return text
+        }
+        if tab.hasUsefulTitle { return tab.title.replacingOccurrences(of: #" / X$"#, with: "", options: .regularExpression) }
+        if let p, !p.failed, !p.title.isEmpty { return p.title }
         return tab.url
+    }
+
+    private func bodyText(_ p: Preview?) -> String? {
+        guard let p, !p.failed, !p.text.isEmpty, p.site != "x.com" else {
+            if p?.failed == true { return "No preview. The page needs a login, was deleted, or blocks fetching." }
+            return nil
+        }
+        return p.text
     }
 
     @ViewBuilder
@@ -204,8 +273,6 @@ struct TabRow: View {
             Button(b) { model.move(tab, to: b) }
         }
     }
-
-    private func open() { TabActions.openInSafari(tab.url) }
 }
 
 enum TabActions {
