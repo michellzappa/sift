@@ -69,6 +69,13 @@ private struct ProjectSettings: View {
     var body: some View {
         @Bindable var model = model
         Form {
+            if !model.themes.isEmpty {
+                Section("Themes") {
+                    Text("Sift sorts into \(model.themes.count) themes found in your links. Repos and the projects below are destinations.")
+                        .foregroundStyle(.secondary)
+                    Button("Go Back to Repo Projects", role: .destructive) { model.removeThemes() }
+                }
+            }
             Section("Projects folder") {
                 HStack {
                     Text(model.state.projectsRoot).lineLimit(1).truncationMode(.middle)

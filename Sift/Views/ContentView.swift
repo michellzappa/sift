@@ -30,6 +30,9 @@ struct ContentView: View {
             }
         }
         .toolbar { toolbar }
+        .sheet(isPresented: .init(get: { model.themeProposal != nil }, set: { if !$0 { model.themeProposal = nil } })) {
+            ThemeReview().environment(model)
+        }
         .alert("Sorting stopped", isPresented: .init(get: { model.sortError != nil }, set: { if !$0 { model.sortError = nil } })) {
             Button("OK") { model.sortError = nil }
         } message: {
@@ -49,6 +52,22 @@ struct ContentView: View {
             }
             .pickerStyle(.menu)
             .disabled(model.devices.isEmpty)
+        }
+        ToolbarItem(placement: .primaryAction) {
+            if model.isDiscovering {
+                HStack(spacing: 6) {
+                    ProgressView().controlSize(.small)
+                    Text("Finding themes…")
+                }
+            } else {
+                Button {
+                    Task { await model.discoverThemes() }
+                } label: {
+                    Label("Discover Themes", systemImage: "circle.hexagongrid.circle")
+                }
+                .help("Ask Claude to find the themes in all your tabs and Reading List. You review them before anything changes.")
+                .disabled(model.isSorting)
+            }
         }
         ToolbarItem(placement: .primaryAction) {
             if model.isSorting {
@@ -96,7 +115,7 @@ private struct Sidebar: View {
                     .tag(SidebarItem.closeQueue)
             }
 
-            Section("Projects") {
+            Section(model.themes.isEmpty ? "Projects" : "Themes") {
                 ForEach(model.activeProjects, id: \.project) { item in
                     HStack { Text(item.project); Spacer(); count(item.count) }
                         .tag(SidebarItem.project(item.project))

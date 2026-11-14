@@ -131,13 +131,106 @@ final class AppModel {
 
     // MARK: Projects
 
-    /// Projects the sorter and the sidebar use, in name order.
+    /// What the sorter and the sidebar use, in name order: the themes when
+    /// there are any, otherwise repos and hand-made projects.
     var projects: [Project] {
+        if !themes.isEmpty { return themes.sorted { $0.name < $1.name } }
+        return destinations
+    }
+
+    /// Themes found bottom-up in the user's links.
+    var themes: [Project] { state.extraProjects.filter(\.isTheme) }
+
+    /// Repos and hand-made projects: where links can end up.
+    var destinations: [Project] {
         let hidden = Set(state.hiddenProjects)
         let repos = repoProjects.filter { !hidden.contains($0.name) }
         let repoNames = Set(repos.map(\.name))
-        return (repos + state.extraProjects.filter { !repoNames.contains($0.name) })
+        return (repos + state.extraProjects.filter { !$0.isTheme && !repoNames.contains($0.name) })
             .sorted { $0.name < $1.name }
+    }
+
+    // MARK: Themes
+
+    var isDiscovering = false
+    var themeProposal: [Sorter.ThemeProposal]?
+    /// The URLs the proposal's item ids point at, in order.
+    private(set) var proposalURLs: [String] = []
+
+    /// Reads every link Sift can see (the phone's tabs and the Reading List),
+    /// fills in titles for bare links, and asks Claude for themes. The result
+    /// waits in `themeProposal` until the user accepts it.
+    func discoverThemes() async {
+        guard !isDiscovering, !isSorting else { return }
+        isDiscovering = true
+        sortError = nil
+        defer { isDiscovering = false }
+
+        var corpus: [SafariTab] = []
+        var seen = Set<String>()
+        func add(_ list: [SafariTab]) { for t in list where seen.insert(t.url).inserted { corpus.append(t) } }
+        if let phone = devices.first, let phoneTabs = try? CloudTabsReader.tabs(deviceID: phone.id) { add(phoneTabs) }
+        if let reading = try? ReadingListReader.items() {
+            for item in reading where previews[item.tab.url] == nil { if let p = item.preview { previews[item.tab.url] = p } }
+            add(reading.map(\.tab))
+        }
+        add(tabs)
+
+        // Bare links (mostly X posts) say nothing without their text.
+        await fetchPreviews(for: corpus.filter { !$0.hasUsefulTitle })
+
+        do {
+            let result = try await Sorter(backend: state.backend)
+                .discoverThemes(corpus.map(sortItem), destinations: destinations, keep: themes)
+            proposalURLs = corpus.map(\.url)
+            themeProposal = result.sorted { $0.itemIDs.count > $1.itemIDs.count }
+        } catch {
+            sortError = error.localizedDescription
+        }
+    }
+
+    /// Makes the accepted themes Sift's categories. Links in a "personal" or
+    /// "noise" theme go to the personal and drop buckets. Links in a theme the
+    /// user left out become unsorted. Uses and next actions stay.
+    func applyThemes(_ accepted: [Sorter.ThemeProposal]) {
+        var s = state
+        s.extraProjects.removeAll(where: \.isTheme)
+        let acceptedIDs = Set(accepted.flatMap(\.itemIDs))
+        for proposal in themeProposal ?? [] {
+            let isAccepted = accepted.contains { $0.itemIDs == proposal.itemIDs }
+            if !isAccepted {
+                for id in proposal.itemIDs where proposalURLs.indices.contains(id) && !acceptedIDs.contains(id) {
+                    s.assignments[proposalURLs[id]] = nil
+                }
+            }
+        }
+        for theme in accepted {
+            let bucket: String? = theme.kind == "noise" ? Project.drop : theme.kind == "personal" ? Project.personal : nil
+            let name = bucket ?? theme.name
+            if bucket == nil {
+                s.extraProjects.append(Project(name: theme.name, summary: theme.description, isRepo: false, isTheme: true, destination: theme.destination))
+            }
+            for id in theme.itemIDs where proposalURLs.indices.contains(id) {
+                let url = proposalURLs[id]
+                var a = s.assignments[url] ?? Assignment(project: name, use: "", manual: false, action: nil)
+                a.project = name
+                a.manual = false
+                if bucket != nil { a.use = "" }
+                if bucket == Project.drop { a.action = .close }
+                s.assignments[url] = a
+            }
+        }
+        state = s
+        themeProposal = nil
+    }
+
+    /// Goes back to repos and hand-made projects. Links in themes become unsorted.
+    func removeThemes() {
+        let names = Set(themes.map(\.name))
+        var s = state
+        s.extraProjects.removeAll(where: \.isTheme)
+        for (url, a) in s.assignments where names.contains(a.project) { s.assignments[url] = nil }
+        state = s
     }
 
     func assignment(for tab: SafariTab) -> Assignment? { state.assignments[tab.url] }

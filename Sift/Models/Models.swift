@@ -36,6 +36,28 @@ struct Project: Identifiable, Hashable, Codable, Sendable {
     var name: String
     var summary: String
     var isRepo: Bool
+    /// A theme found bottom-up in the user's own links. When themes exist,
+    /// they replace repos as the categories Sift sorts into.
+    var isTheme: Bool = false
+    /// Where a theme's links should go (Starlings projects, repos), as text.
+    var destination: String = ""
+
+    init(name: String, summary: String, isRepo: Bool, isTheme: Bool = false, destination: String = "") {
+        self.name = name
+        self.summary = summary
+        self.isRepo = isRepo
+        self.isTheme = isTheme
+        self.destination = destination
+    }
+
+    init(from decoder: Decoder) throws {
+        let c = try decoder.container(keyedBy: CodingKeys.self)
+        name = try c.decode(String.self, forKey: .name)
+        summary = try c.decodeIfPresent(String.self, forKey: .summary) ?? ""
+        isRepo = try c.decodeIfPresent(Bool.self, forKey: .isRepo) ?? false
+        isTheme = try c.decodeIfPresent(Bool.self, forKey: .isTheme) ?? false
+        destination = try c.decodeIfPresent(String.self, forKey: .destination) ?? ""
+    }
 
     /// Buckets that are not projects. The sorter may use them too.
     static let personal = "personal"

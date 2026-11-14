@@ -45,6 +45,15 @@ project and as an overview network (one hub per project, one dot per tab).
 
 ## Decisions
 
+- Themes are bottom-up (2026-11-14). `Sorter.discoverThemes` clusters the
+  whole corpus (phone tabs + Reading List) in one Claude call through the
+  user's own backend. Themes are stored as `Project` with `isTheme`; when any
+  exist, `AppModel.projects` returns only themes and repos become
+  `destinations`. A rerun passes the current themes as names to keep, so
+  links do not reshuffle. The user accepts every proposal in `ThemeReview`.
+- Next direction: a graph view (themes as hubs, links as nodes, edges where a
+  link feeds two themes or destinations). Not built.
+
 - No HouseKit code dependency: Sift is a window app, not a menu-bar app, and
   uses the SwiftUI Settings scene. The icon is the HouseKit `sift` glyph;
   `scripts/build-app.sh` regenerates `AppIcon.icns` from `../../housekit`.

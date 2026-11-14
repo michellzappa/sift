@@ -91,11 +91,76 @@ struct Sorter: Sendable {
         return out
     }
 
+    /// One theme Claude found in the corpus.
+    struct ThemeProposal: Decodable, Identifiable, Sendable {
+        var id: String { name }
+        var name: String
+        var description: String
+        var kind: String
+        var destination: String
+        var why: String
+        var itemIDs: [Int]
+
+        enum CodingKeys: String, CodingKey {
+            case name, description, kind, why
+            case destination = "suggested_destination"
+            case itemIDs = "item_ids"
+        }
+    }
+
+    /// Finds themes bottom-up in the whole corpus, in one call, so the themes
+    /// are consistent with each other. Destinations are only suggestions.
+    func discoverThemes(_ items: [Item], destinations: [Project], keep: [Project]) async throws -> [ThemeProposal] {
+        let places = destinations.map { "\($0.name)\($0.summary.isEmpty ? "" : " (\($0.summary.prefix(90)))")" }
+            .joined(separator: "; ")
+        let keepLine = keep.isEmpty ? "" : """
+
+            The person already uses these themes. Keep their names where they still fit, and add, split or \
+            drop themes only where the links call for it: \(keep.map(\.name).joined(separator: "; ")).
+            """
+        let system = """
+            You find the themes in one person's saved links: open browser tabs and their reading list. Work \
+            bottom-up from the links themselves, not from any project list. A theme is a sustained interest or \
+            line of inquiry that several links feed, named the way the person would name it in a sentence \
+            (short, concrete, lowercase except proper nouns). Aim for 12 to 20 themes. Prefer themes that cut \
+            across tools and sources over themes that copy a product name. Put links with no lasting value \
+            (viral bait, home pages, search pages, one-off curiosities) in one theme named "noise" with kind \
+            noise, and the person's private life admin (housing, shopping, travel, TV) in one theme named \
+            "personal" with kind personal. Every id goes in exactly one theme.\(keepLine)
+
+            For each theme give a one-sentence description of the interest, a kind (work, research, personal, \
+            hobby, noise), a suggested_destination (the best existing home from the list below, several joined \
+            with " + ", or "none yet") and a short "why" for it.
+
+            Existing homes: \(places)
+            """
+        let user = "Links (id, site, title, text):\n" + items.enumerated().map { index, item in
+            let host = URL(string: item.url)?.host() ?? ""
+            return "\(index)\t\(host)\t\(item.title.isEmpty ? "(no title)" : item.title.prefix(120))\t\(item.preview.prefix(180))"
+                .replacingOccurrences(of: "\n", with: " ")
+        }.joined(separator: "\n")
+        let schema: [String: Any] = [
+            "type": "object", "additionalProperties": false, "required": ["themes"],
+            "properties": ["themes": ["type": "array", "items": [
+                "type": "object", "additionalProperties": false,
+                "required": ["name", "description", "kind", "suggested_destination", "why", "item_ids"],
+                "properties": [
+                    "name": ["type": "string"], "description": ["type": "string"],
+                    "kind": ["type": "string", "enum": ["work", "research", "personal", "hobby", "noise"]],
+                    "suggested_destination": ["type": "string"], "why": ["type": "string"],
+                    "item_ids": ["type": "array", "items": ["type": "integer"]],
+                ],
+            ]]],
+        ]
+        struct Themes: Decodable { let themes: [ThemeProposal] }
+        return try await Self.ask(backend: backend, system: system, user: user, schema: schema, as: Themes.self).themes
+    }
+
     static var actionGuide: String {
         NextAction.allCases.map { "- \($0.rawValue): \($0.meaning)" }.joined(separator: "\n")
     }
 
-    private static func ask<T: Decodable>(backend: Backend, system: String, user: String, schema: [String: Any], as: T.Type) async throws -> T {
+    static func ask<T: Decodable>(backend: Backend, system: String, user: String, schema: [String: Any], as: T.Type) async throws -> T {
         let data: Data
         switch backend {
         case .claudeCode: data = try await ClaudeCodeRunner.run(system: system, user: user, schema: schema)
@@ -113,10 +178,10 @@ struct Sorter: Sendable {
         let catalogue = projects.map { "- \($0.name): \($0.summary.isEmpty ? "(no description)" : $0.summary)" }
             .joined(separator: "\n")
         return """
-            You sort a person's open browser tabs into the projects they work on. \
-            Each tab is a link they kept open because it might be useful for one project.
+            You sort a person's open browser tabs into their projects or themes. \
+            Each tab is a link they kept open because it might be useful for one of them.
 
-            Projects:
+            Projects or themes:
             \(catalogue)
 
             Buckets that are not projects:

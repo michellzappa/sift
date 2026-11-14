@@ -17,9 +17,17 @@ Sift reads the tabs that Safari syncs to your Mac through iCloud, so your
 iPhone and iPad tabs show up too. It also reads your Reading List. You pick
 the source in the toolbar.
 
-It finds your projects by looking for git repos in a folder you choose
-(`~/Dev` by default) and reads a short description from each README. You can
-add projects that have no repo, for example a research theme.
+Sift can sort into themes or into projects. **Discover Themes** sends every
+link it can see (your phone's tabs and the Reading List) to your own Claude in
+one call and asks what you keep coming back to. You get 12 to 20 themes with a
+description, the links behind each one and a suggested home for them. You
+rename, untick or accept them; nothing changes before you do. Run it again
+later and Claude keeps the theme names that still fit.
+
+Without themes, Sift sorts into projects: git repos in a folder you choose
+(`~/Dev` by default), with a short description from each README, plus any
+projects you add by hand. With themes, those projects become the places a
+theme's links can go.
 
 Press **Sort with Claude**. For each tab, Claude picks a project, writes how
 the link could be used there, and picks a next action:
