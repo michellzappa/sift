@@ -48,3 +48,6 @@ project and as an overview network (one hub per project, one dot per tab).
   uses the SwiftUI Settings scene. The icon is the HouseKit `sift` glyph;
   `scripts/build-app.sh` regenerates `AppIcon.icns` from `../../housekit`.
 - `*.csv` is ignored so exported tab lists (browsing data) never get committed.
+- X previews stay on oEmbed (decided 2026-11-14). The paid X API was turned
+  down; crawler user agents and third-party preview services are not used.
+  X cards are text-only by design.
