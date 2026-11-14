@@ -197,6 +197,13 @@ transcripts), not only the link. Never add a Sift server or account.
   Settings > Inputs. A missing tab database (no Full Disk Access) no longer
   blocks the window: the other sources load and a banner points to the guide.
 
+- AppModel is split by area (2026-11-14, refactor only). `App/AppModel.swift` holds the class, every
+  stored property (grouped by area), `init` and `reload()`. Extensions: `+Sources` (source selection,
+  sites), `+X`, `+Archive` (Instagram Saved, archive), `+Library` (capture, YouTube and reel
+  transcripts, library jobs and backoff, Instagram images), `+Imports`, `+Send`, `+Themes` (projects,
+  themes, sorting, connections), `+Upkeep` (duplicates, notes, saved searches, search, previews),
+  `+Closing` (Chrome and iPhone close lists), `+Export` (exporters, CSV import, `CSV`),
+  `+LocalModel`. New stored properties go in the class body, never in an extension.
 - No HouseKit code dependency: Sift is a window app, not a menu-bar app, and
   uses the SwiftUI Settings scene. The icon is the HouseKit `sift` glyph;
   `scripts/build-app.sh` regenerates `AppIcon.icns` from `../../housekit`.
