@@ -1,13 +1,18 @@
 #!/bin/zsh
 # Build Sift.app and install it to /Applications, signed with the stable
 # Apple Development identity, so the Full Disk Access grant survives rebuilds.
+# Regenerates the icon from the HouseKit "sift" glyph every time.
 #
 #   ./scripts/build-app.sh            # Release -> /Applications/Sift.app
 #   ./scripts/build-app.sh --debug
 set -euo pipefail
 here="$(cd "$(dirname "$0")/.." && pwd)"
+housekit="${HOUSEKIT_PATH:-$here/../../housekit}"
 config=Release
 [[ "${1:-}" == "--debug" ]] && config=Debug
+
+swift build -c release --package-path "$housekit" >/dev/null
+"$(swift build -c release --package-path "$housekit" --show-bin-path)/housekit-icon" sift "$here/Sift/Resources/AppIcon.icns" >/dev/null
 
 cd "$here"
 xcodegen generate --quiet

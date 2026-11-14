@@ -31,8 +31,9 @@ project and as an overview network (one hub per project, one dot per tab).
 
 ## Decisions
 
-- No HouseKit dependency: Sift is a window app, not a menu-bar app, and uses
-  the SwiftUI Settings scene. Add HouseKit if it moves to the menu bar.
+- No HouseKit code dependency: Sift is a window app, not a menu-bar app, and
+  uses the SwiftUI Settings scene. The icon is the HouseKit `sift` glyph;
+  `scripts/build-app.sh` regenerates `AppIcon.icns` from `../../housekit`.
 - Sift cannot close tabs on the iPhone. The database is a synced copy; writing
   to it does not change the phone.
 - `*.csv` is ignored so exported tab lists (browsing data) never get committed.
