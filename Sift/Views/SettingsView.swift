@@ -16,7 +16,18 @@ private struct SortingSettings: View {
     @State private var hasKey = Keychain.readKey() != nil
 
     var body: some View {
+        @Bindable var model = model
         Form {
+            Section {
+                Picker("Sort with", selection: $model.state.backend) {
+                    ForEach(Sorter.Backend.allCases, id: \.self) { Text($0.label).tag($0) }
+                }
+            } footer: {
+                Text(model.state.backend == .claudeCode
+                     ? (ClaudeCodeRunner.executable == nil ? "Claude Code was not found in ~/.local/bin or Homebrew." : "Uses your Claude Code login. No API key needed.")
+                     : "Uses the API key below, billed to your Anthropic API account.")
+                    .foregroundStyle(.secondary)
+            }
             Section {
                 SecureField("Anthropic API key", text: $key, prompt: Text(hasKey ? "Saved in the keychain" : "sk-ant-…"))
                 HStack {
@@ -27,7 +38,7 @@ private struct SortingSettings: View {
                     }
                 }
             } footer: {
-                Text("Sift sends the title and URL of each unsorted tab, and your project names and descriptions, to the Anthropic API. It does not send page contents. The key stays in your login keychain.")
+                Text("Sift sends the title, URL and preview text of each unsorted tab, and your project names and descriptions, to Claude. The key stays in your login keychain.")
                     .foregroundStyle(.secondary)
             }
             Section {

@@ -3,6 +3,7 @@ import SwiftUI
 enum SidebarItem: Hashable {
     case overview
     case unsorted
+    case closeQueue
     case project(String)
 }
 
@@ -21,8 +22,7 @@ struct ContentView: View {
                 } detail: {
                     switch selection ?? .overview {
                     case .overview: NetworkView(selection: $selection)
-                    case .unsorted: TabList(project: nil)
-                    case .project(let name): TabList(project: name)
+                    case let other: TabList(item: other).id(other)
                     }
                 }
             }
@@ -75,6 +75,8 @@ private struct Sidebar: View {
             Label("Overview", systemImage: "circle.hexagongrid").tag(SidebarItem.overview)
             Label { HStack { Text("Unsorted"); Spacer(); count(model.unsortedCount) } } icon: { Image(systemName: "tray") }
                 .tag(SidebarItem.unsorted)
+            Label { HStack { Text("To close on iPhone"); Spacer(); count(model.state.closeQueue.count) } } icon: { Image(systemName: "xmark.square") }
+                .tag(SidebarItem.closeQueue)
 
             Section("Projects") {
                 ForEach(model.activeProjects, id: \.project) { item in

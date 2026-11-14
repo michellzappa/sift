@@ -21,10 +21,23 @@ project and as an overview network (one hub per project, one dot per tab).
 - Projects: git repos up to two levels under the projects folder (default
   `~/Dev`), with a summary from README.md or AGENTS.md. The user can add
   projects with no repo and hide repos.
-- Sorting: `Sorter` calls the Messages API over HTTP (Swift has no official
-  SDK). Model `claude-opus-5-5`, effort `low`, structured output with a
-  project enum, server-side fallback on refusal. It sends titles and URLs
-  only. Batches of 40.
+- Sorting: `Sorter`, batches of 40, one prompt and one JSON schema (project
+  enum), two backends. Default `claude -p` (`ClaudeCodeRunner`) with the
+  user's Claude Code login: `--json-schema`, answer in `structured_output`.
+  Tools, MCP, skills, settings and the default system prompt are off, so a
+  call costs about 1.5k input tokens instead of about 140k. Never use
+  `--bare`: it skips the stored login ("Not logged in"). Fallback: Messages
+  API over HTTP (`APIRunner`, `claude-opus-5-5`, effort `low`, server-side
+  fallback). Both send title, URL and preview text, never page bodies.
+- Previews: `PreviewFetcher`. X posts use the public oEmbed endpoint
+  (publish.twitter.com/oembed), which returns post text without a login.
+  Other pages use Open Graph tags from the HTML. Cache:
+  `~/Library/Application Support/Sift/previews.json`.
+- Closing tabs: a Mac cannot close tabs on another device. Sift writes the
+  close list to iCloud Drive/Sift/close.txt; an iPhone Shortcut (Find Tabs,
+  Close Tab) closes them. Reload prunes URLs that are no longer open.
+  Safari's own `cloud_tab_close_requests` table is not used: its rows carry
+  CloudKit system fields that Sift cannot make.
 - State: one JSON file, `~/Library/Application Support/Sift/state.json`,
   keyed by URL. Hand moves set `manual: true`; the sorter never overwrites them.
 - API key: login keychain, service `app.sift.anthropic-api-key`.
@@ -34,6 +47,4 @@ project and as an overview network (one hub per project, one dot per tab).
 - No HouseKit code dependency: Sift is a window app, not a menu-bar app, and
   uses the SwiftUI Settings scene. The icon is the HouseKit `sift` glyph;
   `scripts/build-app.sh` regenerates `AppIcon.icns` from `../../housekit`.
-- Sift cannot close tabs on the iPhone. The database is a synced copy; writing
-  to it does not change the phone.
 - `*.csv` is ignored so exported tab lists (browsing data) never get committed.

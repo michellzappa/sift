@@ -5,7 +5,14 @@ import Observation
 @MainActor
 @Observable
 final class AppModel {
-    var state: SiftState { didSet { StateFile.save(state) } }
+    var state: SiftState {
+        didSet {
+            StateFile.save(state)
+            if state.closeQueue != oldValue.closeQueue { CloseList.write(state.closeQueue) }
+        }
+    }
+    var previews: [String: Preview] = PreviewFetcher.loadCache()
+    var fetchingPreviews = 0
     var devices: [SyncedDevice] = []
     var tabs: [SafariTab] = []
     var repoProjects: [Project] = []
@@ -32,6 +39,10 @@ final class AppModel {
                 state.deviceID = devices.first?.id
             }
             tabs = try state.deviceID.map { try CloudTabsReader.tabs(deviceID: $0) } ?? []
+            // Tabs closed on the phone drop out of the close list.
+            let open = Set(tabs.map(\.url))
+            let stillOpen = state.closeQueue.filter(open.contains)
+            if stillOpen != state.closeQueue { state.closeQueue = stillOpen }
         } catch let failure as CloudTabsReader.Failure {
             loadError = failure
             devices = []
@@ -110,10 +121,6 @@ final class AppModel {
     /// Sorts every tab that has no assignment yet. Hand-sorted tabs stay as they are.
     func sortUnsorted() async {
         guard !isSorting else { return }
-        guard let key = Keychain.readKey() else {
-            sortError = "Add an Anthropic API key in Settings first."
-            return
-        }
         let todo = tabs.filter { state.assignments[$0.url] == nil }
         guard !todo.isEmpty else { return }
 
@@ -122,12 +129,12 @@ final class AppModel {
         sortProgress = (0, todo.count)
         defer { isSorting = false }
 
-        let sorter = Sorter(apiKey: key)
+        let sorter = Sorter(backend: state.backend)
         let projects = self.projects
         for start in stride(from: 0, to: todo.count, by: Sorter.batchSize) {
             let batch = Array(todo[start..<min(start + Sorter.batchSize, todo.count)])
             do {
-                let result = try await sorter.sort(batch, projects: projects)
+                let result = try await sorter.sort(batch.map(sortItem), projects: projects)
                 for (url, a) in result where state.assignments[url]?.manual != true {
                     state.assignments[url] = a
                 }
@@ -137,6 +144,69 @@ final class AppModel {
                 return
             }
         }
+    }
+
+    private func sortItem(_ tab: SafariTab) -> Sorter.Item {
+        let p = previews[tab.url]
+        let title = tab.hasUsefulTitle ? tab.title : (p?.title ?? "")
+        return Sorter.Item(url: tab.url, title: title, preview: p?.failed == false ? p?.text ?? "" : "")
+    }
+
+    /// Fetches previews for the tabs that have none yet, six at a time.
+    func fetchPreviews(for list: [SafariTab], force: Bool = false) async {
+        let todo = list.map(\.url).filter { force || previews[$0] == nil }
+        guard !todo.isEmpty else { return }
+        fetchingPreviews += todo.count
+        await withTaskGroup(of: (String, Preview).self) { group in
+            var iterator = todo.makeIterator()
+            for _ in 0..<6 {
+                guard let url = iterator.next() else { break }
+                group.addTask { (url, await PreviewFetcher.fetch(url)) }
+            }
+            for await (url, preview) in group {
+                previews[url] = preview
+                fetchingPreviews -= 1
+                if let next = iterator.next() { group.addTask { (next, await PreviewFetcher.fetch(next)) } }
+            }
+        }
+        PreviewFetcher.saveCache(previews)
+    }
+
+    func preview(for tab: SafariTab) async {
+        if previews[tab.url] == nil { await fetchPreviews(for: [tab]) }
+    }
+
+    /// Fetches previews for the "unknown" tabs, then sorts them again with the
+    /// preview text. Tabs that stay unknown are probably deleted posts.
+    func resortUnknown() async {
+        let unknown = tabs(in: Project.unknown)
+        guard !unknown.isEmpty, !isSorting else { return }
+        await fetchPreviews(for: unknown)
+        for tab in unknown { state.assignments[tab.url] = nil }
+        await sortUnsorted()
+    }
+
+    // MARK: Closing on the iPhone
+
+    func isQueuedToClose(_ tab: SafariTab) -> Bool { state.closeQueue.contains(tab.url) }
+
+    func toggleClose(_ tab: SafariTab) {
+        if let i = state.closeQueue.firstIndex(of: tab.url) { state.closeQueue.remove(at: i) } else { state.closeQueue.append(tab.url) }
+    }
+
+    func queueClose(_ list: [SafariTab]) {
+        let existing = Set(state.closeQueue)
+        state.closeQueue += list.map(\.url).filter { !existing.contains($0) }
+    }
+
+    func unqueueClose(_ list: [SafariTab]) {
+        let remove = Set(list.map(\.url))
+        state.closeQueue.removeAll { remove.contains($0) }
+    }
+
+    var closeQueueTabs: [SafariTab] {
+        let q = Set(state.closeQueue)
+        return tabs.filter { q.contains($0.url) }
     }
 
     // MARK: Import and export

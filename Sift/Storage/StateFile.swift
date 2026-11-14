@@ -11,6 +11,9 @@ struct SiftState: Codable, Sendable {
     var hiddenProjects: [String] = []
     var projectsRoot: String = FileManager.default.homeDirectoryForCurrentUser.appending(path: "Dev").path(percentEncoded: false)
     var deviceID: String?
+    var backend: Sorter.Backend = .claudeCode
+    /// URLs marked to close on the iPhone. Written to iCloud Drive/Sift/close.txt.
+    var closeQueue: [String] = []
 
     init() {}
 
@@ -22,6 +25,8 @@ struct SiftState: Codable, Sendable {
         hiddenProjects = try c.decodeIfPresent([String].self, forKey: .hiddenProjects) ?? []
         projectsRoot = try c.decodeIfPresent(String.self, forKey: .projectsRoot) ?? defaults.projectsRoot
         deviceID = try c.decodeIfPresent(String.self, forKey: .deviceID)
+        backend = try c.decodeIfPresent(Sorter.Backend.self, forKey: .backend) ?? .claudeCode
+        closeQueue = try c.decodeIfPresent([String].self, forKey: .closeQueue) ?? []
     }
 }
 
