@@ -411,8 +411,8 @@ final class AppModel {
         panel.allowsMultipleSelection = false
         panel.prompt = "Import"
         panel.message = "Choose an export from Instapaper, Pocket, Readwise, Raindrop, Pinboard, a bookmarks file, or a Google Takeout zip with YouTube playlists."
-        guard panel.runModal() == .OK, let url = panel.url else { return }
-        let path = url.path(percentEncoded: false)
+        guard panel.runModal() == .OK, let picked = panel.url else { return }
+        let path = Self.keepCopy(of: picked).path(percentEncoded: false)
         do {
             _ = try LinkImporter.items(at: path)
             let source = LinkImporter.Source(id: UUID().uuidString, name: LinkImporter.suggestedName(for: path), path: path, added: .now)
@@ -423,6 +423,23 @@ final class AppModel {
         } catch {
             importError = error.localizedDescription
             sortError = error.localizedDescription
+        }
+    }
+
+    /// Copies a chosen export into ~/Library/Application Support/Sift/Imports
+    /// so it keeps working after the original is moved or deleted. Falls back
+    /// to the original when the copy fails.
+    static func keepCopy(of url: URL) -> URL {
+        let dir = StateFile.url.deletingLastPathComponent().appending(path: "Imports", directoryHint: .isDirectory)
+        try? FileManager.default.createDirectory(at: dir, withIntermediateDirectories: true)
+        let target = dir.appending(path: url.lastPathComponent)
+        if url.standardizedFileURL == target.standardizedFileURL { return url }
+        try? FileManager.default.removeItem(at: target)
+        do {
+            try FileManager.default.copyItem(at: url, to: target)
+            return target
+        } catch {
+            return url
         }
     }
 
@@ -458,7 +475,7 @@ final class AppModel {
         panel.message = "Choose your Instagram export: the zip, or the folder it unpacks to."
         if let last = state.instagramExportPath { panel.directoryURL = URL(filePath: last).deletingLastPathComponent() }
         guard panel.runModal() == .OK, let url = panel.url else { return }
-        state.instagramExportPath = url.path(percentEncoded: false)
+        state.instagramExportPath = Self.keepCopy(of: url).path(percentEncoded: false)
         reload()
     }
 
