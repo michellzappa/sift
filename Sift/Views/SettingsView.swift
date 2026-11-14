@@ -4,6 +4,7 @@ struct SettingsView: View {
     var body: some View {
         TabView {
             InputSettings().tabItem { Label("Inputs", systemImage: "tray.and.arrow.down") }
+            LibrarySettings().tabItem { Label("Library", systemImage: "books.vertical") }
             OutputSettings().tabItem { Label("Outputs", systemImage: "tray.and.arrow.up") }
             ClaudeSettings().tabItem { Label("Claude", systemImage: "sparkles") }
             ThemeSettings().tabItem { Label("Themes", systemImage: "circle.hexagongrid") }
@@ -88,15 +89,6 @@ private struct InputSettings: View {
         guard !files.isEmpty else { return "No files imported" }
         let links = files.reduce(0) { $0 + (model.importCounts[$1.id] ?? 0) }
         return "\(files.count) \(files.count == 1 ? "file" : "files"), \(links) links"
-    }
-
-    private var libraryStatus: String {
-        let entries = model.library.values
-        let thin = entries.filter { $0.status == "thin" }.count
-        let failed = entries.filter { $0.status == "failed" }.count
-        var line = "\(model.capturedCount) saved of \(model.archive.count), \(thin) thin, \(failed) failed"
-        if model.isCapturing { line += ". Saving \(model.captureProgress.done) of \(model.captureProgress.total)." }
-        return line
     }
 
     var body: some View {
@@ -187,32 +179,111 @@ private struct InputSettings: View {
                     .foregroundStyle(.secondary)
             }
 
+        }
+        .formStyle(.grouped)
+    }
+}
+
+// MARK: - Library
+
+/// What Sift saves on this Mac, and the switches for each kind.
+private struct LibrarySettings: View {
+    @Environment(AppModel.self) private var model
+    @State private var diskUse = ""
+
+    var body: some View {
+        @Bindable var model = model
+        let entries = model.library.values
+        let thin = entries.filter { $0.status == "thin" }.count
+        let failed = entries.filter { $0.status == "failed" }.count
+        Form {
             Section {
-                SourceRow(icon: "books.vertical", name: "Library capture", status: libraryStatus) {
-                    Button("Show Library in Finder") {
-                        NSWorkspace.shared.activateFileViewerSelecting([Library.folder])
+                Toggle("Save the text of every link", isOn: $model.state.autoCapture)
+                LabeledContent("Saved", value: "\(model.capturedCount) of \(model.archive.count) links")
+                LabeledContent("Thin (paywall or login)", value: "\(thin)")
+                LabeledContent("Failed", value: "\(failed)")
+                if model.isCapturing {
+                    ProgressView(value: Double(model.captureProgress.done), total: Double(max(model.captureProgress.total, 1))) {
+                        Text("Saving \(model.captureProgress.done) of \(model.captureProgress.total)").font(.caption)
                     }
                 }
-                Toggle("Save the text of new links automatically", isOn: $model.state.autoCapture)
-                Toggle("Save YouTube transcripts", isOn: $model.state.youtubeTranscripts)
-                    .help("Uses the open-source youtube-transcript-api tool. It reads YouTube's captions in a way YouTube has not sanctioned and can stop working.")
                 HStack {
-                    Text(TranscriptTool.executable == nil
-                         ? "Transcript tool not installed."
-                         : "\(model.transcriptCount) transcripts saved.")
-                        .font(.caption).foregroundStyle(.secondary)
+                    Button("Retry Failed") { Task { await model.retryFailedCaptures() } }
+                        .disabled(failed == 0 || model.isCapturing)
                     Spacer()
-                    if TranscriptTool.executable == nil {
-                        Button("Install Transcript Tool") { Task { await model.installTranscriptTool() } }
-                    }
-                    if let m = model.transcriptToolMessage { Text(m).font(.caption).foregroundStyle(.secondary) }
                 }
+            } header: {
+                Text("Page text")
             } footer: {
-                Text("Sift fetches each new link once and keeps its readable text as Markdown on this Mac. No Claude involved.")
+                Text("Each link is fetched once and kept as a Markdown file with its URL, title, author, site and theme. Sites are paced, and a site that asks to slow down is skipped for an hour. No Claude involved.")
+                    .foregroundStyle(.secondary)
+            }
+
+            Section {
+                Toggle("Save YouTube transcripts", isOn: $model.state.youtubeTranscripts)
+                LabeledContent("Transcripts", value: TranscriptTool.executable == nil ? "Tool not installed" : "\(model.transcriptCount) saved")
+                if model.isTranscribing {
+                    ProgressView(value: Double(model.transcriptProgress.done), total: Double(max(model.transcriptProgress.total, 1))) {
+                        Text("Fetching \(model.transcriptProgress.done) of \(model.transcriptProgress.total)").font(.caption)
+                    }
+                }
+                if TranscriptTool.executable == nil {
+                    HStack {
+                        Button("Install Transcript Tool") { Task { await model.installTranscriptTool() } }
+                        if let m = model.transcriptToolMessage { Text(m).font(.caption).foregroundStyle(.secondary) }
+                    }
+                }
+            } header: {
+                Text("YouTube")
+            } footer: {
+                Text("Uses the open-source youtube-transcript-api tool, newest saves first. It reads YouTube's captions in a way YouTube has not sanctioned and can stop working.")
+                    .foregroundStyle(.secondary)
+            }
+
+            Section {
+                Toggle("Save Instagram post images", isOn: $model.state.instagramImages)
+                LabeledContent("Images", value: "\(model.instagramImageCount) saved")
+                if model.isFetchingInstagramImages {
+                    ProgressView(value: Double(model.instagramImageProgress.done), total: Double(max(model.instagramImageProgress.total, 1))) {
+                        Text("Fetching \(model.instagramImageProgress.done) of \(model.instagramImageProgress.total)").font(.caption)
+                    }
+                }
+            } header: {
+                Text("Instagram")
+            } footer: {
+                Text("From Instagram's public embed, one post at a time. Images are kept on this Mac because Instagram's image links expire.")
+                    .foregroundStyle(.secondary)
+            }
+
+            Section {
+                LabeledContent("Size on disk", value: diskUse.isEmpty ? "…" : diskUse)
+                HStack {
+                    Button("Show Library in Finder") { NSWorkspace.shared.activateFileViewerSelecting([Library.folder]) }
+                    Spacer()
+                }
+            } header: {
+                Text("Storage")
+            } footer: {
+                Text("~/Library/Application Support/Sift: Library (page text and transcripts), Images (Instagram) and Imports (copies of your exports).")
                     .foregroundStyle(.secondary)
             }
         }
         .formStyle(.grouped)
+        .task { diskUse = await Self.size() }
+    }
+
+    /// Size of Sift's saved files, measured off the main thread.
+    static func size() async -> String {
+        await Task.detached {
+            let root = StateFile.url.deletingLastPathComponent()
+            var total: Int64 = 0
+            if let walker = FileManager.default.enumerator(at: root, includingPropertiesForKeys: [.fileSizeKey]) {
+                while let f = walker.nextObject() as? URL {
+                    total += Int64((try? f.resourceValues(forKeys: [.fileSizeKey]).fileSize) ?? 0)
+                }
+            }
+            return ByteCountFormatter.string(fromByteCount: total, countStyle: .file)
+        }.value
     }
 }
 

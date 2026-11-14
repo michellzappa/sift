@@ -122,7 +122,7 @@ final class AppModel {
                 Task { await fetchTranscripts() }
             }
             // Instagram posts get their image in the background.
-            if !isFetchingInstagramImages, !instagramPostsWithoutImage.isEmpty {
+            if state.instagramImages, !isFetchingInstagramImages, !instagramPostsWithoutImage.isEmpty {
                 Task { await fetchInstagramImages() }
             }
             // New links go into the library in the background.
@@ -463,6 +463,7 @@ final class AppModel {
         defer { isFetchingInstagramImages = false; PreviewFetcher.saveCache(previews) }
         let fetcher = InstagramImageFetcher()
         for url in todo {
+            guard state.instagramImages else { break }
             instagramImageTried.insert(url)
             if let image = await fetcher.image(for: url) {
                 var p = previews[url] ?? Preview(title: "", text: "", imageURL: nil, site: "instagram.com", fetched: .now)
@@ -473,6 +474,17 @@ final class AppModel {
             if instagramImageProgress.done % 10 == 0 { PreviewFetcher.saveCache(previews) }
             try? await Task.sleep(for: .milliseconds(700))
         }
+    }
+
+    var instagramImageCount: Int {
+        previews.filter { $0.key.contains("instagram.com/") && ($0.value.imageURL?.hasPrefix("file:") ?? false) }.count
+    }
+
+    /// Forgets failed captures so the next run tries them again.
+    func retryFailedCaptures() async {
+        for (url, e) in library where e.status == "failed" { library[url] = nil }
+        Library.saveIndex(library)
+        await captureAll()
     }
 
     var capturedCount: Int { library.values.filter { $0.status != "failed" }.count }

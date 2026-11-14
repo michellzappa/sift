@@ -20,6 +20,8 @@ struct SiftState: Codable, Sendable {
     var autoCapture = true
     /// Fetch YouTube transcripts with youtube-transcript-api when installed.
     var youtubeTranscripts = true
+    /// Fetch Instagram post images from the public embed.
+    var instagramImages = true
     var xClientID: String = ""
     var xUserID: String?
     var xUsername: String?
@@ -42,6 +44,7 @@ struct SiftState: Codable, Sendable {
         importedSources = try c.decodeIfPresent([LinkImporter.Source].self, forKey: .importedSources) ?? []
         autoCapture = try c.decodeIfPresent(Bool.self, forKey: .autoCapture) ?? true
         youtubeTranscripts = try c.decodeIfPresent(Bool.self, forKey: .youtubeTranscripts) ?? true
+        instagramImages = try c.decodeIfPresent(Bool.self, forKey: .instagramImages) ?? true
         xClientID = try c.decodeIfPresent(String.self, forKey: .xClientID) ?? ""
         xUserID = try c.decodeIfPresent(String.self, forKey: .xUserID)
         xUsername = try c.decodeIfPresent(String.self, forKey: .xUsername)

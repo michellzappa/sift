@@ -106,8 +106,8 @@ the top, in `~/Library/Application Support/Sift/Library/`. Articles keep
 their headings, paragraphs and lists; PDFs keep their text; posts keep their
 text (Instagram posts their caption); YouTube videos keep their title,
 channel and full description, which usually includes the chapters. With the
-open-source `youtube-transcript-api` tool installed (Settings > Inputs >
-Library capture > Install Transcript Tool, which needs Python 3), Sift also
+open-source `youtube-transcript-api` tool installed (Settings > Library >
+Install Transcript Tool, which needs Python 3), Sift also
 saves each video's transcript, newest saves first. The tool reads YouTube's
 captions in a way YouTube has not sanctioned, so it can stop working; Sift
 paces it and pauses for an hour when YouTube refuses. Errands are skipped. Capture runs on
@@ -227,8 +227,13 @@ and publishes the ZIP and `SHA256SUMS`. It needs these repository secrets:
 **Inputs** lists every source with its status and actions: Safari tabs
 (devices and tab counts, the tab database, Full Disk Access), the Reading
 List, the Instagram export, X (preview options and the optional X API
-connection with Sync Bookmarks), imported link files, and library capture
-(automatic capture, saved, thin and failed counts, Show Library in Finder).
+connection with Sync Bookmarks) and imported link files.
+
+**Library** controls what Sift saves on this Mac. Each kind has its own
+switch and counts: page text (saved, thin and failed, with Retry Failed),
+YouTube transcripts (with Install Transcript Tool) and Instagram post
+images. It shows progress while each runs, the size on disk, and Show
+Library in Finder.
 
 **Outputs** runs each exporter and shows its last folder or file, shows the
 iPhone close list and the Shortcut guide, and explains Add to Reading List
