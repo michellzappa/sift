@@ -132,7 +132,7 @@ private struct Sidebar: View {
 
     var body: some View {
         List(selection: $selection) {
-            Label { HStack { Text("Overview"); Spacer(); count(model.tabs.count) } } icon: { Image(systemName: "circle.hexagongrid") }
+            Label { HStack { Text("Overview"); Spacer(); count(model.allSourcesCount) } } icon: { Image(systemName: "circle.hexagongrid") }
                 .tag(SidebarItem.overview)
             // The sources behind the overview, with counts. Click one to show
             // only that source; All Sources shows everything.
@@ -187,6 +187,7 @@ private struct Sidebar: View {
         // A source row switches the source; the canvas then shows only it.
         .onChange(of: selection) { _, new in
             if case .source(let id) = new, model.state.deviceID != id { model.selectDevice(id) }
+            if new == .overview, !model.isAll { model.selectDevice(AppModel.allSourcesID) }
         }
         .safeAreaInset(edge: .bottom, spacing: 0) { LibraryStatus() }
     }
@@ -194,7 +195,8 @@ private struct Sidebar: View {
     private struct SourceRow { let id: String; let name: String; let symbol: String; let count: Int }
 
     private var sourceRows: [SourceRow] {
-        var rows = [SourceRow(id: AppModel.allSourcesID, name: "All Sources", symbol: "square.stack.3d.up", count: model.allSourcesCount)]
+        // Overview itself is All Sources; these rows narrow it to one source.
+        var rows: [SourceRow] = []
         for d in model.devices where d.tabCount > 0 {
             rows.append(.init(id: d.id, name: d.name, symbol: "iphone", count: d.tabCount))
         }
