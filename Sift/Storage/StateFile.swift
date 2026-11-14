@@ -101,7 +101,8 @@ struct SiftState: Codable, Sendable {
 
 enum StateFile {
     static var url: URL {
-        let dir = FileManager.default.urls(for: .applicationSupportDirectory, in: .userDomainMask)[0]
+        // Demo mode (Demo.swift) keeps every file in Sift-Demo instead.
+        let dir = Demo.isOn ? Demo.folder : FileManager.default.urls(for: .applicationSupportDirectory, in: .userDomainMask)[0]
             .appending(path: "Sift", directoryHint: .isDirectory)
         try? FileManager.default.createDirectory(at: dir, withIntermediateDirectories: true)
         return dir.appending(path: "state.json")

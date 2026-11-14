@@ -32,6 +32,11 @@ extension AppModel {
         guard let sender = Senders.sender(for: d.kind), !sending.contains(tab.url) else { return }
         sending.insert(tab.url)
         defer { sending.remove(tab.url) }
+        // Demo mode records the send and calls no sender.
+        if Demo.isOn {
+            state.sent[tab.url, default: []].append(SentRecord(destination: d.id, date: .now, link: nil))
+            return
+        }
         let p = previews[tab.url]
         let item = SendItem(
             url: tab.url,
@@ -64,6 +69,7 @@ extension AppModel {
     /// Project destinations from earlier builds are removed; their sent
     /// history stays in `state.sent`.
     func migrateStarlingsDestinations() async {
+        guard !Demo.isOn else { return }
         var seen = Set<String>()
         var out: [Destination] = []
         for d in state.destinations {

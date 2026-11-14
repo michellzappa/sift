@@ -19,7 +19,8 @@ enum CloudTabsReader {
     }
 
     static var databaseURL: URL {
-        FileManager.default.homeDirectoryForCurrentUser
+        if Demo.isOn { return Demo.folder.appending(path: "CloudTabs.db") }
+        return FileManager.default.homeDirectoryForCurrentUser
             .appending(path: "Library/Containers/com.apple.Safari/Data/Library/Safari/CloudTabs.db")
     }
 

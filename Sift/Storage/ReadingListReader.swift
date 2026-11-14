@@ -9,7 +9,8 @@ enum ReadingListReader {
     static let sourceID = "reading-list"
 
     static var fileURL: URL {
-        FileManager.default.homeDirectoryForCurrentUser.appending(path: "Library/Safari/Bookmarks.plist")
+        if Demo.isOn { return Demo.folder.appending(path: "Bookmarks.plist") }
+        return FileManager.default.homeDirectoryForCurrentUser.appending(path: "Library/Safari/Bookmarks.plist")
     }
 
     struct Item: Sendable {

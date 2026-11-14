@@ -10,6 +10,7 @@ extension AppModel {
     var xConnected: Bool { !state.xClientID.isEmpty && state.xUserID != nil }
 
     func connectX() async {
+        guard !Demo.isOn else { xError = Demo.offMessage; return }
         guard !state.xClientID.isEmpty else { xError = "Paste your X app's Client ID first."; return }
         xBusy = true
         defer { xBusy = false }
@@ -38,6 +39,7 @@ extension AppModel {
     /// batches of 100, and turns them into previews. Posts the API no longer
     /// returns lose their content.
     func refreshXPosts(urls: [String], force: Bool = false) async {
+        guard !Demo.isOn else { return }
         guard xConnected else { return }
         let ids = Array(Set(urls.compactMap(XClient.statusID))).filter { id in
             guard !force, let p = xPosts[id] else { return true }
@@ -69,6 +71,7 @@ extension AppModel {
 
     /// Downloads the user's most recent bookmarks (X returns up to 800).
     func syncXBookmarks() async {
+        guard !Demo.isOn else { return }
         guard xConnected, let userID = state.xUserID else { return }
         xBusy = true
         defer { xBusy = false }

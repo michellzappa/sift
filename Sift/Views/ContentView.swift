@@ -21,6 +21,7 @@ struct ContentView: View {
     @Environment(AppModel.self) private var model
     @State private var selection: SidebarItem? = .overview
     @Environment(\.openWindow) private var openWindow
+    @Environment(\.openSettings) private var openSettings
 
     var body: some View {
         NavigationSplitView {
@@ -53,6 +54,25 @@ struct ContentView: View {
             guard model.onboarding == nil, let pending = model.pendingOnboarding() else { return }
             model.onboarding = pending
             openWindow(id: Onboarding.windowID)
+        }
+        // Demo mode: window size, appearance and first view from the launch
+        // arguments (see Demo.swift and scripts/screenshots.sh).
+        .task {
+            guard Demo.isOn else { return }
+            Demo.applyAppearance()
+            try? await Task.sleep(for: .milliseconds(300))
+            Demo.sizeMainWindow()
+            switch Demo.startView {
+            case .theme(let name):
+                model.graphTheme = name
+                selection = .project(name)
+            case .list(let id):
+                selection = .source(id)
+            case .settings:
+                openSettings()
+            case .graph, nil:
+                break
+            }
         }
         // Coming back from System Settings: check Full Disk Access again.
         .onReceive(NotificationCenter.default.publisher(for: NSApplication.didBecomeActiveNotification)) { _ in
@@ -414,6 +434,7 @@ private struct LibraryStatus: View {
             HStack(spacing: 6) {
                 Image(systemName: "books.vertical").foregroundStyle(.secondary)
                 Text("Library").font(.caption.weight(.semibold))
+                DemoBadge()
                 Spacer()
                 Text("\(saved) of \(total)").font(.caption.monospacedDigit()).foregroundStyle(.secondary)
             }

@@ -9,6 +9,8 @@ enum Keychain {
     private static let account = "default"
 
     static func read(service: String) -> String? {
+        // Demo mode never sees the owner's secrets.
+        if Demo.isOn { return nil }
         let query: [String: Any] = [
             kSecClass as String: kSecClassGenericPassword,
             kSecAttrService as String: service,
@@ -26,6 +28,7 @@ enum Keychain {
     /// Saves the value, or deletes the item when the value is empty.
     @discardableResult
     static func save(_ value: String, service: String) -> Bool {
+        if Demo.isOn { return false }
         let base: [String: Any] = [
             kSecClass as String: kSecClassGenericPassword,
             kSecAttrService as String: service,

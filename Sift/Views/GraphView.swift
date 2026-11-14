@@ -46,6 +46,12 @@ struct GraphView: View {
                         .transition(.move(edge: .trailing))
                 }
             }
+            // Demo mode can open focused on a theme (`-demoView theme:<name>`).
+            .task(id: model.graphTheme) {
+                guard Demo.isOn, let theme = model.graphTheme, focusTheme != theme else { return }
+                try? await Task.sleep(for: .milliseconds(600))
+                focus(theme, size: geo.size)
+            }
         }
         .overlay(alignment: .topLeading) {
             if focusTheme != nil {

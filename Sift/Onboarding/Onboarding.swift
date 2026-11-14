@@ -79,6 +79,8 @@ extension AppModel {
     /// The steps to show without being asked: the whole guide on first run,
     /// or only steps the user has not seen yet. nil when there is nothing new.
     func pendingOnboarding() -> OnboardingSession? {
+        // The Setup Guide never opens by itself in demo mode.
+        guard !Demo.isOn else { return nil }
         let seen = Set(state.onboardingSeen ?? [])
         let unseen = Onboarding.ids.filter { !seen.contains($0) }
         guard !unseen.isEmpty else { return nil }

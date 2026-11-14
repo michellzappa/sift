@@ -23,6 +23,7 @@ extension AppModel {
     /// Fetches and extracts the text of every link not yet in the library,
     /// four at a time, and writes it as Markdown. Local only: no Claude.
     func captureAll() async {
+        guard !Demo.isOn else { return }
         guard !isCapturing else { return }
         let todo = linksToCapture
         guard !todo.isEmpty else { return }
@@ -100,6 +101,8 @@ extension AppModel {
     /// Starts every background library job that has work and is not running.
     func startLibraryJobs() {
         checkDataProblems()
+        // Demo mode: no capture, transcripts, images or summaries.
+        guard !Demo.isOn else { return }
         // YouTube videos get their transcript.
         if !isTranscribing, !videosNeedingTranscript.isEmpty { Task { await fetchTranscripts() } }
         // Instagram reels get their speech as text.
@@ -126,6 +129,7 @@ extension AppModel {
 
     /// One oEmbed request a second, newest first.
     func fetchVideoTitles() async {
+        guard !Demo.isOn else { return }
         guard !isFetchingVideoTitles else { return }
         let todo = videosWithoutTitle
         guard !todo.isEmpty else { return }
@@ -149,6 +153,7 @@ extension AppModel {
     /// Jobs also restart on their own, every 15 minutes, so a job that
     /// stopped (a site asked to slow down) resumes without a reload.
     func startLibraryWorker() {
+        guard !Demo.isOn else { return }
         Task { [weak self] in
             while !Task.isCancelled {
                 try? await Task.sleep(for: .seconds(900))
@@ -175,6 +180,7 @@ extension AppModel {
 
     /// One video at a time, paced by HostGate; stops when YouTube throttles.
     func fetchTranscripts() async {
+        guard !Demo.isOn else { return }
         guard !isTranscribing else { return }
         let todo = videosNeedingTranscript
         guard !todo.isEmpty else { return }
@@ -243,6 +249,7 @@ extension AppModel {
     }
 
     func installTranscriptTool() async {
+        guard !Demo.isOn else { return }
         transcriptToolMessage = "Installing…"
         transcriptToolMessage = await TranscriptTool.install() ?? "Installed."
         if TranscriptTool.executable != nil, !isTranscribing { Task { await fetchTranscripts() } }
@@ -264,6 +271,7 @@ extension AppModel {
     /// One reel at a time: audio through yt-dlp, text through macOS speech
     /// recognition. Stops when Instagram throttles or speech is not allowed.
     func fetchReelTranscripts() async {
+        guard !Demo.isOn else { return }
         guard !isTranscribingReels else { return }
         let todo = reelsNeedingTranscript
         guard !todo.isEmpty else { return }
@@ -302,6 +310,7 @@ extension AppModel {
     }
 
     func installReelTool() async {
+        guard !Demo.isOn else { return }
         reelToolMessage = "Installing…"
         reelToolMessage = await ReelTool.install() ?? "Installed."
         if ReelTool.executable != nil, !isTranscribingReels { Task { await fetchReelTranscripts() } }
@@ -320,6 +329,7 @@ extension AppModel {
 
     /// One post at a time, with a pause between posts, to stay polite.
     func fetchInstagramImages() async {
+        guard !Demo.isOn else { return }
         guard !isFetchingInstagramImages else { return }
         let todo = instagramPostsWithoutImage
         guard !todo.isEmpty else { return }
@@ -347,6 +357,7 @@ extension AppModel {
 
     /// Forgets failed captures so the next run tries them again.
     func retryFailedCaptures() async {
+        guard !Demo.isOn else { return }
         for (url, e) in library where e.status == "failed" { library[url] = nil }
         Library.saveIndex(library)
         await captureAll()

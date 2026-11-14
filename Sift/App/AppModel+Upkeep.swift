@@ -100,6 +100,7 @@ extension AppModel {
 
     /// Fetches previews for the tabs that have none yet, six at a time.
     func fetchPreviews(for list: [SafariTab], force: Bool = false) async {
+        guard !Demo.isOn else { return }
         var todo = list.map(\.url).filter { force || previews[$0] == nil || needsLinks($0) }
         // With the X API connected, X posts come from the API in batches.
         if xConnected {
@@ -154,6 +155,7 @@ extension AppModel {
     /// Fetches previews for the "unknown" tabs, then sorts them again with the
     /// preview text. Tabs that stay unknown are probably deleted posts.
     func resortUnknown() async {
+        guard !Demo.isOn else { return }
         let unknown = tabs(in: Project.unknown)
         guard !unknown.isEmpty, !isSorting else { return }
         await fetchPreviews(for: unknown)

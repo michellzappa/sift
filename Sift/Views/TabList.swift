@@ -436,7 +436,8 @@ struct TabCard: View {
     /// Page image, author avatar, or the site's icon.
     @ViewBuilder
     private func thumbnail(_ p: Preview?) -> some View {
-        let source = p?.imageURL ?? p?.avatarURL ?? "https://\(tab.host)/favicon.ico"
+        // Demo mode has no network, so no site icon.
+        let source = p?.imageURL ?? p?.avatarURL ?? (Demo.isOn ? "" : "https://\(tab.host)/favicon.ico")
         AsyncImage(url: URL(string: source)) { phase in
             if let image = phase.image {
                 image.resizable().aspectRatio(contentMode: .fill)
@@ -488,6 +489,7 @@ enum TabActions {
     /// Returns an error message, or nil on success.
     @MainActor
     static func addToReadingList(_ url: String, title: String, preview: String) -> String? {
+        if Demo.isOn { return Demo.offMessage }
         func quoted(_ s: String) -> String {
             "\"" + s.replacingOccurrences(of: "\\", with: "\\\\").replacingOccurrences(of: "\"", with: "\\\"")
                 .replacingOccurrences(of: "\n", with: " ") + "\""

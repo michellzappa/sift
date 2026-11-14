@@ -20,6 +20,7 @@ extension AppModel {
     /// fills in titles for bare links, and asks Claude for themes. The result
     /// waits in `themeProposal` until the user accepts it.
     func discoverThemes() async {
+        guard !Demo.isOn else { sortError = Demo.offMessage; return }
         guard !isDiscovering, !isSorting else { return }
         isDiscovering = true
         sortError = nil
@@ -205,6 +206,7 @@ extension AppModel {
 
     /// Sorts every tab that has no assignment yet. Hand-sorted tabs stay as they are.
     func sortUnsorted() async {
+        guard !Demo.isOn else { sortError = Demo.offMessage; return }
         guard !isSorting else { return }
         let all = tabs.filter { state.assignments[$0.url] == nil }
         guard !all.isEmpty else { return }
@@ -254,6 +256,7 @@ extension AppModel {
 
     /// Asks Claude, 60 links at a time, which other themes each link feeds.
     func findConnections() async {
+        guard !Demo.isOn else { return }
         guard !isConnecting, !isSorting, !isDiscovering, themes.count > 1 else { return }
         let todo = linksNeedingConnections
         guard !todo.isEmpty else { return }

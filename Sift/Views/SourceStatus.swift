@@ -152,6 +152,7 @@ enum MCPSetup {
 
     /// Runs `claude mcp add` and returns a message for the user.
     static func addToClaudeCode() async -> String {
+        guard !Demo.isOn else { return Demo.offMessage }
         guard let claude = ClaudeCodeRunner.executable else { return "Claude Code was not found." }
         return await withCheckedContinuation { c in
             let p = Process()

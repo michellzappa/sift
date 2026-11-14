@@ -1,0 +1,1518 @@
+{
+  "assignments": {
+    "https://archreview.example/courtyards-and-light-wells-in-deep-plan-buildings": {
+      "also": [],
+      "manual": false,
+      "project": "Architecture and Housing",
+      "sortedBy": "claude",
+      "use": ""
+    },
+    "https://archreview.example/prefab-bathroom-pods": {
+      "also": [],
+      "manual": false,
+      "project": "Architecture and Housing",
+      "sortedBy": "device",
+      "use": ""
+    },
+    "https://archreview.example/retrofitting-a-1960s-block-to-near-zero-energy": {
+      "also": [
+        "Climate Tech"
+      ],
+      "manual": false,
+      "project": "Architecture and Housing",
+      "sortedBy": "claude",
+      "use": ""
+    },
+    "https://climatedesk.example/carbon-removal-startups-and-what-they-remove": {
+      "also": [],
+      "manual": false,
+      "project": "Climate Tech",
+      "sortedBy": "claude",
+      "use": ""
+    },
+    "https://climatedesk.example/green-steel-without-the-jargon": {
+      "also": [],
+      "manual": false,
+      "project": "Climate Tech",
+      "sortedBy": "device",
+      "use": ""
+    },
+    "https://climatedesk.example/the-heat-pump-installer-shortage-in-numbers": {
+      "also": [],
+      "manual": false,
+      "project": "Climate Tech",
+      "sortedBy": "claude",
+      "use": ""
+    },
+    "https://deals.example.com/gadgets": {
+      "also": [],
+      "manual": false,
+      "project": "drop",
+      "sortedBy": "claude",
+      "use": ""
+    },
+    "https://en.wikipedia.org/wiki/Anglerfish": {
+      "also": [],
+      "manual": false,
+      "project": "Deep Sea Biology",
+      "sortedBy": "claude",
+      "use": ""
+    },
+    "https://en.wikipedia.org/wiki/Aspergillus_oryzae": {
+      "also": [],
+      "manual": false,
+      "project": "Fermentation and Food Science",
+      "sortedBy": "claude",
+      "use": ""
+    },
+    "https://en.wikipedia.org/wiki/Bicycle-sharing_system": {
+      "also": [],
+      "manual": false,
+      "project": "Urban Cycling",
+      "sortedBy": "claude",
+      "use": ""
+    },
+    "https://en.wikipedia.org/wiki/Bioluminescence": {
+      "also": [],
+      "manual": false,
+      "project": "Deep Sea Biology",
+      "sortedBy": "claude",
+      "use": ""
+    },
+    "https://en.wikipedia.org/wiki/Bonsai": {
+      "also": [],
+      "manual": false,
+      "project": "personal",
+      "sortedBy": "claude",
+      "use": ""
+    },
+    "https://en.wikipedia.org/wiki/Brutalist_architecture": {
+      "also": [],
+      "manual": false,
+      "project": "Architecture and Housing",
+      "sortedBy": "claude",
+      "use": ""
+    },
+    "https://en.wikipedia.org/wiki/Cohousing": {
+      "also": [],
+      "manual": false,
+      "project": "Architecture and Housing",
+      "sortedBy": "claude",
+      "use": ""
+    },
+    "https://en.wikipedia.org/wiki/Commonplace_book": {
+      "also": [],
+      "manual": false,
+      "project": "Personal Knowledge Tools",
+      "sortedBy": "device",
+      "use": ""
+    },
+    "https://en.wikipedia.org/wiki/Cross-laminated_timber": {
+      "also": [],
+      "manual": false,
+      "project": "Architecture and Housing",
+      "sortedBy": "device",
+      "use": ""
+    },
+    "https://en.wikipedia.org/wiki/Direct_air_capture": {
+      "also": [],
+      "manual": false,
+      "project": "Climate Tech",
+      "sortedBy": "claude",
+      "use": ""
+    },
+    "https://en.wikipedia.org/wiki/Eurorack": {
+      "also": [],
+      "manual": false,
+      "project": "Synthesizers and Sound",
+      "sortedBy": "claude",
+      "use": ""
+    },
+    "https://en.wikipedia.org/wiki/Grid_energy_storage": {
+      "also": [],
+      "manual": false,
+      "project": "Climate Tech",
+      "sortedBy": "claude",
+      "use": ""
+    },
+    "https://en.wikipedia.org/wiki/Heat_pump": {
+      "also": [
+        "Architecture and Housing"
+      ],
+      "manual": false,
+      "project": "Climate Tech",
+      "sortedBy": "claude",
+      "use": ""
+    },
+    "https://en.wikipedia.org/wiki/Heat_pump#Efficiency": {
+      "also": [],
+      "manual": false,
+      "project": "Climate Tech",
+      "sortedBy": "device",
+      "use": ""
+    },
+    "https://en.wikipedia.org/wiki/Helvetica": {
+      "also": [],
+      "manual": false,
+      "project": "Typography and Type Design",
+      "sortedBy": "device",
+      "use": ""
+    },
+    "https://en.wikipedia.org/wiki/Hydrothermal_vent": {
+      "also": [],
+      "manual": false,
+      "project": "Deep Sea Biology",
+      "sortedBy": "claude",
+      "use": ""
+    },
+    "https://en.wikipedia.org/wiki/Johnston_(typeface)": {
+      "also": [],
+      "manual": false,
+      "project": "Typography and Type Design",
+      "sortedBy": "claude",
+      "use": ""
+    },
+    "https://en.wikipedia.org/wiki/Kimchi": {
+      "also": [],
+      "manual": false,
+      "project": "Fermentation and Food Science",
+      "sortedBy": "claude",
+      "use": ""
+    },
+    "https://en.wikipedia.org/wiki/Lactic_acid_fermentation": {
+      "also": [],
+      "manual": false,
+      "project": "Fermentation and Food Science",
+      "sortedBy": "claude",
+      "use": ""
+    },
+    "https://en.wikipedia.org/wiki/Mariana_Trench": {
+      "also": [],
+      "manual": false,
+      "project": "Deep Sea Biology",
+      "sortedBy": "claude",
+      "use": ""
+    },
+    "https://en.wikipedia.org/wiki/Memex": {
+      "also": [],
+      "manual": false,
+      "project": "Personal Knowledge Tools",
+      "sortedBy": "claude",
+      "use": ""
+    },
+    "https://en.wikipedia.org/wiki/Modular_synthesizer": {
+      "also": [],
+      "manual": false,
+      "project": "Synthesizers and Sound",
+      "sortedBy": "claude",
+      "use": ""
+    },
+    "https://en.wikipedia.org/wiki/Moog_synthesizer": {
+      "also": [],
+      "manual": false,
+      "project": "Synthesizers and Sound",
+      "sortedBy": "claude",
+      "use": ""
+    },
+    "https://en.wikipedia.org/wiki/OpenType": {
+      "also": [],
+      "manual": false,
+      "project": "Typography and Type Design",
+      "sortedBy": "claude",
+      "use": ""
+    },
+    "https://en.wikipedia.org/wiki/Passive_house": {
+      "also": [],
+      "manual": false,
+      "project": "Architecture and Housing",
+      "sortedBy": "device",
+      "use": ""
+    },
+    "https://en.wikipedia.org/wiki/Perovskite_solar_cell": {
+      "also": [],
+      "manual": false,
+      "project": "Climate Tech",
+      "sortedBy": "claude",
+      "use": ""
+    },
+    "https://en.wikipedia.org/wiki/Robot_Operating_System": {
+      "also": [],
+      "manual": true,
+      "project": "Home Robotics",
+      "sortedBy": "device",
+      "use": ""
+    },
+    "https://en.wikipedia.org/wiki/Roomba": {
+      "also": [],
+      "manual": false,
+      "project": "Home Robotics",
+      "sortedBy": "claude",
+      "use": ""
+    },
+    "https://en.wikipedia.org/wiki/Segregated_cycle_facilities": {
+      "also": [],
+      "manual": false,
+      "project": "Urban Cycling",
+      "sortedBy": "claude",
+      "use": ""
+    },
+    "https://en.wikipedia.org/wiki/Simultaneous_localization_and_mapping": {
+      "also": [],
+      "manual": false,
+      "project": "Home Robotics",
+      "sortedBy": "claude",
+      "use": ""
+    },
+    "https://en.wikipedia.org/wiki/Sourdough": {
+      "also": [],
+      "manual": false,
+      "project": "Fermentation and Food Science",
+      "sortedBy": "device",
+      "use": ""
+    },
+    "https://en.wikipedia.org/wiki/Spaced_repetition": {
+      "also": [],
+      "manual": false,
+      "project": "Personal Knowledge Tools",
+      "sortedBy": "device",
+      "use": ""
+    },
+    "https://en.wikipedia.org/wiki/Theremin": {
+      "also": [],
+      "manual": false,
+      "project": "Synthesizers and Sound",
+      "sortedBy": "claude",
+      "use": ""
+    },
+    "https://en.wikipedia.org/wiki/Typeface": {
+      "also": [],
+      "manual": false,
+      "project": "Typography and Type Design",
+      "sortedBy": "claude",
+      "use": ""
+    },
+    "https://en.wikipedia.org/wiki/Utility_cycling": {
+      "also": [],
+      "manual": false,
+      "project": "Urban Cycling",
+      "sortedBy": "claude",
+      "use": ""
+    },
+    "https://en.wikipedia.org/wiki/Vampire_squid": {
+      "also": [],
+      "manual": false,
+      "project": "Deep Sea Biology",
+      "sortedBy": "claude",
+      "use": ""
+    },
+    "https://en.wikipedia.org/wiki/Zettelkasten": {
+      "also": [],
+      "manual": false,
+      "project": "Personal Knowledge Tools",
+      "sortedBy": "claude",
+      "use": ""
+    },
+    "https://events.example.com/jazz-night": {
+      "also": [],
+      "manual": true,
+      "project": "personal",
+      "sortedBy": "claude",
+      "use": ""
+    },
+    "https://fontspecimens.example/specimen-a-humanist-sans-for-long-reading": {
+      "also": [],
+      "manual": false,
+      "project": "Typography and Type Design",
+      "sortedBy": "claude",
+      "use": ""
+    },
+    "https://foodlab.example/measuring-ph-at-home-without-lab-gear": {
+      "also": [
+        "Home Robotics"
+      ],
+      "manual": false,
+      "project": "Fermentation and Food Science",
+      "sortedBy": "claude",
+      "use": ""
+    },
+    "https://foodlab.example/what-the-maillard-reaction-is-and-why-browning-tastes-good": {
+      "also": [],
+      "manual": false,
+      "project": "Fermentation and Food Science",
+      "sortedBy": "claude",
+      "use": ""
+    },
+    "https://gridnotes.example/balcony-solar-what-800-watts-gets-you": {
+      "also": [],
+      "manual": false,
+      "project": "Climate Tech",
+      "sortedBy": "device",
+      "use": ""
+    },
+    "https://gridnotes.example/night-storage-heaters-revisited": {
+      "also": [],
+      "manual": false,
+      "project": "Climate Tech",
+      "sortedBy": "device",
+      "use": ""
+    },
+    "https://gridnotes.example/reading-the-grid-a-guide-to-live-electricity-maps": {
+      "also": [],
+      "manual": false,
+      "project": "Climate Tech",
+      "sortedBy": "claude",
+      "use": ""
+    },
+    "https://gridnotes.example/why-batteries-now-undercut-gas-peaker-plants": {
+      "also": [],
+      "manual": false,
+      "project": "Climate Tech",
+      "sortedBy": "claude",
+      "use": ""
+    },
+    "https://homelab.example/a-robot-that-waters-the-plants-while-im-away": {
+      "also": [
+        "Climate Tech"
+      ],
+      "manual": false,
+      "project": "Home Robotics",
+      "sortedBy": "device",
+      "use": ""
+    },
+    "https://housingdesk.example/building-cooperatives-when-residents-own-the-block": {
+      "also": [],
+      "manual": false,
+      "project": "Architecture and Housing",
+      "sortedBy": "claude",
+      "use": ""
+    },
+    "https://housingdesk.example/how-vienna-keeps-rents-low": {
+      "also": [],
+      "manual": false,
+      "project": "Architecture and Housing",
+      "sortedBy": "device",
+      "use": ""
+    },
+    "https://housingdesk.example/missing-middle-housing-with-drawings": {
+      "also": [],
+      "manual": false,
+      "project": "Architecture and Housing",
+      "sortedBy": "claude",
+      "use": ""
+    },
+    "https://kitchenscience.example/the-case-for-weighing-everything-in-the-kitchen": {
+      "also": [],
+      "manual": false,
+      "project": "Fermentation and Food Science",
+      "sortedBy": "claude",
+      "use": ""
+    },
+    "https://knowledgecraft.example/rereading-your-notes-matters-more-than-linking-them": {
+      "also": [],
+      "manual": false,
+      "project": "Personal Knowledge Tools",
+      "sortedBy": "claude",
+      "use": ""
+    },
+    "https://knowledgecraft.example/spaced-repetition-for-adults-who-hated-flashcards": {
+      "also": [],
+      "manual": false,
+      "project": "Personal Knowledge Tools",
+      "sortedBy": "claude",
+      "use": ""
+    },
+    "https://letterpress.example/cleaning-wood-type-without-damage": {
+      "also": [],
+      "manual": false,
+      "project": "Typography and Type Design",
+      "sortedBy": "claude",
+      "use": ""
+    },
+    "https://letterpress.example/setting-a-poster-in-wood-type": {
+      "also": [],
+      "manual": false,
+      "project": "Typography and Type Design",
+      "sortedBy": "claude",
+      "use": ""
+    },
+    "https://library.example.org/account": {
+      "also": [],
+      "manual": false,
+      "project": "errands",
+      "sortedBy": "claude",
+      "use": ""
+    },
+    "https://localfirst.example/local-first-software-in-plain-terms": {
+      "also": [
+        "Synthesizers and Sound"
+      ],
+      "manual": true,
+      "project": "Personal Knowledge Tools",
+      "sortedBy": "claude",
+      "use": ""
+    },
+    "https://localfirst.example/sync-conflicts-in-plain-text-files": {
+      "also": [],
+      "manual": false,
+      "project": "Personal Knowledge Tools",
+      "sortedBy": "claude",
+      "use": ""
+    },
+    "https://maps.example.com/route": {
+      "also": [],
+      "manual": false,
+      "project": "errands",
+      "sortedBy": "device",
+      "use": ""
+    },
+    "https://marinebio.example/giant-isopods-and-why-they-get-so-big": {
+      "also": [],
+      "manual": false,
+      "project": "Deep Sea Biology",
+      "sortedBy": "claude",
+      "use": ""
+    },
+    "https://mobilitylab.example/e-bikes-and-the-hills-problem-data-from-40-000-rides": {
+      "also": [
+        "Climate Tech"
+      ],
+      "manual": false,
+      "project": "Urban Cycling",
+      "sortedBy": "claude",
+      "use": ""
+    },
+    "https://my.example.org/billing": {
+      "also": [],
+      "manual": false,
+      "project": "errands",
+      "sortedBy": "claude",
+      "use": ""
+    },
+    "https://news.example.com/live": {
+      "also": [],
+      "manual": false,
+      "project": "drop",
+      "sortedBy": "claude",
+      "use": ""
+    },
+    "https://notesdaily.example/daily-notes-or-topic-notes": {
+      "also": [],
+      "manual": false,
+      "project": "Personal Knowledge Tools",
+      "sortedBy": "claude",
+      "use": ""
+    },
+    "https://notesdaily.example/how-to-keep-a-reading-log-you-use": {
+      "also": [],
+      "manual": false,
+      "project": "Personal Knowledge Tools",
+      "sortedBy": "claude",
+      "use": ""
+    },
+    "https://notesdaily.example/i-tried-five-note-apps-in-a-year-this-is-what-stuck": {
+      "also": [],
+      "manual": false,
+      "project": "Personal Knowledge Tools",
+      "sortedBy": "claude",
+      "use": ""
+    },
+    "https://oceanlog.example/how-scientists-keep-deep-sea-animals-alive-at-the-surface": {
+      "also": [],
+      "manual": false,
+      "project": "Deep Sea Biology",
+      "sortedBy": "claude",
+      "use": ""
+    },
+    "https://oceanlog.example/what-lives-at-4-000-metres-by-depth-zone": {
+      "also": [],
+      "manual": false,
+      "project": "Deep Sea Biology",
+      "sortedBy": "claude",
+      "use": ""
+    },
+    "https://parcels.example/track/DM2024": {
+      "also": [],
+      "manual": false,
+      "project": "errands",
+      "sortedBy": "claude",
+      "use": ""
+    },
+    "https://patchnotes.example/a-field-guide-to-filter-types": {
+      "also": [],
+      "manual": false,
+      "project": "Synthesizers and Sound",
+      "sortedBy": "device",
+      "use": ""
+    },
+    "https://patchnotes.example/subtractive-synthesis-on-one-page": {
+      "also": [],
+      "manual": false,
+      "project": "Synthesizers and Sound",
+      "sortedBy": "claude",
+      "use": ""
+    },
+    "https://quiz.example.net/appliance": {
+      "also": [],
+      "manual": true,
+      "project": "drop",
+      "sortedBy": "claude",
+      "use": ""
+    },
+    "https://recipes.example.com/red-lentil-soup": {
+      "also": [],
+      "manual": false,
+      "project": "personal",
+      "sortedBy": "claude",
+      "use": ""
+    },
+    "https://robotics.example.org/open-source-robot-arms-worth-building": {
+      "also": [],
+      "manual": false,
+      "project": "Home Robotics",
+      "sortedBy": "claude",
+      "use": ""
+    },
+    "https://running.example.org/10k-plan": {
+      "also": [],
+      "manual": false,
+      "project": "personal",
+      "sortedBy": "claude",
+      "use": ""
+    },
+    "https://saltandtime.example/a-beginners-guide-to-koji-at-home": {
+      "also": [],
+      "manual": false,
+      "project": "Fermentation and Food Science",
+      "sortedBy": "claude",
+      "use": ""
+    },
+    "https://saltandtime.example/a-beginners-guide-to-koji-at-home?utm_source=newsletter": {
+      "also": [],
+      "manual": false,
+      "project": "Fermentation and Food Science",
+      "sortedBy": "claude",
+      "use": ""
+    },
+    "https://saltandtime.example/garum-from-chicken-wings-a-six-week-project": {
+      "also": [],
+      "manual": false,
+      "project": "Fermentation and Food Science",
+      "sortedBy": "device",
+      "use": ""
+    },
+    "https://saltandtime.example/shio-koji-as-a-marinade": {
+      "also": [],
+      "manual": false,
+      "project": "Fermentation and Food Science",
+      "sortedBy": "claude",
+      "use": ""
+    },
+    "https://seafloor.example/deep-sea-mining-what-we-know-about-the-sediment-plumes": {
+      "also": [
+        "Climate Tech"
+      ],
+      "manual": true,
+      "project": "Deep Sea Biology",
+      "sortedBy": "device",
+      "use": ""
+    },
+    "https://seafloor.example/mapping-the-seafloor-by-sound": {
+      "also": [],
+      "manual": false,
+      "project": "Deep Sea Biology",
+      "sortedBy": "claude",
+      "use": ""
+    },
+    "https://shop.example.com/cart": {
+      "also": [],
+      "manual": false,
+      "project": "errands",
+      "sortedBy": "claude",
+      "use": ""
+    },
+    "https://slowcycle.example/cargo-bikes-that-carry-two-kids": {
+      "also": [],
+      "manual": false,
+      "project": "Urban Cycling",
+      "sortedBy": "claude",
+      "use": ""
+    },
+    "https://slowcycle.example/servicing-a-hub-gear-at-home": {
+      "also": [],
+      "manual": false,
+      "project": "Urban Cycling",
+      "sortedBy": "claude",
+      "use": ""
+    },
+    "https://slowcycle.example/winter-tyres-for-city-bikes-tested-on-ice": {
+      "also": [],
+      "manual": false,
+      "project": "Urban Cycling",
+      "sortedBy": "claude",
+      "use": ""
+    },
+    "https://soundlab.example/cheap-contact-microphones-and-what-they-hear": {
+      "also": [
+        "Home Robotics"
+      ],
+      "manual": false,
+      "project": "Synthesizers and Sound",
+      "sortedBy": "device",
+      "use": ""
+    },
+    "https://soundlab.example/recording-room-tone-in-a-small-flat": {
+      "also": [
+        "Architecture and Housing"
+      ],
+      "manual": false,
+      "project": "Synthesizers and Sound",
+      "sortedBy": "claude",
+      "use": ""
+    },
+    "https://streetsmag.example/how-one-city-doubled-bike-trips-in-five-years": {
+      "also": [],
+      "manual": false,
+      "project": "Urban Cycling",
+      "sortedBy": "claude",
+      "use": ""
+    },
+    "https://streetsmag.example/low-traffic-neighbourhoods-two-years-on": {
+      "also": [
+        "Architecture and Housing"
+      ],
+      "manual": false,
+      "project": "Urban Cycling",
+      "sortedBy": "device",
+      "use": ""
+    },
+    "https://streetsmag.example/the-school-street-experiment": {
+      "also": [],
+      "manual": false,
+      "project": "Urban Cycling",
+      "sortedBy": "claude",
+      "use": ""
+    },
+    "https://synthdiy.example/building-a-synth-kit-what-the-instructions-skip": {
+      "also": [],
+      "manual": false,
+      "project": "Synthesizers and Sound",
+      "sortedBy": "device",
+      "use": ""
+    },
+    "https://tickets.example.net/booking/7Q2LMX": {
+      "also": [],
+      "manual": false,
+      "project": "errands",
+      "sortedBy": "claude",
+      "use": ""
+    },
+    "https://tinybots.example/building-a-two-wheel-balancing-robot-from-a-kit": {
+      "also": [],
+      "manual": false,
+      "project": "Home Robotics",
+      "sortedBy": "device",
+      "use": ""
+    },
+    "https://tinybots.example/choosing-a-motor-driver-for-small-dc-motors": {
+      "also": [],
+      "manual": false,
+      "project": "Home Robotics",
+      "sortedBy": "claude",
+      "use": ""
+    },
+    "https://tinybots.example/encoder-wheels-from-a-broken-printer": {
+      "also": [],
+      "manual": false,
+      "project": "Home Robotics",
+      "sortedBy": "claude",
+      "use": ""
+    },
+    "https://typejournal.example/designing-a-variable-font-notes-from-my-first-year": {
+      "also": [],
+      "manual": false,
+      "project": "Typography and Type Design",
+      "sortedBy": "device",
+      "use": ""
+    },
+    "https://typejournal.example/licensing-fonts-for-apps-without-surprises": {
+      "also": [],
+      "manual": false,
+      "project": "Typography and Type Design",
+      "sortedBy": "claude",
+      "use": ""
+    },
+    "https://typejournal.example/why-the-same-font-looks-different-on-mac-and-windows": {
+      "also": [],
+      "manual": false,
+      "project": "Typography and Type Design",
+      "sortedBy": "claude",
+      "use": ""
+    },
+    "https://workshopnotes.example/why-my-robot-vacuum-keeps-getting-stuck-under-the-sofa": {
+      "also": [],
+      "manual": false,
+      "project": "Home Robotics",
+      "sortedBy": "device",
+      "use": ""
+    },
+    "https://www.instagram.com/p/SiftDemo01/": {
+      "also": [],
+      "manual": true,
+      "project": "Home Robotics",
+      "sortedBy": "claude",
+      "use": ""
+    },
+    "https://www.instagram.com/p/SiftDemo02/": {
+      "also": [],
+      "manual": false,
+      "project": "Home Robotics",
+      "sortedBy": "claude",
+      "use": ""
+    },
+    "https://www.instagram.com/p/SiftDemo03/": {
+      "also": [],
+      "manual": false,
+      "project": "Fermentation and Food Science",
+      "sortedBy": "claude",
+      "use": ""
+    },
+    "https://www.instagram.com/p/SiftDemo04/": {
+      "also": [],
+      "manual": false,
+      "project": "Fermentation and Food Science",
+      "sortedBy": "claude",
+      "use": ""
+    },
+    "https://www.instagram.com/p/SiftDemo05/": {
+      "also": [],
+      "manual": false,
+      "project": "Urban Cycling",
+      "sortedBy": "claude",
+      "use": ""
+    },
+    "https://www.instagram.com/p/SiftDemo06/": {
+      "also": [],
+      "manual": false,
+      "project": "Urban Cycling",
+      "sortedBy": "claude",
+      "use": ""
+    },
+    "https://www.instagram.com/p/SiftDemo07/": {
+      "also": [],
+      "manual": false,
+      "project": "Climate Tech",
+      "sortedBy": "claude",
+      "use": ""
+    },
+    "https://www.instagram.com/p/SiftDemo08/": {
+      "also": [],
+      "manual": false,
+      "project": "Typography and Type Design",
+      "sortedBy": "device",
+      "use": ""
+    },
+    "https://www.instagram.com/p/SiftDemo09/": {
+      "also": [
+        "Architecture and Housing"
+      ],
+      "manual": false,
+      "project": "Typography and Type Design",
+      "sortedBy": "device",
+      "use": ""
+    },
+    "https://www.instagram.com/p/SiftDemo10/": {
+      "also": [],
+      "manual": false,
+      "project": "Deep Sea Biology",
+      "sortedBy": "claude",
+      "use": ""
+    },
+    "https://www.instagram.com/p/SiftDemo11/": {
+      "also": [],
+      "manual": false,
+      "project": "Deep Sea Biology",
+      "sortedBy": "device",
+      "use": ""
+    },
+    "https://www.instagram.com/p/SiftDemo12/": {
+      "also": [],
+      "manual": false,
+      "project": "Personal Knowledge Tools",
+      "sortedBy": "claude",
+      "use": ""
+    },
+    "https://www.instagram.com/p/SiftDemo13/": {
+      "also": [],
+      "manual": false,
+      "project": "Synthesizers and Sound",
+      "sortedBy": "claude",
+      "use": ""
+    },
+    "https://www.instagram.com/p/SiftDemo14/": {
+      "also": [],
+      "manual": false,
+      "project": "Synthesizers and Sound",
+      "sortedBy": "claude",
+      "use": ""
+    },
+    "https://www.instagram.com/p/SiftDemo15/": {
+      "also": [],
+      "manual": false,
+      "project": "Architecture and Housing",
+      "sortedBy": "device",
+      "use": ""
+    },
+    "https://www.instagram.com/p/SiftDemo16/": {
+      "also": [],
+      "manual": false,
+      "project": "Architecture and Housing",
+      "sortedBy": "device",
+      "use": ""
+    },
+    "https://www.instagram.com/p/SiftDemo17/": {
+      "also": [],
+      "manual": false,
+      "project": "personal",
+      "sortedBy": "claude",
+      "use": ""
+    },
+    "https://www.streetsmag.example/how-one-city-doubled-bike-trips-in-five-years?ref=homepage": {
+      "also": [],
+      "manual": false,
+      "project": "Urban Cycling",
+      "sortedBy": "claude",
+      "use": ""
+    },
+    "https://www.youtube.com/watch?v=siftdemo001": {
+      "also": [],
+      "manual": false,
+      "project": "Home Robotics",
+      "sortedBy": "device",
+      "use": ""
+    },
+    "https://www.youtube.com/watch?v=siftdemo002": {
+      "also": [
+        "Architecture and Housing"
+      ],
+      "manual": false,
+      "project": "Home Robotics",
+      "sortedBy": "device",
+      "use": ""
+    },
+    "https://www.youtube.com/watch?v=siftdemo003": {
+      "also": [],
+      "manual": false,
+      "project": "Home Robotics",
+      "sortedBy": "device",
+      "use": ""
+    },
+    "https://www.youtube.com/watch?v=siftdemo004": {
+      "also": [],
+      "manual": false,
+      "project": "Fermentation and Food Science",
+      "sortedBy": "claude",
+      "use": ""
+    },
+    "https://www.youtube.com/watch?v=siftdemo005": {
+      "also": [],
+      "manual": true,
+      "project": "Fermentation and Food Science",
+      "sortedBy": "claude",
+      "use": ""
+    },
+    "https://www.youtube.com/watch?v=siftdemo006": {
+      "also": [],
+      "manual": false,
+      "project": "Urban Cycling",
+      "sortedBy": "claude",
+      "use": ""
+    },
+    "https://www.youtube.com/watch?v=siftdemo007": {
+      "also": [],
+      "manual": false,
+      "project": "Urban Cycling",
+      "sortedBy": "device",
+      "use": ""
+    },
+    "https://www.youtube.com/watch?v=siftdemo008": {
+      "also": [],
+      "manual": false,
+      "project": "Climate Tech",
+      "sortedBy": "claude",
+      "use": ""
+    },
+    "https://www.youtube.com/watch?v=siftdemo009": {
+      "also": [],
+      "manual": false,
+      "project": "Climate Tech",
+      "sortedBy": "device",
+      "use": ""
+    },
+    "https://www.youtube.com/watch?v=siftdemo010": {
+      "also": [],
+      "manual": false,
+      "project": "Typography and Type Design",
+      "sortedBy": "device",
+      "use": ""
+    },
+    "https://www.youtube.com/watch?v=siftdemo011": {
+      "also": [],
+      "manual": false,
+      "project": "Typography and Type Design",
+      "sortedBy": "claude",
+      "use": ""
+    },
+    "https://www.youtube.com/watch?v=siftdemo012": {
+      "also": [
+        "Home Robotics"
+      ],
+      "manual": false,
+      "project": "Deep Sea Biology",
+      "sortedBy": "claude",
+      "use": ""
+    },
+    "https://www.youtube.com/watch?v=siftdemo013": {
+      "also": [],
+      "manual": false,
+      "project": "Deep Sea Biology",
+      "sortedBy": "claude",
+      "use": ""
+    },
+    "https://www.youtube.com/watch?v=siftdemo014": {
+      "also": [],
+      "manual": false,
+      "project": "Personal Knowledge Tools",
+      "sortedBy": "claude",
+      "use": ""
+    },
+    "https://www.youtube.com/watch?v=siftdemo015": {
+      "also": [],
+      "manual": false,
+      "project": "Personal Knowledge Tools",
+      "sortedBy": "claude",
+      "use": ""
+    },
+    "https://www.youtube.com/watch?v=siftdemo016": {
+      "also": [],
+      "manual": false,
+      "project": "Synthesizers and Sound",
+      "sortedBy": "claude",
+      "use": ""
+    },
+    "https://www.youtube.com/watch?v=siftdemo017": {
+      "also": [],
+      "manual": false,
+      "project": "Synthesizers and Sound",
+      "sortedBy": "claude",
+      "use": ""
+    },
+    "https://www.youtube.com/watch?v=siftdemo018": {
+      "also": [],
+      "manual": false,
+      "project": "Architecture and Housing",
+      "sortedBy": "device",
+      "use": ""
+    },
+    "https://www.youtube.com/watch?v=siftdemo019": {
+      "also": [],
+      "manual": false,
+      "project": "Architecture and Housing",
+      "sortedBy": "claude",
+      "use": ""
+    },
+    "https://x.com/demo_abyssal/status/1900000000000000011": {
+      "also": [],
+      "manual": false,
+      "project": "Deep Sea Biology",
+      "sortedBy": "device",
+      "use": ""
+    },
+    "https://x.com/demo_abyssal/status/1900000000000000012": {
+      "also": [],
+      "manual": false,
+      "project": "Deep Sea Biology",
+      "sortedBy": "claude",
+      "use": ""
+    },
+    "https://x.com/demo_bikelanes/status/1900000000000000005": {
+      "also": [],
+      "manual": false,
+      "project": "Urban Cycling",
+      "sortedBy": "claude",
+      "use": ""
+    },
+    "https://x.com/demo_bikelanes/status/1900000000000000006": {
+      "also": [],
+      "manual": false,
+      "project": "Urban Cycling",
+      "sortedBy": "claude",
+      "use": ""
+    },
+    "https://x.com/demo_botbench/status/1900000000000000001": {
+      "also": [],
+      "manual": false,
+      "project": "Home Robotics",
+      "sortedBy": "claude",
+      "use": ""
+    },
+    "https://x.com/demo_botbench/status/1900000000000000002": {
+      "also": [],
+      "manual": false,
+      "project": "Home Robotics",
+      "sortedBy": "claude",
+      "use": ""
+    },
+    "https://x.com/demo_buildbetter/status/1900000000000000017": {
+      "also": [],
+      "manual": false,
+      "project": "Architecture and Housing",
+      "sortedBy": "claude",
+      "use": ""
+    },
+    "https://x.com/demo_buildbetter/status/1900000000000000018": {
+      "also": [],
+      "manual": false,
+      "project": "Architecture and Housing",
+      "sortedBy": "device",
+      "use": ""
+    },
+    "https://x.com/demo_gridwatch/status/1900000000000000007": {
+      "also": [],
+      "manual": false,
+      "project": "Climate Tech",
+      "sortedBy": "claude",
+      "use": ""
+    },
+    "https://x.com/demo_gridwatch/status/1900000000000000008": {
+      "also": [
+        "Architecture and Housing"
+      ],
+      "manual": false,
+      "project": "Climate Tech",
+      "sortedBy": "claude",
+      "use": ""
+    },
+    "https://x.com/demo_memes/status/1900000000000000019": {
+      "also": [],
+      "manual": false,
+      "project": "drop",
+      "sortedBy": "claude",
+      "use": ""
+    },
+    "https://x.com/demo_patchbay/status/1900000000000000015": {
+      "also": [],
+      "manual": false,
+      "project": "Synthesizers and Sound",
+      "sortedBy": "claude",
+      "use": ""
+    },
+    "https://x.com/demo_patchbay/status/1900000000000000016": {
+      "also": [],
+      "manual": false,
+      "project": "Synthesizers and Sound",
+      "sortedBy": "claude",
+      "use": ""
+    },
+    "https://x.com/demo_plaintext/status/1900000000000000013": {
+      "also": [],
+      "manual": false,
+      "project": "Personal Knowledge Tools",
+      "sortedBy": "claude",
+      "use": ""
+    },
+    "https://x.com/demo_plaintext/status/1900000000000000014": {
+      "also": [],
+      "manual": false,
+      "project": "Personal Knowledge Tools",
+      "sortedBy": "claude",
+      "use": ""
+    },
+    "https://x.com/demo_sourcrock/status/1900000000000000003": {
+      "also": [],
+      "manual": false,
+      "project": "Fermentation and Food Science",
+      "sortedBy": "device",
+      "use": ""
+    },
+    "https://x.com/demo_sourcrock/status/1900000000000000004": {
+      "also": [],
+      "manual": false,
+      "project": "Fermentation and Food Science",
+      "sortedBy": "claude",
+      "use": ""
+    },
+    "https://x.com/demo_typenerd/status/1900000000000000009": {
+      "also": [
+        "Personal Knowledge Tools"
+      ],
+      "manual": false,
+      "project": "Typography and Type Design",
+      "sortedBy": "device",
+      "use": ""
+    },
+    "https://x.com/demo_typenerd/status/1900000000000000010": {
+      "also": [],
+      "manual": false,
+      "project": "Typography and Type Design",
+      "sortedBy": "device",
+      "use": ""
+    }
+  },
+  "autoCapture": true,
+  "backend": "claudeCode",
+  "backoffHours": {},
+  "blockedUntil": {},
+  "chromeProfileNames": {},
+  "closeAfterSend": true,
+  "closeQueue": [
+    "https://news.example.com/live",
+    "https://quiz.example.net/appliance"
+  ],
+  "destinations": [
+    {
+      "config": {
+        "origin": "https://demo.starlings.example"
+      },
+      "detail": "demo.starlings.example",
+      "id": "demo-starlings",
+      "kind": "starlings",
+      "name": "Starlings: Demo"
+    },
+    {
+      "config": {
+        "folder": "{{DEMO_PATH}}/Field Notes/Inbox"
+      },
+      "detail": "~/Documents/Field Notes/Inbox",
+      "id": "demo-obsidian",
+      "kind": "obsidian",
+      "name": "Field Notes"
+    }
+  ],
+  "deviceID": "all-sources",
+  "exportTargets": {},
+  "extraProjects": [
+    {
+      "destination": "",
+      "history": [
+        "2026-08-30: found, 8 links",
+        "2026-10-04: rediscovered, 12 links (was 8)",
+        "2026-11-10: rediscovered, 15 links (was 12)"
+      ],
+      "isTheme": true,
+      "name": "Home Robotics",
+      "notes": "",
+      "summary": "Small robots for the flat and the workshop: arms, vacuums, plant waterers, and the motors and sensors that make them work."
+    },
+    {
+      "destination": "",
+      "history": [
+        "2026-08-30: found, 8 links",
+        "2026-10-04: rediscovered, 12 links (was 8)",
+        "2026-11-10: rediscovered, 15 links (was 12)"
+      ],
+      "isTheme": true,
+      "name": "Fermentation and Food Science",
+      "notes": "",
+      "summary": "Koji, kimchi, sourdough and hot sauce, plus the chemistry that explains why they work and how they go wrong."
+    },
+    {
+      "destination": "",
+      "history": [
+        "2026-08-30: found, 8 links",
+        "2026-10-04: rediscovered, 12 links (was 8)",
+        "2026-11-10: rediscovered, 15 links (was 12)"
+      ],
+      "isTheme": true,
+      "name": "Urban Cycling",
+      "notes": "",
+      "summary": "Getting around the city by bike: protected lanes, cargo bikes, repairs at home and the numbers that convince a city council."
+    },
+    {
+      "destination": "",
+      "history": [
+        "2026-08-30: found, 8 links",
+        "2026-10-04: rediscovered, 12 links (was 8)",
+        "2026-11-10: rediscovered, 15 links (was 12)"
+      ],
+      "isTheme": true,
+      "name": "Climate Tech",
+      "notes": "",
+      "sendTo": "demo-starlings",
+      "summary": "Heat pumps, batteries, solar and carbon removal, read with an eye on what is cheap and working now."
+    },
+    {
+      "destination": "",
+      "history": [
+        "2026-08-30: found, 8 links",
+        "2026-10-04: rediscovered, 12 links (was 8)",
+        "2026-11-10: rediscovered, 15 links (was 12)"
+      ],
+      "isTheme": true,
+      "name": "Typography and Type Design",
+      "notes": "",
+      "sendTo": "demo-obsidian",
+      "summary": "How letters are drawn, spaced and licensed: variable fonts, wood type, signs on the street and the rules for figures in tables."
+    },
+    {
+      "destination": "",
+      "history": [
+        "2026-08-30: found, 8 links",
+        "2026-10-04: rediscovered, 12 links (was 8)",
+        "2026-11-10: rediscovered, 15 links (was 12)"
+      ],
+      "isTheme": true,
+      "name": "Deep Sea Biology",
+      "notes": "",
+      "summary": "Animals that live in the dark: vents, seeps, whale falls and the robots that film them."
+    },
+    {
+      "destination": "",
+      "history": [
+        "2026-08-30: found, 8 links",
+        "2026-09-21: continues Note Apps",
+        "2026-10-04: rediscovered, 12 links (was 8)",
+        "2026-11-10: rediscovered, 15 links (was 12)"
+      ],
+      "isTheme": true,
+      "name": "Personal Knowledge Tools",
+      "notes": "",
+      "sendTo": "demo-obsidian",
+      "summary": "Notes, reading logs and flashcards: plain text setups that still open in ten years."
+    },
+    {
+      "destination": "",
+      "history": [
+        "2026-08-30: found, 8 links",
+        "2026-10-04: rediscovered, 12 links (was 8)",
+        "2026-11-10: rediscovered, 15 links (was 12)"
+      ],
+      "isTheme": true,
+      "name": "Synthesizers and Sound",
+      "notes": "",
+      "summary": "Modular synths, field recordings and the basics of shaping sound, mostly with cheap gear in a small room."
+    },
+    {
+      "destination": "",
+      "history": [
+        "2026-08-30: found, 8 links",
+        "2026-10-04: rediscovered, 12 links (was 8)",
+        "2026-11-10: rediscovered, 15 links (was 12)"
+      ],
+      "isTheme": true,
+      "name": "Architecture and Housing",
+      "notes": "",
+      "sendTo": "demo-starlings",
+      "summary": "How cities house people well: timber buildings, cooperatives, retrofits and the plain apartment block."
+    }
+  ],
+  "findConnections": true,
+  "importedSources": [
+    {
+      "added": 812883600.0,
+      "id": "demo-youtube",
+      "name": "YouTube Watch Later",
+      "path": "{{DEMO_PATH}}/Imports/youtube-watch-later.json"
+    }
+  ],
+  "instagramExportPath": "{{DEMO_PATH}}/Imports/instagram-demo",
+  "instagramImages": true,
+  "localFirstPass": true,
+  "localSorting": true,
+  "localSummaries": true,
+  "mergedInto": {},
+  "reelTranscripts": true,
+  "savedSearches": [
+    "heat pump",
+    "koji",
+    "variable font",
+    "lidar"
+  ],
+  "sent": {
+    "https://archreview.example/retrofitting-a-1960s-block-to-near-zero-energy": [
+      {
+        "date": 814650300.0,
+        "destination": "demo-starlings"
+      }
+    ],
+    "https://climatedesk.example/green-steel-without-the-jargon": [
+      {
+        "date": 814941000.0,
+        "destination": "demo-starlings"
+      }
+    ],
+    "https://climatedesk.example/the-heat-pump-installer-shortage-in-numbers": [
+      {
+        "date": 814357500.0,
+        "destination": "demo-starlings"
+      }
+    ],
+    "https://en.wikipedia.org/wiki/Robot_Operating_System": [
+      {
+        "date": 816510060.0,
+        "destination": "demo-obsidian"
+      }
+    ],
+    "https://en.wikipedia.org/wiki/Sourdough": [
+      {
+        "date": 813812880.0,
+        "destination": "demo-obsidian"
+      }
+    ],
+    "https://en.wikipedia.org/wiki/Zettelkasten": [
+      {
+        "date": 816380280.0,
+        "destination": "demo-obsidian"
+      }
+    ],
+    "https://foodlab.example/measuring-ph-at-home-without-lab-gear": [
+      {
+        "date": 814222320.0,
+        "destination": "demo-obsidian"
+      }
+    ],
+    "https://foodlab.example/what-the-maillard-reaction-is-and-why-browning-tastes-good": [
+      {
+        "date": 814985280.0,
+        "destination": "demo-obsidian"
+      }
+    ],
+    "https://gridnotes.example/why-batteries-now-undercut-gas-peaker-plants": [
+      {
+        "date": 816173460.0,
+        "destination": "demo-starlings"
+      }
+    ],
+    "https://homelab.example/a-robot-that-waters-the-plants-while-im-away": [
+      {
+        "date": 814433820.0,
+        "destination": "demo-obsidian"
+      }
+    ],
+    "https://housingdesk.example/building-cooperatives-when-residents-own-the-block": [
+      {
+        "date": 813280500.0,
+        "destination": "demo-starlings"
+      }
+    ],
+    "https://housingdesk.example/how-vienna-keeps-rents-low": [
+      {
+        "date": 816079980.0,
+        "destination": "demo-starlings"
+      }
+    ],
+    "https://housingdesk.example/missing-middle-housing-with-drawings": [
+      {
+        "date": 814846980.0,
+        "destination": "demo-starlings"
+      }
+    ],
+    "https://knowledgecraft.example/rereading-your-notes-matters-more-than-linking-them": [
+      {
+        "date": 814303140.0,
+        "destination": "demo-obsidian"
+      }
+    ],
+    "https://knowledgecraft.example/spaced-repetition-for-adults-who-hated-flashcards": [
+      {
+        "date": 814891680.0,
+        "destination": "demo-obsidian"
+      }
+    ],
+    "https://localfirst.example/local-first-software-in-plain-terms": [
+      {
+        "date": 813528300.0,
+        "destination": "demo-obsidian"
+      }
+    ],
+    "https://mobilitylab.example/e-bikes-and-the-hills-problem-data-from-40-000-rides": [
+      {
+        "date": 813597540.0,
+        "destination": "demo-starlings"
+      }
+    ],
+    "https://notesdaily.example/how-to-keep-a-reading-log-you-use": [
+      {
+        "date": 813333840.0,
+        "destination": "demo-obsidian"
+      }
+    ],
+    "https://notesdaily.example/i-tried-five-note-apps-in-a-year-this-is-what-stuck": [
+      {
+        "date": 816115800.0,
+        "destination": "demo-obsidian"
+      }
+    ],
+    "https://patchnotes.example/a-field-guide-to-filter-types": [
+      {
+        "date": 814863540.0,
+        "destination": "demo-obsidian"
+      }
+    ],
+    "https://patchnotes.example/subtractive-synthesis-on-one-page": [
+      {
+        "date": 816099540.0,
+        "destination": "demo-obsidian"
+      }
+    ],
+    "https://saltandtime.example/a-beginners-guide-to-koji-at-home": [
+      {
+        "date": 816223020.0,
+        "destination": "demo-obsidian"
+      }
+    ],
+    "https://streetsmag.example/how-one-city-doubled-bike-trips-in-five-years": [
+      {
+        "date": 816189600.0,
+        "destination": "demo-starlings"
+      }
+    ],
+    "https://synthdiy.example/building-a-synth-kit-what-the-instructions-skip": [
+      {
+        "date": 814075380.0,
+        "destination": "demo-obsidian"
+      }
+    ],
+    "https://tinybots.example/building-a-two-wheel-balancing-robot-from-a-kit": [
+      {
+        "date": 816244680.0,
+        "destination": "demo-obsidian"
+      }
+    ],
+    "https://typejournal.example/designing-a-variable-font-notes-from-my-first-year": [
+      {
+        "date": 816161100.0,
+        "destination": "demo-obsidian"
+      }
+    ],
+    "https://typejournal.example/licensing-fonts-for-apps-without-surprises": [
+      {
+        "date": 814928040.0,
+        "destination": "demo-obsidian"
+      }
+    ],
+    "https://typejournal.example/why-the-same-font-looks-different-on-mac-and-windows": [
+      {
+        "date": 814153620.0,
+        "destination": "demo-obsidian"
+      }
+    ],
+    "https://www.youtube.com/watch?v=siftdemo008": [
+      {
+        "date": 815660880.0,
+        "destination": "demo-starlings"
+      }
+    ],
+    "https://x.com/demo_typenerd/status/1900000000000000010": [
+      {
+        "date": 813571320.0,
+        "destination": "demo-obsidian"
+      }
+    ]
+  },
+  "xClientID": "demo-client-id",
+  "xSyndication": false,
+  "xUserID": "1",
+  "xUsername": "sift_demo",
+  "youtubeAudio": true,
+  "youtubeTranscripts": true
+}

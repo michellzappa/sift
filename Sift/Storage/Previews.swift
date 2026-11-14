@@ -271,7 +271,8 @@ enum PreviewFetcher {
 /// iCloud Drive/Sift/close.txt.
 enum CloseList {
     static var folder: URL {
-        FileManager.default.homeDirectoryForCurrentUser
+        if Demo.isOn { return Demo.folder.appending(path: "iCloud Drive/Sift", directoryHint: .isDirectory) }
+        return FileManager.default.homeDirectoryForCurrentUser
             .appending(path: "Library/Mobile Documents/com~apple~CloudDocs/Sift", directoryHint: .isDirectory)
     }
 

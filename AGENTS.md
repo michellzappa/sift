@@ -204,6 +204,26 @@ transcripts), not only the link. Never add a Sift server or account.
   themes, sorting, connections), `+Upkeep` (duplicates, notes, saved searches, search, previews),
   `+Closing` (Chrome and iPhone close lists), `+Export` (exporters, CSV import, `CSV`),
   `+LocalModel`. New stored properties go in the class body, never in an extension.
+- Demo mode (2026-11-14): launch argument `-demo` or `SIFT_DEMO=1`
+  (`Sift/Demo/Demo.swift`). `StateFile.url` (and so every Sift data path:
+  library, images, imports, backups, search index, chrome, tools), Safari's
+  CloudTabs.db, the Reading List plist and the iPhone close list point into
+  `Application Support/Sift-Demo`, which is replaced on each launch from the
+  bundle's `Demo/` folder (`{{DEMO_PATH}}` and `{{DEMO_URL}}` in its JSON are
+  filled in). Off in demo mode: previews, capture, transcripts, reel and
+  YouTube jobs, Instagram images, Claude, the on-device model, Starlings, X,
+  the Chrome helper, Add to Reading List, the web pane and the keychain
+  (reads empty); a `URLProtocol` fails every http(s) request on
+  URLSession.shared as a backstop. Send records a sent link and calls no
+  sender. The Setup Guide does not open. `-demoView graph | theme:<name> |
+  list:<source> | settings:<tab>`, `-demoSize WxH` and `-demoAppearance
+  light|dark` serve `scripts/screenshots.sh`. Sample data: edit
+  `scripts/demo/content.py`, run `python3 scripts/demo/make-data.py`, commit
+  `Demo/`. Every new data path must derive from `StateFile.url`, and every
+  new network or account call needs a `Demo.isOn` guard. Never take README
+  screenshots from real data. sift-mcp and sift-chrome do not know demo
+  mode and still read the real Sift folder.
+
 - No HouseKit code dependency: Sift is a window app, not a menu-bar app, and
   uses the SwiftUI Settings scene. The icon is the HouseKit `sift` glyph;
   `scripts/build-app.sh` regenerates `AppIcon.icns` from `../../housekit`.

@@ -259,6 +259,38 @@ identity. The app icon comes from the `sift` glyph in HouseKit, the small
 package Sift shares with Tessellate, Cargo and Clip; without HouseKit next to
 this repo, the script uses the committed `AppIcon.icns`.
 
+### Demo mode
+
+Start Sift with `-demo` (or `SIFT_DEMO=1`) to run it on made-up sample
+data instead of your own:
+
+```sh
+open -n -a /Applications/Sift.app --args -demo
+```
+
+Demo mode keeps every file in `~/Library/Application Support/Sift-Demo` and
+replaces that folder with the sample data on each launch, so every run starts
+the same. It never reads your Safari tabs, Reading List, Instagram export,
+Chrome, X account or keychain, and it never goes online: no previews,
+capture, transcripts, Claude, on-device model or Starlings. Sending a link
+only records it as sent. A "Demo data" badge sits at the foot of the
+sidebar.
+
+The sample data is in `Demo/`, made by `python3 scripts/demo/make-data.py`
+from `scripts/demo/content.py` (thumbnails by
+`scripts/demo/make-images.swift`).
+
+The README screenshots come from demo mode only. With Sift installed in
+`/Applications` and Screen Recording allowed for your terminal, run:
+
+```sh
+scripts/screenshots.sh
+```
+
+It quits Sift, opens it in demo mode once per view and appearance, and
+writes `docs/images/<view>-light.png` and `<view>-dark.png` (overview,
+theme, list, settings-library, settings-outputs).
+
 ### Releases
 
 Push a tag that matches `CFBundleShortVersionString`, for example `v0.4.0`.

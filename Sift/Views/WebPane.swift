@@ -11,7 +11,8 @@ struct WebPane: View {
     let tab: SafariTab
     var onClose: (() -> Void)?
     @State private var page = WebPage()
-    @State private var reader = false
+    /// Demo mode opens the saved text: pages do not load there.
+    @State private var reader = Demo.isOn
 
     var body: some View {
         let a = model.assignment(for: tab)
@@ -81,6 +82,10 @@ struct WebPane: View {
                         .frame(maxWidth: .infinity)
                 }
                 .task(id: tab.url) { await model.refreshXPosts(urls: [tab.url]) }
+            } else if Demo.isOn {
+                Divider()
+                ContentUnavailableView("Pages do not load in demo mode", systemImage: "wifi.slash",
+                                       description: Text("The demo uses sample data and never goes online."))
             } else {
                 if page.isLoading {
                     ProgressView(value: page.progress).progressViewStyle(.linear).frame(height: 2)

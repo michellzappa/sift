@@ -10,6 +10,7 @@ extension AppModel {
     /// themes, a sure pick goes into that theme. Everything else is left for
     /// Claude. Assignments are not `manual` and carry `sortedBy: "device"`.
     func sortOnDevice(_ items: [Sorter.Item]) async -> Set<String> {
+        guard !Demo.isOn else { return [] }
         let hints = state.localSorting
             ? themes.map { LocalModel.ThemeHint(name: $0.name, summary: $0.summary, notes: $0.notes) }
             : []
@@ -71,6 +72,7 @@ extension AppModel {
     /// a pause between files. Waits while the Mac runs on battery. Stops when
     /// the model is busy or rate limited; the next reload or capture resumes.
     func summarizeLibrary() async {
+        guard !Demo.isOn else { return }
         guard state.localSummaries, !isSummarizing, LocalModel.isAvailable, !LocalModel.onBattery else { return }
         let todo = linksToSummarize
         guard !todo.isEmpty else { return }

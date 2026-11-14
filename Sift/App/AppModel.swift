@@ -113,12 +113,16 @@ final class AppModel {
     var exportMessage: String?
 
     init() {
+        if Demo.isOn { Demo.start() }
         state = StateFile.load()
-        Task { await migrateStarlingsDestinations() }
+        if !Demo.isOn { Task { await migrateStarlingsDestinations() } }
         reload()
         settleOnboardingForExistingInstall()
-        startLibraryWorker()
-        startChromeWatcher()
+        // Demo mode has no background jobs and no Chrome.
+        if !Demo.isOn {
+            startLibraryWorker()
+            startChromeWatcher()
+        }
     }
 
     // MARK: Loading

@@ -1,13 +1,16 @@
 import SwiftUI
 
 struct SettingsView: View {
+    /// Demo mode can open on a given tab (`-demoView settings:<tab>`).
+    @State private var tab = Demo.settingsTab ?? "inputs"
+
     var body: some View {
-        TabView {
-            InputSettings().tabItem { Label("Inputs", systemImage: "tray.and.arrow.down") }
-            LibrarySettings().tabItem { Label("Library", systemImage: "books.vertical") }
-            OutputSettings().tabItem { Label("Outputs", systemImage: "tray.and.arrow.up") }
-            ClaudeSettings().tabItem { Label("Intelligence", systemImage: "sparkles") }
-            ThemeSettings().tabItem { Label("Themes", systemImage: "circle.hexagongrid") }
+        TabView(selection: $tab) {
+            InputSettings().tabItem { Label("Inputs", systemImage: "tray.and.arrow.down") }.tag("inputs")
+            LibrarySettings().tabItem { Label("Library", systemImage: "books.vertical") }.tag("library")
+            OutputSettings().tabItem { Label("Outputs", systemImage: "tray.and.arrow.up") }.tag("outputs")
+            ClaudeSettings().tabItem { Label("Intelligence", systemImage: "sparkles") }.tag("intelligence")
+            ThemeSettings().tabItem { Label("Themes", systemImage: "circle.hexagongrid") }.tag("themes")
         }
         .frame(width: 620, height: 560)
     }

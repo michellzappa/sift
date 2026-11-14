@@ -44,6 +44,11 @@ targets:
       - path: ChromeExtension
         type: folder
         buildPhase: resources
+      # Sample data for demo mode (Sift/Demo/Demo.swift), copied whole into
+      # Resources/Demo and from there into Application Support/Sift-Demo.
+      - path: Demo
+        type: folder
+        buildPhase: resources
     settings:
       base:
         PRODUCT_BUNDLE_IDENTIFIER: app.sift.Sift

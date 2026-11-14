@@ -32,6 +32,7 @@ struct StarlingsConnect: View {
     }
 
     private func connect() async {
+        guard !Demo.isOn else { message = Demo.offMessage; return }
         guard let o = Starlings.origin(address) else { return }
         busy = true
         defer { busy = false }

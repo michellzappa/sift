@@ -1,0 +1,496 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+<plist version="1.0">
+<dict>
+	<key>Children</key>
+	<array>
+		<dict>
+			<key>Children</key>
+			<array>
+				<dict>
+					<key>ReadingList</key>
+					<dict>
+						<key>DateAdded</key>
+						<date>2026-11-11T00:37:00Z</date>
+						<key>PreviewText</key>
+						<string>Growing koji on rice in a cooler box with a heating pad and a cheap thermometer.</string>
+					</dict>
+					<key>URIDictionary</key>
+					<dict>
+						<key>title</key>
+						<string>A beginner's guide to koji at home</string>
+					</dict>
+					<key>URLString</key>
+					<string>https://saltandtime.example/a-beginners-guide-to-koji-at-home</string>
+				</dict>
+				<dict>
+					<key>ReadingList</key>
+					<dict>
+						<key>DateAdded</key>
+						<date>2026-11-10T15:20:00Z</date>
+						<key>PreviewText</key>
+						<string>A council that built a connected network first and argued about it later.</string>
+					</dict>
+					<key>URIDictionary</key>
+					<dict>
+						<key>title</key>
+						<string>How one city doubled bike trips in five years</string>
+					</dict>
+					<key>URLString</key>
+					<string>https://streetsmag.example/how-one-city-doubled-bike-trips-in-five-years</string>
+				</dict>
+				<dict>
+					<key>ReadingList</key>
+					<dict>
+						<key>DateAdded</key>
+						<date>2026-11-10T10:51:00Z</date>
+						<key>PreviewText</key>
+						<string>Four years of auction prices on one chart.</string>
+					</dict>
+					<key>URIDictionary</key>
+					<dict>
+						<key>title</key>
+						<string>Why batteries now undercut gas peaker plants</string>
+					</dict>
+					<key>URLString</key>
+					<string>https://gridnotes.example/why-batteries-now-undercut-gas-peaker-plants</string>
+				</dict>
+				<dict>
+					<key>ReadingList</key>
+					<dict>
+						<key>DateAdded</key>
+						<date>2026-11-10T07:25:00Z</date>
+						<key>PreviewText</key>
+						<string>Masters, axes and the interpolation bugs that only show at weight 512.</string>
+					</dict>
+					<key>URIDictionary</key>
+					<dict>
+						<key>title</key>
+						<string>Designing a variable font: notes from my first year</string>
+					</dict>
+					<key>URLString</key>
+					<string>https://typejournal.example/designing-a-variable-font-notes-from-my-first-year</string>
+				</dict>
+				<dict>
+					<key>ReadingList</key>
+					<dict>
+						<key>DateAdded</key>
+						<date>2026-11-09T21:18:00Z</date>
+						<key>PreviewText</key>
+						<string>A chart of the animals found at each depth, and how few of them anyone has seen alive.</string>
+					</dict>
+					<key>URIDictionary</key>
+					<dict>
+						<key>title</key>
+						<string>What lives at 4,000 metres, by depth zone</string>
+					</dict>
+					<key>URLString</key>
+					<string>https://oceanlog.example/what-lives-at-4-000-metres-by-depth-zone</string>
+				</dict>
+				<dict>
+					<key>ReadingList</key>
+					<dict>
+						<key>DateAdded</key>
+						<date>2026-11-09T18:50:00Z</date>
+						<key>PreviewText</key>
+						<string>Plain text won, and the search box did most of the work.</string>
+					</dict>
+					<key>URIDictionary</key>
+					<dict>
+						<key>title</key>
+						<string>I tried five note apps in a year. This is what stuck.</string>
+					</dict>
+					<key>URLString</key>
+					<string>https://notesdaily.example/i-tried-five-note-apps-in-a-year-this-is-what-stuck</string>
+				</dict>
+				<dict>
+					<key>ReadingList</key>
+					<dict>
+						<key>DateAdded</key>
+						<date>2026-11-09T14:19:00Z</date>
+						<key>PreviewText</key>
+						<string>Oscillator, filter, amplifier, envelope, in that order.</string>
+					</dict>
+					<key>URIDictionary</key>
+					<dict>
+						<key>title</key>
+						<string>Subtractive synthesis on one page</string>
+					</dict>
+					<key>URLString</key>
+					<string>https://patchnotes.example/subtractive-synthesis-on-one-page</string>
+				</dict>
+				<dict>
+					<key>ReadingList</key>
+					<dict>
+						<key>DateAdded</key>
+						<date>2026-11-09T08:53:00Z</date>
+						<key>PreviewText</key>
+						<string>A century of city-built housing, and who gets to live there.</string>
+					</dict>
+					<key>URIDictionary</key>
+					<dict>
+						<key>title</key>
+						<string>How Vienna keeps rents low</string>
+					</dict>
+					<key>URLString</key>
+					<string>https://housingdesk.example/how-vienna-keeps-rents-low</string>
+				</dict>
+				<dict>
+					<key>ReadingList</key>
+					<dict>
+						<key>DateAdded</key>
+						<date>2026-11-08T20:55:00Z</date>
+						<key>PreviewText</key>
+						<string>Three runs a week for eight weeks.</string>
+					</dict>
+					<key>URIDictionary</key>
+					<dict>
+						<key>title</key>
+						<string>A 10k plan for slow runners</string>
+					</dict>
+					<key>URLString</key>
+					<string>https://running.example.org/10k-plan</string>
+				</dict>
+				<dict>
+					<key>ReadingList</key>
+					<dict>
+						<key>DateAdded</key>
+						<date>2026-11-08T05:35:00Z</date>
+						<key>PreviewText</key>
+						<string>A teardown of the bump sensor and a fix with a 3D printed skirt.</string>
+					</dict>
+					<key>URIDictionary</key>
+					<dict>
+						<key>title</key>
+						<string>Why my robot vacuum keeps getting stuck under the sofa</string>
+					</dict>
+					<key>URLString</key>
+					<string>https://workshopnotes.example/why-my-robot-vacuum-keeps-getting-stuck-under-the-sofa</string>
+				</dict>
+				<dict>
+					<key>ReadingList</key>
+					<dict>
+						<key>DateAdded</key>
+						<date>2026-10-27T16:48:00Z</date>
+						<key>PreviewText</key>
+						<string>Sugars, amino acids and heat, with photos of the same steak at five temperatures.</string>
+					</dict>
+					<key>URIDictionary</key>
+					<dict>
+						<key>title</key>
+						<string>What the Maillard reaction is, and why browning tastes good</string>
+					</dict>
+					<key>URLString</key>
+					<string>https://foodlab.example/what-the-maillard-reaction-is-and-why-browning-tastes-good</string>
+				</dict>
+				<dict>
+					<key>ReadingList</key>
+					<dict>
+						<key>DateAdded</key>
+						<date>2026-10-27T04:30:00Z</date>
+						<key>PreviewText</key>
+						<string>Hydrogen, electric arc furnaces and where the iron ore goes.</string>
+					</dict>
+					<key>URIDictionary</key>
+					<dict>
+						<key>title</key>
+						<string>Green steel without the jargon</string>
+					</dict>
+					<key>URLString</key>
+					<string>https://climatedesk.example/green-steel-without-the-jargon</string>
+				</dict>
+				<dict>
+					<key>ReadingList</key>
+					<dict>
+						<key>DateAdded</key>
+						<date>2026-10-26T17:54:00Z</date>
+						<key>PreviewText</key>
+						<string>Pressure chambers, cold rooms and a lot of patience.</string>
+					</dict>
+					<key>URIDictionary</key>
+					<dict>
+						<key>title</key>
+						<string>How scientists keep deep sea animals alive at the surface</string>
+					</dict>
+					<key>URLString</key>
+					<string>https://oceanlog.example/how-scientists-keep-deep-sea-animals-alive-at-the-surface</string>
+				</dict>
+				<dict>
+					<key>ReadingList</key>
+					<dict>
+						<key>DateAdded</key>
+						<date>2026-10-26T14:48:00Z</date>
+						<key>PreviewText</key>
+						<string>Ten cards a day, written in your own words.</string>
+					</dict>
+					<key>URIDictionary</key>
+					<dict>
+						<key>title</key>
+						<string>Spaced repetition for adults who hated flashcards</string>
+					</dict>
+					<key>URLString</key>
+					<string>https://knowledgecraft.example/spaced-repetition-for-adults-who-hated-flashcards</string>
+				</dict>
+				<dict>
+					<key>ReadingList</key>
+					<dict>
+						<key>DateAdded</key>
+						<date>2026-10-25T06:44:00Z</date>
+						<key>PreviewText</key>
+						<string>Traffic counts, shop takings and what residents say now.</string>
+					</dict>
+					<key>URIDictionary</key>
+					<dict>
+						<key>title</key>
+						<string>Low traffic neighbourhoods, two years on</string>
+					</dict>
+					<key>URLString</key>
+					<string>https://streetsmag.example/low-traffic-neighbourhoods-two-years-on</string>
+				</dict>
+				<dict>
+					<key>ReadingList</key>
+					<dict>
+						<key>DateAdded</key>
+						<date>2026-10-24T19:11:00Z</date>
+						<key>PreviewText</key>
+						<string>A weekend at a print shop, with ink on everything.</string>
+					</dict>
+					<key>URIDictionary</key>
+					<dict>
+						<key>title</key>
+						<string>Setting a poster in wood type</string>
+					</dict>
+					<key>URLString</key>
+					<string>https://letterpress.example/setting-a-poster-in-wood-type</string>
+				</dict>
+				<dict>
+					<key>ReadingList</key>
+					<dict>
+						<key>DateAdded</key>
+						<date>2026-10-23T22:44:00Z</date>
+						<key>PreviewText</key>
+						<string>Why every recording needs thirty seconds of silence.</string>
+					</dict>
+					<key>URIDictionary</key>
+					<dict>
+						<key>title</key>
+						<string>Recording room tone in a small flat</string>
+					</dict>
+					<key>URLString</key>
+					<string>https://soundlab.example/recording-room-tone-in-a-small-flat</string>
+				</dict>
+				<dict>
+					<key>ReadingList</key>
+					<dict>
+						<key>DateAdded</key>
+						<date>2026-10-23T19:45:00Z</date>
+						<key>PreviewText</key>
+						<string>New facade panels went on while people still lived inside.</string>
+					</dict>
+					<key>URIDictionary</key>
+					<dict>
+						<key>title</key>
+						<string>Retrofitting a 1960s block to near zero energy</string>
+					</dict>
+					<key>URLString</key>
+					<string>https://archreview.example/retrofitting-a-1960s-block-to-near-zero-energy</string>
+				</dict>
+				<dict>
+					<key>ReadingList</key>
+					<dict>
+						<key>DateAdded</key>
+						<date>2026-10-21T07:37:00Z</date>
+						<key>PreviewText</key>
+						<string>Soil sensors, a peristaltic pump and a schedule that checks the weather first.</string>
+					</dict>
+					<key>URIDictionary</key>
+					<dict>
+						<key>title</key>
+						<string>A robot that waters the plants while I'm away</string>
+					</dict>
+					<key>URLString</key>
+					<string>https://homelab.example/a-robot-that-waters-the-plants-while-im-away</string>
+				</dict>
+				<dict>
+					<key>ReadingList</key>
+					<dict>
+						<key>DateAdded</key>
+						<date>2026-10-20T10:25:00Z</date>
+						<key>PreviewText</key>
+						<string>Training places, waiting lists and what it takes to retrain a gas engineer.</string>
+					</dict>
+					<key>URIDictionary</key>
+					<dict>
+						<key>title</key>
+						<string>The heat pump installer shortage, in numbers</string>
+					</dict>
+					<key>URLString</key>
+					<string>https://climatedesk.example/the-heat-pump-installer-shortage-in-numbers</string>
+				</dict>
+				<dict>
+					<key>ReadingList</key>
+					<dict>
+						<key>DateAdded</key>
+						<date>2026-10-19T19:19:00Z</date>
+						<key>PreviewText</key>
+						<string>A month-end review that takes twenty minutes.</string>
+					</dict>
+					<key>URIDictionary</key>
+					<dict>
+						<key>title</key>
+						<string>Rereading your notes matters more than linking them</string>
+					</dict>
+					<key>URLString</key>
+					<string>https://knowledgecraft.example/rereading-your-notes-matters-more-than-linking-them</string>
+				</dict>
+				<dict>
+					<key>ReadingList</key>
+					<dict>
+						<key>DateAdded</key>
+						<date>2026-10-18T20:52:00Z</date>
+						<key>PreviewText</key>
+						<string>Test strips against a pocket meter, checked with lemon juice and vinegar.</string>
+					</dict>
+					<key>URIDictionary</key>
+					<dict>
+						<key>title</key>
+						<string>Measuring pH at home without lab gear</string>
+					</dict>
+					<key>URLString</key>
+					<string>https://foodlab.example/measuring-ph-at-home-without-lab-gear</string>
+				</dict>
+				<dict>
+					<key>ReadingList</key>
+					<dict>
+						<key>DateAdded</key>
+						<date>2026-10-18T01:47:00Z</date>
+						<key>PreviewText</key>
+						<string>Hinting, gamma and the rendering choices each system makes.</string>
+					</dict>
+					<key>URIDictionary</key>
+					<dict>
+						<key>title</key>
+						<string>Why the same font looks different on Mac and Windows</string>
+					</dict>
+					<key>URLString</key>
+					<string>https://typejournal.example/why-the-same-font-looks-different-on-mac-and-windows</string>
+				</dict>
+				<dict>
+					<key>ReadingList</key>
+					<dict>
+						<key>DateAdded</key>
+						<date>2026-10-17T04:03:00Z</date>
+						<key>PreviewText</key>
+						<string>Solder order, a cheap multimeter and patience with the trimmers.</string>
+					</dict>
+					<key>URIDictionary</key>
+					<dict>
+						<key>title</key>
+						<string>Building a synth kit: what the instructions skip</string>
+					</dict>
+					<key>URLString</key>
+					<string>https://synthdiy.example/building-a-synth-kit-what-the-instructions-skip</string>
+				</dict>
+				<dict>
+					<key>ReadingList</key>
+					<dict>
+						<key>DateAdded</key>
+						<date>2026-10-16T23:57:00Z</date>
+						<key>PreviewText</key>
+						<string>How old city blocks get daylight to every room.</string>
+					</dict>
+					<key>URIDictionary</key>
+					<dict>
+						<key>title</key>
+						<string>Courtyards and light wells in deep plan buildings</string>
+					</dict>
+					<key>URLString</key>
+					<string>https://archreview.example/courtyards-and-light-wells-in-deep-plan-buildings</string>
+				</dict>
+				<dict>
+					<key>ReadingList</key>
+					<dict>
+						<key>DateAdded</key>
+						<date>2026-10-15T14:51:00Z</date>
+						<key>PreviewText</key>
+						<string>Cold water, slow lives and the theory of deep sea gigantism.</string>
+					</dict>
+					<key>URIDictionary</key>
+					<dict>
+						<key>title</key>
+						<string>Giant isopods, and why they get so big</string>
+					</dict>
+					<key>URLString</key>
+					<string>https://marinebio.example/giant-isopods-and-why-they-get-so-big</string>
+				</dict>
+				<dict>
+					<key>ReadingList</key>
+					<dict>
+						<key>DateAdded</key>
+						<date>2026-10-11T15:19:00Z</date>
+						<key>PreviewText</key>
+						<string>Where people stop riding, and how a motor changes the map.</string>
+					</dict>
+					<key>URIDictionary</key>
+					<dict>
+						<key>title</key>
+						<string>E-bikes and the hills problem: data from 40,000 rides</string>
+					</dict>
+					<key>URLString</key>
+					<string>https://mobilitylab.example/e-bikes-and-the-hills-problem-data-from-40-000-rides</string>
+				</dict>
+				<dict>
+					<key>ReadingList</key>
+					<dict>
+						<key>DateAdded</key>
+						<date>2026-10-09T20:10:00Z</date>
+						<key>PreviewText</key>
+						<string>Cups lie. A scale costs less than a bag of good flour.</string>
+					</dict>
+					<key>URIDictionary</key>
+					<dict>
+						<key>title</key>
+						<string>The case for weighing everything in the kitchen</string>
+					</dict>
+					<key>URLString</key>
+					<string>https://kitchenscience.example/the-case-for-weighing-everything-in-the-kitchen</string>
+				</dict>
+				<dict>
+					<key>ReadingList</key>
+					<dict>
+						<key>DateAdded</key>
+						<date>2026-10-09T08:52:00Z</date>
+						<key>PreviewText</key>
+						<string>A year of readings from two panels on a railing.</string>
+					</dict>
+					<key>URIDictionary</key>
+					<dict>
+						<key>title</key>
+						<string>Balcony solar: what 800 watts gets you</string>
+					</dict>
+					<key>URLString</key>
+					<string>https://gridnotes.example/balcony-solar-what-800-watts-gets-you</string>
+				</dict>
+				<dict>
+					<key>ReadingList</key>
+					<dict>
+						<key>DateAdded</key>
+						<date>2026-10-08T14:04:00Z</date>
+						<key>PreviewText</key>
+						<string>Three lines per book: what it said, what I think, what I will do.</string>
+					</dict>
+					<key>URIDictionary</key>
+					<dict>
+						<key>title</key>
+						<string>How to keep a reading log you use</string>
+					</dict>
+					<key>URLString</key>
+					<string>https://notesdaily.example/how-to-keep-a-reading-log-you-use</string>
+				</dict>
+			</array>
+			<key>Title</key>
+			<string>com.apple.ReadingList</string>
+		</dict>
+	</array>
+</dict>
+</plist>

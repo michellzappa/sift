@@ -1,0 +1,344 @@
+{
+  "1900000000000000001": {
+    "author": {
+      "avatar": "{{DEMO_URL}}/Images/avatar-demo_botbench.png",
+      "id": "demo-demo_botbench",
+      "name": "Bench Bot (demo)",
+      "username": "demo_botbench"
+    },
+    "created": "2026-10-30T14:24:00Z",
+    "edited": false,
+    "fetched": "2026-11-14T09:00:00Z",
+    "id": "1900000000000000001",
+    "links": [],
+    "media": [],
+    "mentions": [],
+    "removed": false,
+    "tags": [],
+    "text": "Got the arm to pick up a mug without crushing it. Force sensing resistors under the gripper pads did it."
+  },
+  "1900000000000000002": {
+    "author": {
+      "avatar": "{{DEMO_URL}}/Images/avatar-demo_botbench.png",
+      "id": "demo-demo_botbench",
+      "name": "Bench Bot (demo)",
+      "username": "demo_botbench"
+    },
+    "created": "2026-10-16T20:44:00Z",
+    "edited": false,
+    "fetched": "2026-11-14T09:00:00Z",
+    "id": "1900000000000000002",
+    "links": [],
+    "media": [],
+    "mentions": [],
+    "removed": false,
+    "tags": [],
+    "text": "The hardest part of home robots is not the robot. It's the cables on the floor."
+  },
+  "1900000000000000003": {
+    "author": {
+      "avatar": "{{DEMO_URL}}/Images/avatar-demo_sourcrock.png",
+      "id": "demo-demo_sourcrock",
+      "name": "Sour Crock (demo)",
+      "username": "demo_sourcrock"
+    },
+    "created": "2026-10-30T07:29:00Z",
+    "edited": false,
+    "fetched": "2026-11-14T09:00:00Z",
+    "id": "1900000000000000003",
+    "links": [],
+    "media": [],
+    "mentions": [],
+    "removed": false,
+    "tags": [],
+    "text": "Salt by weight, not by the spoonful. 2% of the cabbage weight. It changed everything for me."
+  },
+  "1900000000000000004": {
+    "author": {
+      "avatar": "{{DEMO_URL}}/Images/avatar-demo_sourcrock.png",
+      "id": "demo-demo_sourcrock",
+      "name": "Sour Crock (demo)",
+      "username": "demo_sourcrock"
+    },
+    "created": "2026-10-12T00:57:00Z",
+    "edited": false,
+    "fetched": "2026-11-14T09:00:00Z",
+    "id": "1900000000000000004",
+    "links": [],
+    "media": [],
+    "mentions": [],
+    "removed": false,
+    "tags": [],
+    "text": "Rye starter fed 1:5:5 doubles in four hours at 26 C. Wheat takes six."
+  },
+  "1900000000000000005": {
+    "author": {
+      "avatar": "{{DEMO_URL}}/Images/avatar-demo_bikelanes.png",
+      "id": "demo-demo_bikelanes",
+      "name": "Bike Lane Counter (demo)",
+      "username": "demo_bikelanes"
+    },
+    "created": "2026-10-29T21:43:00Z",
+    "edited": false,
+    "fetched": "2026-11-14T09:00:00Z",
+    "id": "1900000000000000005",
+    "links": [],
+    "media": [],
+    "mentions": [],
+    "removed": false,
+    "tags": [],
+    "text": "Counted 312 bikes at the bridge between 8 and 9 this morning. Last spring it was 190."
+  },
+  "1900000000000000006": {
+    "author": {
+      "avatar": "{{DEMO_URL}}/Images/avatar-demo_bikelanes.png",
+      "id": "demo-demo_bikelanes",
+      "name": "Bike Lane Counter (demo)",
+      "username": "demo_bikelanes"
+    },
+    "created": "2026-10-14T00:01:00Z",
+    "edited": false,
+    "fetched": "2026-11-14T09:00:00Z",
+    "id": "1900000000000000006",
+    "links": [],
+    "media": [],
+    "mentions": [],
+    "removed": false,
+    "tags": [],
+    "text": "Painted lanes are a start. Kerbs are infrastructure."
+  },
+  "1900000000000000007": {
+    "author": {
+      "avatar": "{{DEMO_URL}}/Images/avatar-demo_gridwatch.png",
+      "id": "demo-demo_gridwatch",
+      "name": "Grid Watch (demo)",
+      "username": "demo_gridwatch"
+    },
+    "created": "2026-11-01T11:31:00Z",
+    "edited": false,
+    "fetched": "2026-11-14T09:00:00Z",
+    "id": "1900000000000000007",
+    "links": [],
+    "media": [],
+    "mentions": [],
+    "removed": false,
+    "tags": [],
+    "text": "Solar covered 61% of demand at noon today. A year ago the record was 48%."
+  },
+  "1900000000000000008": {
+    "author": {
+      "avatar": "{{DEMO_URL}}/Images/avatar-demo_gridwatch.png",
+      "id": "demo-demo_gridwatch",
+      "name": "Grid Watch (demo)",
+      "username": "demo_gridwatch"
+    },
+    "created": "2026-10-15T23:52:00Z",
+    "edited": false,
+    "fetched": "2026-11-14T09:00:00Z",
+    "id": "1900000000000000008",
+    "links": [],
+    "media": [],
+    "mentions": [],
+    "removed": false,
+    "tags": [],
+    "text": "Our heat pump used 2,900 kWh last winter. The old boiler burned the equivalent of 11,000."
+  },
+  "1900000000000000009": {
+    "author": {
+      "avatar": "{{DEMO_URL}}/Images/avatar-demo_typenerd.png",
+      "id": "demo-demo_typenerd",
+      "name": "Type Notes (demo)",
+      "username": "demo_typenerd"
+    },
+    "created": "2026-11-01T06:29:00Z",
+    "edited": false,
+    "fetched": "2026-11-14T09:00:00Z",
+    "id": "1900000000000000009",
+    "links": [],
+    "media": [],
+    "mentions": [],
+    "removed": false,
+    "tags": [],
+    "text": "Optical sizes are the most underused feature in variable fonts. Small text needs looser spacing."
+  },
+  "1900000000000000010": {
+    "author": {
+      "avatar": "{{DEMO_URL}}/Images/avatar-demo_typenerd.png",
+      "id": "demo-demo_typenerd",
+      "name": "Type Notes (demo)",
+      "username": "demo_typenerd"
+    },
+    "created": "2026-10-11T08:02:00Z",
+    "edited": false,
+    "fetched": "2026-11-14T09:00:00Z",
+    "id": "1900000000000000010",
+    "links": [],
+    "media": [],
+    "mentions": [],
+    "removed": false,
+    "tags": [],
+    "text": "Tabular figures in tables. Proportional figures in text. That's the whole rule."
+  },
+  "1900000000000000011": {
+    "author": {
+      "avatar": "{{DEMO_URL}}/Images/avatar-demo_abyssal.png",
+      "id": "demo-demo_abyssal",
+      "name": "Abyssal Notes (demo)",
+      "username": "demo_abyssal"
+    },
+    "created": "2026-10-29T03:35:00Z",
+    "edited": false,
+    "fetched": "2026-11-14T09:00:00Z",
+    "id": "1900000000000000011",
+    "links": [],
+    "media": [],
+    "mentions": [],
+    "removed": false,
+    "tags": [],
+    "text": "The mean depth of the ocean is about 3,700 m. Most of the living space on the planet is dark."
+  },
+  "1900000000000000012": {
+    "author": {
+      "avatar": "{{DEMO_URL}}/Images/avatar-demo_abyssal.png",
+      "id": "demo-demo_abyssal",
+      "name": "Abyssal Notes (demo)",
+      "username": "demo_abyssal"
+    },
+    "created": "2026-10-11T02:33:00Z",
+    "edited": false,
+    "fetched": "2026-11-14T09:00:00Z",
+    "id": "1900000000000000012",
+    "links": [],
+    "media": [],
+    "mentions": [],
+    "removed": false,
+    "tags": [],
+    "text": "New species described from last month's dive: two sea cucumbers and a worm with gold scales."
+  },
+  "1900000000000000013": {
+    "author": {
+      "avatar": "{{DEMO_URL}}/Images/avatar-demo_plaintext.png",
+      "id": "demo-demo_plaintext",
+      "name": "Plain Text (demo)",
+      "username": "demo_plaintext"
+    },
+    "created": "2026-10-31T17:22:00Z",
+    "edited": false,
+    "fetched": "2026-11-14T09:00:00Z",
+    "id": "1900000000000000013",
+    "links": [],
+    "media": [],
+    "mentions": [],
+    "removed": false,
+    "tags": [],
+    "text": "Rule I keep: a note should make sense to someone who never saw the source."
+  },
+  "1900000000000000014": {
+    "author": {
+      "avatar": "{{DEMO_URL}}/Images/avatar-demo_plaintext.png",
+      "id": "demo-demo_plaintext",
+      "name": "Plain Text (demo)",
+      "username": "demo_plaintext"
+    },
+    "created": "2026-10-12T23:31:00Z",
+    "edited": false,
+    "fetched": "2026-11-14T09:00:00Z",
+    "id": "1900000000000000014",
+    "links": [],
+    "media": [],
+    "mentions": [],
+    "removed": false,
+    "tags": [],
+    "text": "Exported nine years of notes to Markdown this weekend. 4,112 files, all still open in a text editor."
+  },
+  "1900000000000000015": {
+    "author": {
+      "avatar": "{{DEMO_URL}}/Images/avatar-demo_patchbay.png",
+      "id": "demo-demo_patchbay",
+      "name": "Patch Bay (demo)",
+      "username": "demo_patchbay"
+    },
+    "created": "2026-10-28T18:15:00Z",
+    "edited": false,
+    "fetched": "2026-11-14T09:00:00Z",
+    "id": "1900000000000000015",
+    "links": [],
+    "media": [],
+    "mentions": [],
+    "removed": false,
+    "tags": [],
+    "text": "Filter first, then the envelope, then the VCA. Every patch I like follows that order."
+  },
+  "1900000000000000016": {
+    "author": {
+      "avatar": "{{DEMO_URL}}/Images/avatar-demo_patchbay.png",
+      "id": "demo-demo_patchbay",
+      "name": "Patch Bay (demo)",
+      "username": "demo_patchbay"
+    },
+    "created": "2026-10-10T14:07:00Z",
+    "edited": false,
+    "fetched": "2026-11-14T09:00:00Z",
+    "id": "1900000000000000016",
+    "links": [],
+    "media": [],
+    "mentions": [],
+    "removed": false,
+    "tags": [],
+    "text": "Field recording from the tram stop this morning. The brakes make a perfect drone."
+  },
+  "1900000000000000017": {
+    "author": {
+      "avatar": "{{DEMO_URL}}/Images/avatar-demo_buildbetter.png",
+      "id": "demo-demo_buildbetter",
+      "name": "Build Better (demo)",
+      "username": "demo_buildbetter"
+    },
+    "created": "2026-10-28T10:37:00Z",
+    "edited": false,
+    "fetched": "2026-11-14T09:00:00Z",
+    "id": "1900000000000000017",
+    "links": [],
+    "media": [],
+    "mentions": [],
+    "removed": false,
+    "tags": [],
+    "text": "Shops on the ground floor, four storeys of flats above. The most boring building type, and the one cities need most."
+  },
+  "1900000000000000018": {
+    "author": {
+      "avatar": "{{DEMO_URL}}/Images/avatar-demo_buildbetter.png",
+      "id": "demo-demo_buildbetter",
+      "name": "Build Better (demo)",
+      "username": "demo_buildbetter"
+    },
+    "created": "2026-10-10T03:01:00Z",
+    "edited": false,
+    "fetched": "2026-11-14T09:00:00Z",
+    "id": "1900000000000000018",
+    "links": [],
+    "media": [],
+    "mentions": [],
+    "removed": false,
+    "tags": [],
+    "text": "Our building's heating bill fell by 70% after the facade insulation. Same boiler."
+  },
+  "1900000000000000019": {
+    "author": {
+      "avatar": "{{DEMO_URL}}/Images/avatar-demo_memes.png",
+      "id": "demo-demo_memes",
+      "name": "Box Cats (demo)",
+      "username": "demo_memes"
+    },
+    "created": "2026-11-05T09:48:00Z",
+    "edited": false,
+    "fetched": "2026-11-14T09:00:00Z",
+    "id": "1900000000000000019",
+    "links": [],
+    "media": [],
+    "mentions": [],
+    "removed": false,
+    "tags": [],
+    "text": "A cat sitting in a cardboard box shaped like a car."
+  }
+}

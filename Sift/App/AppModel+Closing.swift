@@ -35,6 +35,7 @@ extension AppModel {
     /// Writes the helper's host manifest for each Chromium browser, copies
     /// the extension, shows it in Finder and opens the extensions page.
     func installChromeHelper() {
+        guard !Demo.isOn else { chromeHelperMessage = Demo.offMessage; return }
         do {
             let browsers = try ChromeHelper.install()
             guard !browsers.isEmpty else {
@@ -53,6 +54,7 @@ extension AppModel {
     /// rewrites a snapshot only when the tabs change. Sift looks every 30
     /// seconds and reloads at most every two minutes, never while Claude works.
     func startChromeWatcher() {
+        guard !Demo.isOn else { return }
         Task { [weak self] in
             while !Task.isCancelled {
                 try? await Task.sleep(for: .seconds(30))
