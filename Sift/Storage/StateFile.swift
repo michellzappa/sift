@@ -22,6 +22,8 @@ struct SiftState: Codable, Sendable {
     var youtubeTranscripts = true
     /// Fetch Instagram post images from the public embed.
     var instagramImages = true
+    /// Turn what Instagram reels say into text with yt-dlp and macOS speech.
+    var reelTranscripts = true
     var xClientID: String = ""
     var xUserID: String?
     var xUsername: String?
@@ -45,6 +47,7 @@ struct SiftState: Codable, Sendable {
         autoCapture = try c.decodeIfPresent(Bool.self, forKey: .autoCapture) ?? true
         youtubeTranscripts = try c.decodeIfPresent(Bool.self, forKey: .youtubeTranscripts) ?? true
         instagramImages = try c.decodeIfPresent(Bool.self, forKey: .instagramImages) ?? true
+        reelTranscripts = try c.decodeIfPresent(Bool.self, forKey: .reelTranscripts) ?? true
         xClientID = try c.decodeIfPresent(String.self, forKey: .xClientID) ?? ""
         xUserID = try c.decodeIfPresent(String.self, forKey: .xUserID)
         xUsername = try c.decodeIfPresent(String.self, forKey: .xUsername)

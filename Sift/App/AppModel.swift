@@ -121,6 +121,10 @@ final class AppModel {
             if !isTranscribing, !videosNeedingTranscript.isEmpty {
                 Task { await fetchTranscripts() }
             }
+            // Instagram reels get their speech as text in the background.
+            if !isTranscribingReels, !reelsNeedingTranscript.isEmpty {
+                Task { await fetchReelTranscripts() }
+            }
             // Instagram posts get their image in the background.
             if state.instagramImages, !isFetchingInstagramImages, !instagramPostsWithoutImage.isEmpty {
                 Task { await fetchInstagramImages() }
@@ -402,7 +406,7 @@ final class AppModel {
             .sorted { $0.firstSeen > $1.firstSeen }
     }
 
-    var transcriptCount: Int { library.values.filter { $0.transcript == true }.count }
+    var transcriptCount: Int { library.filter { $0.value.transcript == true && TranscriptTool.videoID($0.key) != nil }.count }
 
     /// One video at a time, paced by HostGate; stops when YouTube throttles.
     func fetchTranscripts() async {
@@ -437,6 +441,66 @@ final class AppModel {
     }
 
     var transcriptToolMessage: String?
+
+    // MARK: Instagram reel transcripts
+
+    var isTranscribingReels = false
+    var reelProgress: (done: Int, total: Int) = (0, 0)
+    private var reelTried = Set<String>()
+    var reelToolMessage: String?
+
+    /// Reels without a transcript attempt, newest saves first.
+    var reelsNeedingTranscript: [ArchiveRecord] {
+        guard state.reelTranscripts, ReelTool.executable != nil else { return [] }
+        return archive.values
+            .filter { ReelTool.isReel($0.url) && library[$0.url]?.transcript == nil && !reelTried.contains($0.url) }
+            .sorted { $0.firstSeen > $1.firstSeen }
+    }
+
+    var reelCount: Int { archive.keys.filter(ReelTool.isReel).count }
+    var reelTranscriptCount: Int { library.filter { $0.value.transcript == true && ReelTool.isReel($0.key) }.count }
+
+    /// One reel at a time: audio through yt-dlp, text through macOS speech
+    /// recognition. Stops when Instagram throttles or speech is not allowed.
+    func fetchReelTranscripts() async {
+        guard !isTranscribingReels else { return }
+        let todo = reelsNeedingTranscript
+        guard !todo.isEmpty else { return }
+        guard await ReelSpeech.authorize() else {
+            reelToolMessage = "Speech Recognition is off for Sift in System Settings > Privacy & Security."
+            return
+        }
+        isTranscribingReels = true
+        reelProgress = (0, todo.count)
+        defer { isTranscribingReels = false; Library.saveIndex(library) }
+        for r in todo {
+            guard state.reelTranscripts else { break }
+            reelTried.insert(r.url)
+            var text: String?
+            switch await ReelTool.audio(for: r.url) {
+            case .throttled: return
+            case .none: text = nil
+            case .audio(let file):
+                text = await ReelSpeech.transcribe(file, hint: Library.text(for: r.url) ?? r.title)
+                try? FileManager.default.removeItem(at: file.deletingLastPathComponent())
+            }
+            if let text, text.count > 20 {
+                library[r.url] = Library.addTranscript(text, to: r, existing: library[r.url])
+            } else {
+                var e = library[r.url] ?? Library.Entry(file: "", captured: .now, words: 0, kind: "post", status: "failed")
+                e.transcript = false
+                library[r.url] = e
+            }
+            reelProgress.done += 1
+            if reelProgress.done % 10 == 0 { Library.saveIndex(library) }
+        }
+    }
+
+    func installReelTool() async {
+        reelToolMessage = "Installing…"
+        reelToolMessage = await ReelTool.install() ?? "Installed."
+        if ReelTool.executable != nil, !isTranscribingReels { Task { await fetchReelTranscripts() } }
+    }
 
     // MARK: Instagram images
 

@@ -206,7 +206,7 @@ enum Library {
             if e.status == "failed" || e.status == "thin" { e.status = "ok" }
             return e
         }
-        let site = URL(string: r.url)?.host() ?? "youtube.com"
+        let site = URL(string: r.url)?.host() ?? ""
         var e = write(Capture(url: r.url, title: r.title, author: nil, site: site, published: nil, kind: "video",
                               text: "## Transcript\n\n" + text), title: r.title, theme: r.theme, source: r.source)
         e.transcript = true

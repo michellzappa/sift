@@ -304,6 +304,12 @@ private struct LibraryStatus: View {
                 Text("YouTube transcripts: \(model.transcriptProgress.done) of \(model.transcriptProgress.total)")
                     .font(.caption2).foregroundStyle(.secondary)
             }
+            if model.isTranscribingReels {
+                ProgressView(value: Double(model.reelProgress.done), total: Double(max(model.reelProgress.total, 1)))
+                    .progressViewStyle(.linear).controlSize(.small)
+                Text("Reel transcripts: \(model.reelProgress.done) of \(model.reelProgress.total)")
+                    .font(.caption2).foregroundStyle(.secondary)
+            }
             if model.isFetchingInstagramImages {
                 ProgressView(value: Double(model.instagramImageProgress.done), total: Double(max(model.instagramImageProgress.total, 1)))
                     .progressViewStyle(.linear).controlSize(.small)

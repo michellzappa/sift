@@ -84,12 +84,12 @@ enum TranscriptTool {
 
     /// Installs the tool into Sift's own folder: a Python virtual environment
     /// with `youtube-transcript-api`. Needs Python 3 on the Mac.
-    static func install() async -> String? {
+    static func install(package: String = "youtube-transcript-api") async -> String? {
         let python = ["/opt/homebrew/bin/python3", "/usr/local/bin/python3", "/usr/bin/python3"].first { FileManager.default.isExecutableFile(atPath: $0) }
         guard let python else { return "Python 3 was not found." }
         let venv = installFolder.appending(path: "venv").path(percentEncoded: false)
         try? FileManager.default.createDirectory(at: installFolder, withIntermediateDirectories: true)
-        for args in [[python, "-m", "venv", venv], [venv + "/bin/pip", "install", "-q", "--disable-pip-version-check", "youtube-transcript-api"]] {
+        for args in [[python, "-m", "venv", venv], [venv + "/bin/pip", "install", "-q", "--disable-pip-version-check", package]] {
             let status: Int32 = await withCheckedContinuation { c in
                 let p = Process()
                 p.executableURL = URL(filePath: args[0])
@@ -99,7 +99,7 @@ enum TranscriptTool {
                 p.terminationHandler = { c.resume(returning: $0.terminationStatus) }
                 do { try p.run() } catch { c.resume(returning: -1) }
             }
-            if status != 0 { return "Installing the transcript tool failed." }
+            if status != 0 { return "Installing \(package) failed." }
         }
         return nil
     }

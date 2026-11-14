@@ -71,6 +71,14 @@ project and as an overview network (one hub per project, one dot per tab).
   CLI (installed into `Application Support/Sift/tools/venv`), paced through
   `HostGate` ("transcripts.youtube.com", 4 s), pausing an hour on throttling.
   Transcripts are appended to the library file under "## Transcript".
+- Reel transcripts (2026-11-14, owner's choice): `Engine/ReelTranscripts.swift`.
+  The optional `yt-dlp` (same venv as the YouTube tool) fetches the audio
+  track (`-f ba/b`) without a login, through `HostGate` key
+  "reels.instagram.com"; it pauses an hour on rate-limit or login-required.
+  `SFSpeechRecognizer` (on-device when supported; locale from the caption
+  language) makes the text; the audio is deleted. Appended under
+  "## Transcript". Never pass browser cookies to yt-dlp: it risks the
+  owner's Instagram account.
 - Capture paces requests per site (`HostGate`: 4 s for YouTube, Instagram
   and X, 1 s elsewhere) and skips a site for an hour after 429/503. Never
   fetch one site in parallel bursts: YouTube rate-limited the owner's IP.

@@ -231,8 +231,11 @@ connection with Sync Bookmarks) and imported link files.
 
 **Library** controls what Sift saves on this Mac. Each kind has its own
 switch and counts: page text (saved, thin and failed, with Retry Failed),
-YouTube transcripts (with Install Transcript Tool) and Instagram post
-images. It shows progress while each runs, the size on disk, and Show
+YouTube transcripts (with Install Transcript Tool), Instagram post images,
+and what Instagram reels say (with Install Reel Tool: the open-source
+`yt-dlp` fetches each reel's audio without a login, one every 4 seconds,
+macOS speech recognition turns it into text, on the Mac where the language
+allows, and the audio is deleted). It shows progress while each runs, the size on disk, and Show
 Library in Finder.
 
 **Outputs** runs each exporter and shows its last folder or file, shows the

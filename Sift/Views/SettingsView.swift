@@ -248,10 +248,25 @@ private struct LibrarySettings: View {
                         Text("Fetching \(model.instagramImageProgress.done) of \(model.instagramImageProgress.total)").font(.caption)
                     }
                 }
+                Toggle("Save what reels say", isOn: $model.state.reelTranscripts)
+                LabeledContent("Reel transcripts", value: ReelTool.executable == nil ? "Tool not installed" : "\(model.reelTranscriptCount) of \(model.reelCount) reels")
+                if model.isTranscribingReels {
+                    ProgressView(value: Double(model.reelProgress.done), total: Double(max(model.reelProgress.total, 1))) {
+                        Text("Transcribing \(model.reelProgress.done) of \(model.reelProgress.total)").font(.caption)
+                    }
+                }
+                if ReelTool.executable == nil || model.reelToolMessage != nil {
+                    HStack {
+                        if ReelTool.executable == nil {
+                            Button("Install Reel Tool") { Task { await model.installReelTool() } }
+                        }
+                        if let m = model.reelToolMessage { Text(m).font(.caption).foregroundStyle(.secondary) }
+                    }
+                }
             } header: {
                 Text("Instagram")
             } footer: {
-                Text("From Instagram's public embed, one post at a time. Images are kept on this Mac because Instagram's image links expire.")
+                Text("Images come from Instagram's public embed and stay on this Mac because Instagram's image links expire. Reel speech: the open-source yt-dlp tool fetches the audio without a login, macOS speech recognition turns it into text (on this Mac where the language allows), and the audio is deleted.")
                     .foregroundStyle(.secondary)
             }
 
