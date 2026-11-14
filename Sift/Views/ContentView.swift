@@ -107,7 +107,7 @@ private struct AccessView: View {
             Image(systemName: "lock.shield").font(.system(size: 40)).foregroundStyle(.secondary)
             Text(error.localizedDescription).font(.headline).multilineTextAlignment(.center)
             if case .noAccess = error {
-                Text("Open System Settings, turn on Sift under Full Disk Access, then come back.")
+                Text("In Full Disk Access, click + below the list, choose Sift in Applications, turn it on, then click Try Again.")
                     .foregroundStyle(.secondary)
                 HStack {
                     Button("Open Full Disk Access") { AppModel.openFullDiskAccessSettings() }
