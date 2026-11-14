@@ -266,7 +266,7 @@ struct GraphView: View {
         if theme == Self.unsortedKey { return .gray }
         let names = model.projects.map(\.name)
         let i = names.firstIndex(of: theme) ?? 0
-        return GraphStyle.branchColors[i % GraphStyle.branchColors.count]
+        return GraphStyle.color(index: i, of: names.count)
     }
 
     /// Hosts too general to say two themes are related.
@@ -358,8 +358,41 @@ enum GraphStyle {
             : AnyShapeStyle(Color(nsColor: .textBackgroundColor))
     }
 
-    /// System colors: they adapt to light and dark mode on their own.
-    static let branchColors: [Color] = [.blue, .orange, .green, .pink, .purple, .teal, .red, .indigo, .mint, .brown, .cyan, .yellow]
+    /// Theme `index` of `count` themes: hues spread evenly around the wheel,
+    /// as far apart as the number of themes allows, all with the same
+    /// lightness and chroma (OKLCH) so no theme looks louder than another.
+    /// Themes next to each other get hues from opposite sides of the wheel
+    /// (a golden-ratio stride). Deeper in light mode, lighter in dark mode.
+    static func color(index: Int, of count: Int) -> Color {
+        let n = max(count, 1)
+        var stride = max(1, Int((Double(n) * 0.382).rounded()))
+        while gcd(stride, n) != 1 { stride += 1 }
+        let slot = (index * stride) % n
+        let hue = (28 + Double(slot) * 360 / Double(n)).truncatingRemainder(dividingBy: 360)
+        return Color(nsColor: NSColor(name: nil) { appearance in
+            let dark = appearance.bestMatch(from: [.darkAqua, .aqua]) == .darkAqua
+            return oklch(dark ? 0.78 : 0.64, dark ? 0.115 : 0.125, hue)
+        })
+    }
+
+    private static func gcd(_ a: Int, _ b: Int) -> Int { b == 0 ? a : gcd(b, a % b) }
+
+    /// OKLCH to sRGB, clamped to the sRGB gamut.
+    private static func oklch(_ l: Double, _ c: Double, _ hDegrees: Double) -> NSColor {
+        let h = hDegrees * .pi / 180
+        let a = c * cos(h), b = c * sin(h)
+        let l1 = pow(l + 0.3963377774 * a + 0.2158037573 * b, 3)
+        let m1 = pow(l - 0.1055613458 * a - 0.0638541728 * b, 3)
+        let s1 = pow(l - 0.0894841775 * a - 1.2914855480 * b, 3)
+        let r = 4.0767416621 * l1 - 3.3077115913 * m1 + 0.2309699292 * s1
+        let g = -1.2684380046 * l1 + 2.6097574011 * m1 - 0.3413193965 * s1
+        let bl = -0.0041960863 * l1 - 0.7034186147 * m1 + 1.7076147010 * s1
+        func encode(_ x: Double) -> CGFloat {
+            let v = x <= 0.0031308 ? 12.92 * x : 1.055 * pow(x, 1 / 2.4) - 0.055
+            return CGFloat(min(1, max(0, v)))
+        }
+        return NSColor(srgbRed: encode(r), green: encode(g), blue: encode(bl), alpha: 1)
+    }
 }
 
 /// A link card around a focused theme: thumbnail (page image, author avatar or site icon),
@@ -499,7 +532,6 @@ final class GraphSimulation {
 
     var isMoving: Bool { alpha > 0.008 }
 
-    static var palette: [Color] { GraphStyle.branchColors }
 
     func load(nodes new: [Node], edges newEdges: [Edge]) {
         let old = Dictionary(nodes.filter { $0.kind == .theme }.map { ($0.key, $0.p) }, uniquingKeysWith: { a, _ in a })
