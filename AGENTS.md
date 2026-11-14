@@ -1,9 +1,16 @@
 # Sift — agent notes
 
-Sift is a native macOS app that turns open Safari tabs into project material.
-It reads the iCloud Tabs database that Safari syncs to this Mac, sorts each tab
-into one of the user's projects with Claude, and shows the result as a list per
-project and as an overview network (one hub per project, one dot per tab).
+Sift builds a local knowledge model of a person's interests from what they
+already save on the platforms they use: Safari tabs, Reading List, Instagram,
+X, YouTube, imports. It keeps the full text (pages, transcripts) on the Mac in
+open formats, finds the themes with the user's own Claude, and sends links on
+to where they are used (Starlings, Obsidian, files).
+
+North star (owner, 2026-11-14): the user owns their data. Everything Sift
+learns stays on the Mac as plain files (Markdown library, JSON state, SQLite
+index), readable without Sift, and reachable by the user's own Claude through
+sift-mcp. New inputs are judged by how much of the content they keep (text,
+transcripts), not only the link. Never add a Sift server or account.
 
 ## Commands
 

@@ -13,6 +13,12 @@ Mac, and remembers what a link was about after the tab is gone.
 The principle: your sprawl is not a problem to fix. It is a record of your
 curiosity, and Sift makes it legible.
 
+And it stays yours. Sift turns what you already save, on the platforms you
+already use, into a knowledge base on your own Mac: the full text of pages,
+video and reel transcripts, your notes and themes, in plain Markdown, JSON
+and SQLite. No Sift server, no account. Your own Claude can search it
+through the built-in MCP server, and you can open every file without Sift.
+
 ## What it does
 
 ### Sources
