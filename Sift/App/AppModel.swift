@@ -67,7 +67,7 @@ final class AppModel {
                 func add(_ list: [SafariTab], _ source: String) {
                     for var t in list where seen.insert(t.url).inserted { t.source = source; all.append(t) }
                 }
-                if let phone = devices.first { add(try CloudTabsReader.tabs(deviceID: phone.id), "tabs") }
+                if let phone = devices.first { add(try CloudTabsReader.tabs(deviceID: phone.id), "tabs:\(phone.id)") }
                 let reading = (try? ReadingListReader.items()) ?? []
                 for item in reading + instagram where previews[item.tab.url] == nil {
                     if let p = item.preview { previews[item.tab.url] = p }
@@ -80,7 +80,7 @@ final class AppModel {
                     for item in items where previews[item.tab.url] == nil {
                         if let p = item.preview { previews[item.tab.url] = p }
                     }
-                    add(items.map(\.tab), "import")
+                    add(items.map(\.tab), LinkImporter.sourcePrefix + source.id)
                 }
                 tabs = all.sorted { ($0.lastViewed ?? .distantPast) > ($1.lastViewed ?? .distantPast) }
             } else if let source = currentImport {
@@ -111,6 +111,11 @@ final class AppModel {
                 let stillOpen = state.closeQueue.filter(open.contains)
                 if stillOpen != state.closeQueue { state.closeQueue = stillOpen }
             }
+            if !isAll {
+                let key = currentSourceKey
+                tabs = tabs.map { var t = $0; t.source = key; return t }
+            }
+            recordArchive()
             separateErrands()
         } catch let failure as CloudTabsReader.Failure {
             loadError = failure
@@ -250,6 +255,63 @@ final class AppModel {
 
     /// True when the source is a saved list (Reading List, Instagram Saved),
     /// not a device's open tabs. Saved lists have nothing to close on the iPhone.
+    // MARK: Archive
+
+    var archive: [String: ArchiveRecord] = ArchiveStore.load()
+
+    /// The source key a link is recorded under: "tabs:<device>",
+    /// "reading-list", "instagram", "x" or "import:<id>".
+    private var currentSourceKey: String {
+        if isReadingList { return "reading-list" }
+        if isInstagram { return "instagram" }
+        if isXBookmarks { return "x" }
+        if let source = currentImport { return LinkImporter.sourcePrefix + source.id }
+        return "tabs:\(state.deviceID ?? "")"
+    }
+
+    /// The sources whose full list is loaded right now, so a record missing
+    /// from them really left (and is not just in another source).
+    private var loadedSourceKeys: Set<String> {
+        guard isAll else { return [currentSourceKey] }
+        var keys: Set<String> = ["reading-list", "instagram", "x"]
+        if let phone = devices.first { keys.insert("tabs:\(phone.id)") }
+        for s in state.importedSources { keys.insert(LinkImporter.sourcePrefix + s.id) }
+        return keys
+    }
+
+    /// Records every link the current view shows, and archives the records
+    /// of links that left a loaded source. Called on every reload.
+    private func recordArchive() {
+        let now = Date()
+        let present = Set(tabs.map(\.url))
+        for tab in tabs {
+            var r = archive[tab.url] ?? ArchiveRecord(url: tab.url, title: tab.title, source: tab.source, firstSeen: tab.lastViewed ?? now)
+            let p = previews[tab.url]
+            if tab.hasUsefulTitle { r.title = tab.title } else if let p, !p.failed, !p.title.isEmpty { r.title = p.title }
+            if let a = state.assignments[tab.url] { r.theme = a.project; r.use = a.use; r.action = a.action }
+            if let p, !p.failed { r.previewText = p.text; r.imageURL = p.imageURL ?? p.avatarURL }
+            r.lastSeen = now
+            r.archived = nil
+            archive[tab.url] = r
+        }
+        let loaded = loadedSourceKeys
+        for (url, r) in archive where r.archived == nil && loaded.contains(r.source) && !present.contains(url) {
+            archive[url]?.archived = now
+        }
+        ArchiveStore.save(archive)
+        // Archived links show from their record when no preview is cached.
+        for r in archive.values where r.isArchived && previews[r.url] == nil && !r.previewText.isEmpty {
+            previews[r.url] = Preview(title: r.title, text: r.previewText, imageURL: r.imageURL, site: r.asTab.host, fetched: r.lastSeen)
+        }
+    }
+
+    /// Links that left their source, newest first.
+    var archivedTabs: [SafariTab] {
+        archive.values.filter(\.isArchived).sorted { ($0.archived ?? .distantPast) > ($1.archived ?? .distantPast) }.map(\.asTab)
+    }
+
+    func archiveRecord(for url: String) -> ArchiveRecord? { archive[url] }
+
     static let allSourcesID = "all-sources"
     private(set) var allSourcesCount = 0
     /// Phone tabs, Reading List, Instagram Saved and X Bookmarks together.

@@ -75,6 +75,14 @@ To connect: create a Native App in the X Developer Console with callback URL
 Sorting > X API and click Connect. Without it, X posts use the free oEmbed
 preview as before.
 
+### Archive
+
+Sift keeps a record of every link it has seen: title, theme, use, next
+action, preview text, and when it arrived. When a link leaves its source (a
+tab closed on the phone, an item removed from the Reading List or from an
+export), its record moves to **Archive** in the sidebar instead of being
+forgotten. Records live in `archive.json` in Application Support.
+
 ### Importing from other tools
 
 File > Import Links File (or Settings > Sorting > Sources) turns an export

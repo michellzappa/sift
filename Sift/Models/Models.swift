@@ -12,12 +12,12 @@ struct SafariTab: Identifiable, Hashable, Sendable {
     var source = "tabs"
 
     var sourceSymbol: String {
+        if source.hasPrefix("import") { return "tray.and.arrow.down" }
         switch source {
-        case "reading-list": "eyeglasses"
-        case "instagram": "camera"
-        case "x": "bookmark"
-        case "import": "tray.and.arrow.down"
-        default: "iphone"
+        case "reading-list": return "eyeglasses"
+        case "instagram": return "camera"
+        case "x": return "bookmark"
+        default: return "iphone"
         }
     }
 

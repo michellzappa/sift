@@ -21,6 +21,7 @@ struct TabList: View {
         case .overview: "Overview"
         case .unsorted: "Unsorted"
         case .closeQueue: "To close on iPhone"
+        case .archive: "Archive"
         case .project(let p): p
         case .site(let host): host
         case .action(let a): "Next: \(a.label)"
@@ -32,6 +33,7 @@ struct TabList: View {
         case .overview: model.tabs
         case .unsorted: model.tabs(in: nil)
         case .closeQueue: model.closeQueueTabs
+        case .archive: model.archivedTabs
         case .project(let p): model.tabs(in: p)
         case .site(let host): model.tabs(onSite: host)
         case .action(let a): model.tabs(withAction: a)

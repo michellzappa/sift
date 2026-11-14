@@ -4,6 +4,7 @@ enum SidebarItem: Hashable {
     case overview
     case unsorted
     case closeQueue
+    case archive
     case site(String)
     case action(NextAction)
     case project(String)
@@ -124,9 +125,13 @@ private struct Sidebar: View {
 
     var body: some View {
         List(selection: $selection) {
-            Label("Overview", systemImage: "circle.hexagongrid").tag(SidebarItem.overview)
+            Label { HStack { Text("Overview"); Spacer(); count(model.tabs.count) } } icon: { Image(systemName: "circle.hexagongrid") }
+                .tag(SidebarItem.overview)
             Label { HStack { Text("Unsorted"); Spacer(); count(model.unsortedCount) } } icon: { Image(systemName: "tray") }
                 .tag(SidebarItem.unsorted)
+            Label { HStack { Text("Archive"); Spacer(); count(model.archivedTabs.count) } } icon: { Image(systemName: "archivebox") }
+                .tag(SidebarItem.archive)
+                .help("Links that left their source. Sift keeps their theme, use and action.")
             if !model.isSavedList {
                 Label { HStack { Text("To close on iPhone"); Spacer(); count(model.state.closeQueue.count) } } icon: { Image(systemName: "xmark.square") }
                     .tag(SidebarItem.closeQueue)
