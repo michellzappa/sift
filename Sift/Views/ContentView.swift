@@ -22,10 +22,13 @@ struct ContentView: View {
                     Sidebar(selection: $selection)
                         .navigationSplitViewColumnWidth(min: 200, ideal: 240)
                 } detail: {
-                    switch selection ?? .overview {
-                    case .overview: GraphView(selection: $selection)
-                    case let other: TabList(item: other).id(other)
+                    Group {
+                        switch selection ?? .overview {
+                        case .overview: GraphView(selection: $selection)
+                        case let other: TabList(item: other).id(other)
+                        }
                     }
+                    .safeAreaInset(edge: .top, spacing: 0) { UnsortedBanner() }
                 }
             }
         }
@@ -49,6 +52,8 @@ struct ContentView: View {
     private var toolbar: some ToolbarContent {
         ToolbarItem(placement: .navigation) {
             Picker("Source", selection: .init(get: { model.state.deviceID ?? "" }, set: { model.selectDevice($0) })) {
+                Text("All Sources").tag(AppModel.allSourcesID)
+                Divider()
                 ForEach(model.devices) { d in Text("\(d.name) (\(d.tabCount))").tag(d.id) }
                 if model.readingListCount > 0 || model.instagramCount > 0 { Divider() }
                 if model.readingListCount > 0 {
@@ -193,5 +198,41 @@ private struct AccessView: View {
         }
         .padding(40)
         .frame(maxWidth: .infinity, maxHeight: .infinity)
+    }
+}
+
+/// Says when the current source has links that are in no theme yet (for
+/// example right after adding Instagram or the Reading List), and offers the
+/// two ways to sort them.
+private struct UnsortedBanner: View {
+    @Environment(AppModel.self) private var model
+
+    var body: some View {
+        let count = model.unsortedCount
+        if !model.themes.isEmpty, count > 0 || model.isSorting || model.isDiscovering {
+            HStack(spacing: 10) {
+                if model.isSorting {
+                    ProgressView().controlSize(.small)
+                    Text("Sorting with Claude: \(model.sortProgress.done) of \(model.sortProgress.total)")
+                } else if model.isDiscovering {
+                    ProgressView().controlSize(.small)
+                    Text("Claude is reading all your links to find themes…")
+                } else {
+                    Image(systemName: "tray.full").foregroundStyle(.tint)
+                    Text("\(count) link\(count == 1 ? " is" : "s are") not in a theme yet.")
+                    Spacer()
+                    Button("Sort into Themes") { Task { await model.sortUnsorted() } }
+                        .buttonStyle(.borderedProminent)
+                        .help("Claude puts each link into one of your current themes.")
+                    Button("Discover Themes Again") { Task { await model.discoverThemes() } }
+                        .help("Claude reads every link again, this source included, and may propose new themes. You review them first.")
+                }
+                if model.isSorting || model.isDiscovering { Spacer() }
+            }
+            .font(.callout)
+            .padding(.horizontal, 14).padding(.vertical, 8)
+            .background(.bar)
+            .overlay(alignment: .bottom) { Divider() }
+        }
     }
 }

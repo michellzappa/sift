@@ -75,6 +75,17 @@ To connect: create a Native App in the X Developer Console with callback URL
 Sorting > X API and click Connect. Without it, X posts use the free oEmbed
 preview as before.
 
+### All sources, one set of themes
+
+**All Sources**, at the top of the source picker, shows your phone's tabs,
+the Reading List, Instagram Saved and X Bookmarks together, each link once,
+newest first, with a small icon for where it came from. Themes are not per
+source: there is one set, and a link keeps its theme in every view. When a
+new source arrives, a banner counts the links that are in no theme yet and
+offers two ways in: **Sort into Themes** puts them into the themes you have,
+and **Discover Themes Again** reads every source together and may propose
+new themes, keeping the names that still fit.
+
 ### Export
 
 The Export menu (toolbar and File menu) writes your themes and links out:

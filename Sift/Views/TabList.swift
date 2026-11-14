@@ -217,6 +217,7 @@ struct TabCard: View {
                     .help(a?.action?.meaning ?? "Choose what to do with this link next.")
                 }
                 HStack(spacing: 5) {
+                    if model.isAll { Image(systemName: tab.sourceSymbol).help("From \(tab.source)") }
                     Text(tab.host).lineLimit(1)
                     if let d = tab.lastViewed { Text("·"); Text(d, format: .dateTime.day().month(.abbreviated)) }
                     if a?.manual == true { Image(systemName: "hand.point.up.left").help("Sorted by hand") }

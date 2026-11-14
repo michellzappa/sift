@@ -39,11 +39,29 @@ final class AppModel {
             instagramCount = instagram.count
             if isInstagram && instagram.isEmpty { state.deviceID = nil }
             loadError = nil
-            if state.deviceID == nil || (!isSavedList && !devices.contains(where: { $0.id == state.deviceID })) {
+            if state.deviceID == nil {
+                state.deviceID = Self.allSourcesID
+            } else if !isAll, !isSavedList, !devices.contains(where: { $0.id == state.deviceID }) {
                 // The device with the most tabs is almost always the phone.
                 state.deviceID = devices.first?.id
             }
-            if isXBookmarks {
+            if isAll {
+                // Every source at once, newest first, each link once.
+                var seen = Set<String>()
+                var all: [SafariTab] = []
+                func add(_ list: [SafariTab], _ source: String) {
+                    for var t in list where seen.insert(t.url).inserted { t.source = source; all.append(t) }
+                }
+                if let phone = devices.first { add(try CloudTabsReader.tabs(deviceID: phone.id), "tabs") }
+                let reading = (try? ReadingListReader.items()) ?? []
+                for item in reading + instagram where previews[item.tab.url] == nil {
+                    if let p = item.preview { previews[item.tab.url] = p }
+                }
+                add(reading.map(\.tab), "reading-list")
+                add(instagram.map(\.tab), "instagram")
+                add(xBookmarkTabs(), "x")
+                tabs = all.sorted { ($0.lastViewed ?? .distantPast) > ($1.lastViewed ?? .distantPast) }
+            } else if isXBookmarks {
                 tabs = xBookmarkTabs()
             } else if isInstagram {
                 tabs = instagram.map(\.tab)
@@ -204,6 +222,10 @@ final class AppModel {
 
     /// True when the source is a saved list (Reading List, Instagram Saved),
     /// not a device's open tabs. Saved lists have nothing to close on the iPhone.
+    static let allSourcesID = "all-sources"
+    /// Phone tabs, Reading List, Instagram Saved and X Bookmarks together.
+    var isAll: Bool { state.deviceID == Self.allSourcesID }
+
     /// Sources that are lists, not open tabs: nothing to close on a phone.
     var isSavedList: Bool { isReadingList || isInstagram || isXBookmarks }
 
@@ -338,6 +360,7 @@ final class AppModel {
         let instagram = instagramItems()
         for item in instagram where previews[item.tab.url] == nil { if let p = item.preview { previews[item.tab.url] = p } }
         add(instagram.map(\.tab))
+        add(xBookmarkTabs())
         add(tabs)
 
         // Transactional tabs are not curiosity: they skip Claude entirely.

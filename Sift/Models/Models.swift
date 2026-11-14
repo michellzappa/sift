@@ -7,6 +7,18 @@ struct SafariTab: Identifiable, Hashable, Sendable {
     let url: String
     let title: String
     let lastViewed: Date?
+    /// Where the link came from, shown in the All Sources view: "tabs",
+    /// "reading-list", "instagram" or "x".
+    var source = "tabs"
+
+    var sourceSymbol: String {
+        switch source {
+        case "reading-list": "eyeglasses"
+        case "instagram": "camera"
+        case "x": "bookmark"
+        default: "iphone"
+        }
+    }
 
     var host: String {
         let h = URL(string: url)?.host() ?? url
