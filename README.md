@@ -59,6 +59,10 @@ To build previews, Sift requests each page once from its own site. For posts on
 X it uses X's public oEmbed endpoint, which returns the post text without a
 login.
 
+An opt-in setting (Settings > Sorting > Previews, off by default) makes Sift ask
+X's syndication endpoint (cdn.syndication.twimg.com) first, which also returns
+post images. The endpoint is unofficial and can stop working at any time.
+
 Sift reads Safari's files and never writes to them.
 
 ## Requirements

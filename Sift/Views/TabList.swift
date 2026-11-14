@@ -253,35 +253,51 @@ struct TabCard: View {
         }
     }
 
-    /// Page image when there is one. X posts have none from oEmbed, so they
-    /// get a quiet band with the author's initial.
+    /// Page image when there is one. X posts get a band with the author's
+    /// avatar (or initial when oEmbed gave no avatar), then the post image.
     @ViewBuilder
     private func header(_ p: Preview?) -> some View {
-        if let s = p?.imageURL, let url = URL(string: s) {
-            Color.clear
-                .frame(height: 130)
-                .overlay {
-                    AsyncImage(url: url) { phase in
-                        if let image = phase.image {
-                            image.resizable().aspectRatio(contentMode: .fill)
-                        } else {
-                            Rectangle().fill(.quaternary)
+        if p?.site == "x.com" {
+            VStack(alignment: .leading, spacing: 10) {
+                HStack(spacing: 8) {
+                    initialCircle(p).overlay {
+                        if let s = p?.avatarURL, let url = URL(string: s) {
+                            AsyncImage(url: url) { $0.resizable().aspectRatio(contentMode: .fill) } placeholder: { Color.clear }
+                                .clipShape(Circle())
                         }
                     }
+                    Text(p?.title ?? "").font(.callout.weight(.medium)).lineLimit(1)
+                    Spacer()
+                    Text("𝕏").foregroundStyle(.secondary)
                 }
-                .clipped()
-        } else if p?.site == "x.com" {
-            HStack(spacing: 8) {
-                Text(String((p?.title ?? "X").prefix(1)).uppercased())
-                    .font(.callout.weight(.semibold))
-                    .frame(width: 26, height: 26)
-                    .background(Circle().fill(.quaternary))
-                Text(p?.title ?? "").font(.callout.weight(.medium)).lineLimit(1)
-                Spacer()
-                Text("𝕏").foregroundStyle(.secondary)
+                .padding(.horizontal, 12).padding(.top, 12)
+                if let s = p?.imageURL, let url = URL(string: s) { headerImage(url) }
             }
-            .padding(.horizontal, 12).padding(.top, 12)
+        } else if let s = p?.imageURL, let url = URL(string: s) {
+            headerImage(url)
         }
+    }
+
+    private func initialCircle(_ p: Preview?) -> some View {
+        Text(String((p?.title ?? "X").prefix(1)).uppercased())
+            .font(.callout.weight(.semibold))
+            .frame(width: 26, height: 26)
+            .background(Circle().fill(.quaternary))
+    }
+
+    private func headerImage(_ url: URL) -> some View {
+        Color.clear
+            .frame(height: 130)
+            .overlay {
+                AsyncImage(url: url) { phase in
+                    if let image = phase.image {
+                        image.resizable().aspectRatio(contentMode: .fill)
+                    } else {
+                        Rectangle().fill(.quaternary)
+                    }
+                }
+            }
+            .clipped()
     }
 
     private func cardTitle(_ p: Preview?) -> String {

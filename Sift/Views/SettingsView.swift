@@ -42,6 +42,17 @@ private struct SortingSettings: View {
                     .foregroundStyle(.secondary)
             }
             Section {
+                Toggle("Use X's embed data for post images (unofficial, may stop working)", isOn: .init(
+                    get: { model.state.xSyndication },
+                    set: { model.setXSyndication($0) }
+                ))
+            } header: {
+                Text("Previews")
+            } footer: {
+                Text("Off: X posts show text only, from X's public oEmbed endpoint. On: Sift asks X's syndication endpoint first, which adds the post image and the author's avatar.")
+                    .foregroundStyle(.secondary)
+            }
+            Section {
                 LabeledContent("Tab database", value: CloudTabsReader.databaseURL.path(percentEncoded: false))
                 Button("Open Full Disk Access") { AppModel.openFullDiskAccessSettings() }
             }

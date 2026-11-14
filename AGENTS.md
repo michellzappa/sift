@@ -30,7 +30,8 @@ project and as an overview network (one hub per project, one dot per tab).
   API over HTTP (`APIRunner`, `claude-opus-5-5`, effort `low`, server-side
   fallback). Both send title, URL and preview text, never page bodies.
 - Previews: `PreviewFetcher`. X posts use the public oEmbed endpoint
-  (publish.twitter.com/oembed), which returns post text without a login.
+  (publish.twitter.com/oembed), which returns post text without a login, or
+  the opt-in syndication endpoint (see Decisions).
   Other pages use Open Graph tags from the HTML. Cache:
   `~/Library/Application Support/Sift/previews.json`.
 - Closing tabs: a Mac cannot close tabs on another device. Sift writes the
@@ -48,6 +49,9 @@ project and as an overview network (one hub per project, one dot per tab).
   uses the SwiftUI Settings scene. The icon is the HouseKit `sift` glyph;
   `scripts/build-app.sh` regenerates `AppIcon.icns` from `../../housekit`.
 - `*.csv` is ignored so exported tab lists (browsing data) never get committed.
-- X previews stay on oEmbed (decided 2026-11-14). The paid X API was turned
-  down; crawler user agents and third-party preview services are not used.
-  X cards are text-only by design.
+- X previews use oEmbed by default. An optional setting (`xSyndication`, off
+  by default) asks X's syndication endpoint
+  (cdn.syndication.twimg.com/tweet-result) first, for post images and the
+  author avatar. It is unofficial and can break; oEmbed is the fallback.
+  Added 2026-11-14 at the owner's request. The paid X API, crawler user
+  agents and third-party preview services are not used.

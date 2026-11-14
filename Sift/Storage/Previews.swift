@@ -8,11 +8,36 @@ struct Preview: Codable, Hashable, Sendable {
     var site: String
     var fetched: Date
     var failed: Bool = false
+    /// Author avatar for X posts. Only the syndication endpoint returns it.
+    var avatarURL: String? = nil
+
+    init(title: String, text: String, imageURL: String?, site: String, fetched: Date, failed: Bool = false, avatarURL: String? = nil) {
+        self.title = title
+        self.text = text
+        self.imageURL = imageURL
+        self.site = site
+        self.fetched = fetched
+        self.failed = failed
+        self.avatarURL = avatarURL
+    }
+
+    init(from decoder: Decoder) throws {
+        let c = try decoder.container(keyedBy: CodingKeys.self)
+        title = try c.decode(String.self, forKey: .title)
+        text = try c.decode(String.self, forKey: .text)
+        imageURL = try c.decodeIfPresent(String.self, forKey: .imageURL)
+        site = try c.decode(String.self, forKey: .site)
+        fetched = try c.decode(Date.self, forKey: .fetched)
+        failed = try c.decodeIfPresent(Bool.self, forKey: .failed) ?? false
+        avatarURL = try c.decodeIfPresent(String.self, forKey: .avatarURL)
+    }
 }
 
 /// Fetches previews and keeps them in ~/Library/Application Support/Sift/previews.json.
 /// X posts come from X's public oEmbed endpoint, which returns the post text
-/// without a login. Other pages come from their HTML: Open Graph tags first,
+/// without a login. When the user turns on the opt-in setting, X posts first
+/// try X's syndication endpoint (the one X's embedded posts use), which also
+/// returns images. It is unofficial and can stop working; oEmbed is the fallback. Other pages come from their HTML: Open Graph tags first,
 /// then <title> and the meta description.
 enum PreviewFetcher {
     static var cacheURL: URL { StateFile.url.deletingLastPathComponent().appending(path: "previews.json") }
@@ -27,9 +52,12 @@ enum PreviewFetcher {
         try? data.write(to: cacheURL, options: .atomic)
     }
 
-    static func fetch(_ urlString: String) async -> Preview {
+    static func fetch(_ urlString: String, xSyndication: Bool = false) async -> Preview {
         guard let url = URL(string: urlString) else { return failed(urlString) }
-        if isXPost(url), let p = await oEmbed(url) { return p }
+        if isXPost(url) {
+            if xSyndication, let p = await syndication(url) { return p }
+            if let p = await oEmbed(url) { return p }
+        }
         return await html(url) ?? failed(urlString)
     }
 
@@ -59,6 +87,78 @@ enum PreviewFetcher {
         let paragraph = html.range(of: #"<p[^>]*>(.*?)</p>"#, options: .regularExpression).map { String(html[$0]) } ?? html
         let author = json["author_name"] as? String ?? "X"
         return Preview(title: author, text: plain(paragraph), imageURL: nil, site: "x.com", fetched: .now)
+    }
+
+    /// X's syndication endpoint (cdn.syndication.twimg.com), as used by X's
+    /// embedded posts and react-tweet. Unofficial: off unless the user opts in.
+    private static func syndication(_ url: URL) async -> Preview? {
+        let parts = url.pathComponents
+        guard let i = parts.firstIndex(of: "status"), parts.count > i + 1,
+              let id = Double(parts[i + 1]), parts[i + 1].allSatisfy(\.isNumber)
+        else { return nil }
+        var c = URLComponents(string: "https://cdn.syndication.twimg.com/tweet-result")!
+        c.queryItems = [.init(name: "id", value: parts[i + 1]), .init(name: "token", value: syndicationToken(id)), .init(name: "lang", value: "en")]
+        guard let endpoint = c.url,
+              let (data, response) = try? await URLSession.shared.data(for: URLRequest(url: endpoint, timeoutInterval: 15)),
+              (response as? HTTPURLResponse)?.statusCode == 200,
+              let json = try? JSONSerialization.jsonObject(with: data) as? [String: Any],
+              json["__typename"] as? String != "TweetTombstone",
+              let text = json["text"] as? String
+        else { return nil }
+        let user = json["user"] as? [String: Any]
+        let photo = (json["photos"] as? [[String: Any]])?.first?["url"] as? String
+        let media = (json["mediaDetails"] as? [[String: Any]])?.first?["media_url_https"] as? String
+        let poster = (json["video"] as? [String: Any])?["poster"] as? String
+        return Preview(
+            title: user?["name"] as? String ?? "X",
+            text: plain(text),
+            imageURL: photo ?? media ?? poster,
+            site: "x.com",
+            fetched: .now,
+            avatarURL: user?["profile_image_url_https"] as? String
+        )
+    }
+
+    /// The token react-tweet sends: `((id / 1e15) * Math.PI).toString(36)`
+    /// with every run of zeros and the dot removed.
+    static func syndicationToken(_ id: Double) -> String {
+        jsRadixString((id / 1e15) * Double.pi, radix: 36)
+            .replacingOccurrences(of: "(0+|\\.)", with: "", options: .regularExpression)
+    }
+
+    /// Port of V8's DoubleToRadixCString (Number.prototype.toString(radix))
+    /// for positive finite values of normal size.
+    private static func jsRadixString(_ value: Double, radix: Int) -> String {
+        let chars = Array("0123456789abcdefghijklmnopqrstuvwxyz")
+        let r = Double(radix)
+        var integer = value.rounded(.down)
+        var fraction = value - integer
+        var delta = max(0.5 * (value.nextUp - value), Double.leastNonzeroMagnitude)
+        var digits: [Int] = []
+        if fraction >= delta {
+            repeat {
+                fraction *= r
+                delta *= r
+                let digit = Int(fraction)
+                digits.append(digit)
+                fraction -= Double(digit)
+                if fraction > 0.5 || (fraction == 0.5 && digit & 1 == 1), fraction + delta > 1 {
+                    // Round up, carrying over written digits.
+                    while true {
+                        guard let last = digits.popLast() else { integer += 1; break }
+                        if last + 1 < radix { digits.append(last + 1); break }
+                    }
+                    break
+                }
+            } while fraction >= delta
+        }
+        var intDigits: [Character] = []
+        repeat {
+            let remainder = integer.truncatingRemainder(dividingBy: r)
+            intDigits.insert(chars[Int(remainder)], at: 0)
+            integer = (integer - remainder) / r
+        } while integer > 0
+        return String(intDigits) + (digits.isEmpty ? "" : "." + String(digits.map { chars[$0] }))
     }
 
     private static func html(_ url: URL) async -> Preview? {
