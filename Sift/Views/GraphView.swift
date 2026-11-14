@@ -148,28 +148,13 @@ struct GraphView: View {
                        lineWidth: (b.kind == .leaf ? 0.7 : b.kind == .group ? 1.1 : 1.6) * zoomDot)
         }
 
-        // Glow: the same nodes, larger and blurred, under the sharp ones.
-        ctx.drawLayer { glow in
-            glow.addFilter(.blur(radius: 7 * zoomDot))
-            for n in sim.nodes {
-                let dim = lit != nil && n.theme != lit && n.kind != .root
-                let p = screen(n.p, center: center)
-                let r = n.size * zoomDot * 2.1
-                glow.fill(Path(ellipseIn: CGRect(x: p.x - r, y: p.y - r, width: r * 2, height: r * 2)),
-                          with: .color(n.color.opacity(dim ? 0.08 : 0.55)))
-            }
-        }
-
-        // Cores: a radial gradient from a hot white center to the node color.
+        // Nodes: flat dots in the branch color; links slightly lighter.
         for n in sim.nodes {
-            let dim = lit != nil && n.theme != lit && n.kind != .root
+            let dim = lit != nil && n.theme != lit
             let p = screen(n.p, center: center)
             let r = n.size * zoomDot
             let rect = CGRect(x: p.x - r, y: p.y - r, width: r * 2, height: r * 2)
-            let hot = n.kind == .leaf ? Color.white : Color(red: 1, green: 0.93, blue: 0.78)
-            ctx.fill(Path(ellipseIn: rect), with: .radialGradient(
-                Gradient(colors: [hot.opacity(dim ? 0.25 : 1), n.color.opacity(dim ? 0.2 : 0.95)]),
-                center: CGPoint(x: p.x - r * 0.25, y: p.y - r * 0.25), startRadius: 0, endRadius: r * 1.2))
+            ctx.fill(Path(ellipseIn: rect), with: .color(n.color.opacity(dim ? 0.2 : (n.kind == .leaf ? 0.75 : 1))))
         }
 
         // Labels: themes only, in the branch color, under the node.
@@ -177,7 +162,6 @@ struct GraphView: View {
             let dim = lit != nil && n.theme != lit
             let p = screen(n.p, center: center)
             let text = Text(n.label).font(.system(size: 11.5, weight: .semibold)).foregroundStyle(n.color.opacity(dim ? 0.3 : 1))
-                + Text("  \(n.count)").font(.system(size: 10.5).monospacedDigit()).foregroundStyle(.white.opacity(dim ? 0.2 : 0.55))
             ctx.draw(text, at: CGPoint(x: p.x, y: p.y + n.size * zoomDot + 9), anchor: .top)
         }
     }
@@ -212,9 +196,7 @@ struct GraphView: View {
     /// Builds the tree: you at the root, a branch per theme, a twig per site
     /// that holds three or more of the theme's links, and a leaf per link.
     private func rebuild() {
-        var nodes: [GraphSimulation.Node] = [
-            .init(kind: .root, key: "root", label: "", theme: nil, color: GraphStyle.root, size: 11, count: model.tabs.count),
-        ]
+        var nodes: [GraphSimulation.Node] = []
         var edges: [GraphSimulation.Edge] = []
         for name in themeNames {
             let tabs = model.tabs(in: name)
@@ -222,7 +204,6 @@ struct GraphView: View {
             let t = nodes.count
             nodes.append(.init(kind: .theme, key: name, label: name, theme: name, color: tint,
                                size: 4.5 + sqrt(CGFloat(tabs.count)) * 0.9, count: tabs.count))
-            edges.append(.init(a: 0, b: t, length: 70 + sqrt(CGFloat(tabs.count)) * 12))
             let bySite = Dictionary(grouping: tabs, by: \.host)
             for (site, group) in bySite.sorted(by: { $0.value.count > $1.value.count }) {
                 var parent = t
@@ -467,17 +448,16 @@ final class GraphSimulation {
         for e in edges { parent[e.b] = e.a }
         for i in nodes.indices {
             if let p = old[nodes[i].key] { nodes[i].p = p; continue }
-            if i == 0 { nodes[i].p = .zero; continue }
             let base = parent[i].map { nodes[$0].p } ?? .zero
             let angle = Double(i) * 2.399963
-            let r: Double = nodes[i].kind == .theme ? 120 : 14
+            let r: Double = nodes[i].kind == .theme ? 90 * sqrt(Double(i) + 1) : 14
             nodes[i].p = CGPoint(x: base.x + cos(angle) * r, y: base.y + sin(angle) * r)
         }
         alpha = old.isEmpty ? 1 : 0.5
     }
 
     func tick() {
-        guard isMoving, nodes.count > 1 else { return }
+        guard isMoving, !nodes.isEmpty else { return }
         let count = nodes.count
         var fx = [CGFloat](repeating: 0, count: count)
         var fy = [CGFloat](repeating: 0, count: count)
@@ -506,9 +486,10 @@ final class GraphSimulation {
             fx[e.a] += ux * 0.3; fy[e.a] += uy * 0.3
             fx[e.b] -= ux; fy[e.b] -= uy
         }
-        for i in 1..<count {
-            fx[i] -= nodes[i].p.x * 0.002
-            fy[i] -= nodes[i].p.y * 0.002
+        for i in 0..<count {
+            let pull: CGFloat = nodes[i].kind == .theme ? 0.012 : 0.002
+            fx[i] -= nodes[i].p.x * pull
+            fy[i] -= nodes[i].p.y * pull
             var v = nodes[i].v
             v.dx = (v.dx + fx[i] * alpha) * 0.62
             v.dy = (v.dy + fy[i] * alpha) * 0.62
@@ -518,7 +499,6 @@ final class GraphSimulation {
             nodes[i].p.x += v.dx
             nodes[i].p.y += v.dy
         }
-        nodes[0].p = .zero
         alpha *= 0.988
     }
 }
