@@ -297,6 +297,12 @@ private struct LibraryStatus: View {
                 Spacer()
                 Text("\(saved) of \(total)").font(.caption.monospacedDigit()).foregroundStyle(.secondary)
             }
+            if model.isFetchingInstagramImages {
+                ProgressView(value: Double(model.instagramImageProgress.done), total: Double(max(model.instagramImageProgress.total, 1)))
+                    .progressViewStyle(.linear).controlSize(.small)
+                Text("Instagram images: \(model.instagramImageProgress.done) of \(model.instagramImageProgress.total)")
+                    .font(.caption2).foregroundStyle(.secondary)
+            }
             if model.isCapturing {
                 ProgressView(value: Double(model.captureProgress.done), total: Double(max(model.captureProgress.total, 1)))
                     .progressViewStyle(.linear)

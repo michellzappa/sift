@@ -117,6 +117,10 @@ final class AppModel {
             }
             recordArchive()
             separateErrands()
+            // Instagram posts get their image in the background.
+            if !isFetchingInstagramImages, !instagramPostsWithoutImage.isEmpty {
+                Task { await fetchInstagramImages() }
+            }
             // New links go into the library in the background.
             if state.autoCapture, !isCapturing, !linksToCapture.isEmpty {
                 Task { await captureAll() }
@@ -376,6 +380,43 @@ final class AppModel {
         if XClient.statusID(url) != nil { return true }
         let host = URL(string: url)?.host()?.lowercased() ?? ""
         return host.hasSuffix("instagram.com")
+    }
+
+    // MARK: Instagram images
+
+    var isFetchingInstagramImages = false
+    var instagramImageProgress: (done: Int, total: Int) = (0, 0)
+    private var instagramImageTried = Set<String>()
+
+    /// Instagram links (any source) whose preview has no image yet.
+    var instagramPostsWithoutImage: [String] {
+        let urls = Set(tabs.map(\.url)).union(archive.keys)
+        return urls.filter { u in
+            guard u.contains("instagram.com/"), !instagramImageTried.contains(u) else { return false }
+            return previews[u]?.imageURL == nil
+        }.sorted()
+    }
+
+    /// One post at a time, with a pause between posts, to stay polite.
+    func fetchInstagramImages() async {
+        guard !isFetchingInstagramImages else { return }
+        let todo = instagramPostsWithoutImage
+        guard !todo.isEmpty else { return }
+        isFetchingInstagramImages = true
+        instagramImageProgress = (0, todo.count)
+        defer { isFetchingInstagramImages = false; PreviewFetcher.saveCache(previews) }
+        let fetcher = InstagramImageFetcher()
+        for url in todo {
+            instagramImageTried.insert(url)
+            if let image = await fetcher.image(for: url) {
+                var p = previews[url] ?? Preview(title: "", text: "", imageURL: nil, site: "instagram.com", fetched: .now)
+                p.imageURL = image
+                previews[url] = p
+            }
+            instagramImageProgress.done += 1
+            if instagramImageProgress.done % 10 == 0 { PreviewFetcher.saveCache(previews) }
+            try? await Task.sleep(for: .milliseconds(700))
+        }
     }
 
     var capturedCount: Int { library.values.filter { $0.status != "failed" }.count }
