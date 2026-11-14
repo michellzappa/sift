@@ -48,6 +48,25 @@ targets:
         ASSETCATALOG_COMPILER_APPICON_NAME: ""
         COMBINE_HIDPI_IMAGES: YES
         ENABLE_PREVIEWS: YES
+    dependencies:
+      # The MCP server ships inside the app at Contents/MacOS/sift-mcp,
+      # signed on copy with the app's identity.
+      - target: sift-mcp
+        embed: true
+        codeSign: true
+        copy:
+          destination: executables
+  sift-mcp:
+    type: tool
+    platform: macOS
+    sources:
+      - path: SiftMCP
+    settings:
+      base:
+        PRODUCT_NAME: sift-mcp
+        PRODUCT_BUNDLE_IDENTIFIER: app.sift.sift-mcp
+        ENABLE_HARDENED_RUNTIME: YES
+        SKIP_INSTALL: YES
 schemes:
   Sift:
     build:

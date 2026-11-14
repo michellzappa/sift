@@ -121,6 +121,10 @@ final class AppModel {
             if !isTranscribing, !videosNeedingTranscript.isEmpty {
                 Task { await fetchTranscripts() }
             }
+            scheduleSearchIndex()
+            if state.findConnections, !isConnecting, !linksNeedingConnections.isEmpty {
+                Task { await findConnections() }
+            }
             // Instagram reels get their speech as text in the background.
             if !isTranscribingReels, !reelsNeedingTranscript.isEmpty {
                 Task { await fetchReelTranscripts() }
@@ -356,7 +360,7 @@ final class AppModel {
         guard !todo.isEmpty else { return }
         isCapturing = true
         captureProgress = (0, todo.count)
-        defer { isCapturing = false; Library.saveIndex(library) }
+        defer { isCapturing = false; Library.saveIndex(library); scheduleSearchIndex() }
         // Posts (X, Instagram) are captured from the text Sift already has:
         // their pages need a login or JavaScript.
         let jobs: [(ArchiveRecord, String?)] = todo.map { r in
@@ -415,7 +419,7 @@ final class AppModel {
         guard !todo.isEmpty else { return }
         isTranscribing = true
         transcriptProgress = (0, todo.count)
-        defer { isTranscribing = false; Library.saveIndex(library) }
+        defer { isTranscribing = false; Library.saveIndex(library); scheduleSearchIndex() }
         for r in todo {
             guard state.youtubeTranscripts, let id = TranscriptTool.videoID(r.url) else { break }
             transcriptTried.insert(r.url)
@@ -472,7 +476,7 @@ final class AppModel {
         }
         isTranscribingReels = true
         reelProgress = (0, todo.count)
-        defer { isTranscribingReels = false; Library.saveIndex(library) }
+        defer { isTranscribingReels = false; Library.saveIndex(library); scheduleSearchIndex() }
         for r in todo {
             guard state.reelTranscripts else { break }
             reelTried.insert(r.url)
@@ -782,6 +786,8 @@ final class AppModel {
     /// user left out become unsorted. Uses and next actions stay.
     func applyThemes(_ accepted: [Sorter.ThemeProposal]) {
         var s = state
+        let before = Dictionary(s.extraProjects.filter(\.isTheme).map { ($0.name, $0) }, uniquingKeysWith: { a, _ in a })
+        let counts = Dictionary(grouping: s.assignments.values, by: \.project).mapValues(\.count)
         s.extraProjects.removeAll(where: \.isTheme)
         let acceptedIDs = Set(accepted.flatMap(\.itemIDs))
         // Links the user placed by hand stay where they are, as long as that
@@ -809,7 +815,20 @@ final class AppModel {
             }
             let name = bucket ?? theme.name
             if bucket == nil {
-                s.extraProjects.append(Project(name: theme.name, summary: theme.description, destination: theme.destination))
+                var p = Project(name: theme.name, summary: theme.description, destination: theme.destination)
+                // Theme memory: notes and history follow the theme, also when
+                // Claude renamed, merged or split it.
+                let day = Date.now.formatted(.iso8601.year().month().day())
+                let earlier = before[theme.name] ?? theme.continues.flatMap { before[$0] }
+                if let earlier {
+                    p.notes = earlier.notes
+                    p.history = earlier.history
+                    if earlier.name != theme.name { p.history.append("\(day): continues \(earlier.name)") }
+                    p.history.append("\(day): rediscovered, \(theme.itemIDs.count) links (was \(counts[earlier.name] ?? 0))")
+                } else {
+                    p.history.append("\(day): found, \(theme.itemIDs.count) links")
+                }
+                s.extraProjects.append(p)
             }
             for id in theme.itemIDs where proposalURLs.indices.contains(id) {
                 let url = proposalURLs[id]
@@ -822,8 +841,17 @@ final class AppModel {
                 s.assignments[url] = a
             }
         }
+        // Themes changed: connections between them are found again.
+        for url in s.assignments.keys { s.assignments[url]?.also = nil }
         state = s
         themeProposal = nil
+        Task { await findConnections() }
+    }
+
+    /// The user's own notes on a theme.
+    func setNotes(_ notes: String, for theme: String) {
+        guard let i = state.extraProjects.firstIndex(where: { $0.name == theme }) else { return }
+        state.extraProjects[i].notes = notes
     }
 
     /// Deletes one theme. Its links become unsorted.
@@ -873,15 +901,23 @@ final class AppModel {
         let clean = name.trimmingCharacters(in: .whitespaces)
         guard !clean.isEmpty, !Project.buckets.contains(clean.lowercased()),
               !state.extraProjects.contains(where: { $0.name.lowercased() == clean.lowercased() }) else { return }
-        state.extraProjects.append(Project(name: clean, summary: summary))
+        var p = Project(name: clean, summary: summary)
+        p.history = ["\(Date.now.formatted(.iso8601.year().month().day())): added by hand"]
+        state.extraProjects.append(p)
     }
 
     func renameTheme(_ old: String, to new: String) {
         let clean = new.trimmingCharacters(in: .whitespaces)
         guard !clean.isEmpty, clean != old, !state.extraProjects.contains(where: { $0.name == clean }) else { return }
         var s = state
-        if let i = s.extraProjects.firstIndex(where: { $0.isTheme && $0.name == old }) { s.extraProjects[i].name = clean }
-        for (url, a) in s.assignments where a.project == old { s.assignments[url]?.project = clean }
+        if let i = s.extraProjects.firstIndex(where: { $0.isTheme && $0.name == old }) {
+            s.extraProjects[i].name = clean
+            s.extraProjects[i].history.append("\(Date.now.formatted(.iso8601.year().month().day())): renamed from \(old)")
+        }
+        for (url, a) in s.assignments {
+            if a.project == old { s.assignments[url]?.project = clean }
+            if let also = a.also, also.contains(old) { s.assignments[url]?.also = also.map { $0 == old ? clean : $0 } }
+        }
         state = s
     }
 
@@ -913,6 +949,80 @@ final class AppModel {
                 return
             }
         }
+        Task { await findConnections() }
+    }
+
+    // MARK: Connections between themes
+
+    /// The theme the graph is zoomed into. The sidebar selects it too.
+    var graphTheme: String?
+
+    var isConnecting = false
+    var connectProgress: (done: Int, total: Int) = (0, 0)
+
+    /// Sorted links in a theme that have not been checked for a second theme.
+    var linksNeedingConnections: [String] {
+        guard state.findConnections else { return [] }
+        let names = Set(themes.map(\.name))
+        return state.assignments.filter { names.contains($0.value.project) && $0.value.also == nil }.map(\.key).sorted()
+    }
+
+    /// Asks Claude, 60 links at a time, which other themes each link feeds.
+    func findConnections() async {
+        guard !isConnecting, !isSorting, !isDiscovering, themes.count > 1 else { return }
+        let todo = linksNeedingConnections
+        guard !todo.isEmpty else { return }
+        isConnecting = true
+        connectProgress = (0, todo.count)
+        defer { isConnecting = false; scheduleSearchIndex() }
+        let sorter = Sorter(backend: state.backend)
+        let themes = self.themes
+        for start in stride(from: 0, to: todo.count, by: 60) {
+            guard state.findConnections else { return }
+            let batch = Array(todo[start..<min(start + 60, todo.count)])
+            let items = batch.compactMap { url -> (item: Sorter.Item, theme: String)? in
+                guard let theme = state.assignments[url]?.project else { return nil }
+                let tab = tabs.first { $0.url == url } ?? archive[url]?.asTab ?? SafariTab(url: url, title: "", lastViewed: nil)
+                return (sortItem(tab), theme)
+            }
+            do {
+                let found = try await sorter.connections(items, themes: themes)
+                for (i, pair) in items.enumerated() {
+                    state.assignments[pair.item.url]?.also = found[i] ?? []
+                }
+            } catch {
+                return
+            }
+            connectProgress.done = min(start + batch.count, todo.count)
+        }
+    }
+
+    // MARK: Search
+
+    private var indexTask: Task<Void, Never>?
+
+    /// Rebuilds the search index a few seconds after the last change.
+    func scheduleSearchIndex() {
+        indexTask?.cancel()
+        indexTask = Task {
+            try? await Task.sleep(for: .seconds(3))
+            guard !Task.isCancelled else { return }
+            let docs = archive.values.map { r in
+                let a = state.assignments[r.url]
+                let e = library[r.url]
+                return SearchIndex.Doc(url: r.url, title: r.title, theme: a?.project ?? "", source: r.source,
+                                       kind: e?.kind ?? "", saved: r.firstSeen, file: e?.file ?? "",
+                                       also: a?.also ?? [], fallback: r.previewText)
+            }
+            let counts = Dictionary(grouping: state.assignments.values, by: \.project).mapValues(\.count)
+            let themes = themes.map { SearchIndex.Theme(name: $0.name, summary: $0.summary, notes: $0.notes, memory: $0.memory, links: counts[$0.name] ?? 0) }
+            await Task.detached(priority: .utility) { SearchIndex.rebuild(docs: docs, themes: themes) }.value
+        }
+    }
+
+    /// Full-text matches, best first: url and a snippet of the matching text.
+    func searchLibrary(_ query: String) async -> [SearchIndex.Hit] {
+        await Task.detached { SearchIndex.search(query) }.value
     }
 
     private func sortItem(_ tab: SafariTab) -> Sorter.Item {

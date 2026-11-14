@@ -99,10 +99,12 @@ struct Sorter: Sendable {
         var kind: String
         var destination: String
         var why: String
+        /// The earlier theme this one continues, or "".
+        var continues: String?
         var itemIDs: [Int]
 
         enum CodingKeys: String, CodingKey {
-            case name, description, kind, why
+            case name, description, kind, why, continues
             case destination = "suggested_destination"
             case itemIDs = "item_ids"
         }
@@ -116,7 +118,9 @@ struct Sorter: Sendable {
         let keepLine = keep.isEmpty ? "" : """
 
             The person already uses these themes. Keep their names where they still fit, and add, split or \
-            drop themes only where the links call for it: \(keep.map(\.name).joined(separator: "; ")).
+            drop themes only where the links call for it. When a new theme continues an old one (renamed, \
+            merged or split), name the old one in "continues". The themes, with the person's own notes:
+            \(keep.map { "- \($0.name): \($0.summary)\($0.notes.isEmpty ? "" : " Their note: \($0.notes)")" }.joined(separator: "\n"))
             """
         let system = """
             You find the themes in one person's saved links: open browser tabs and their reading list. Work \
@@ -147,17 +151,55 @@ struct Sorter: Sendable {
             "type": "object", "additionalProperties": false, "required": ["themes"],
             "properties": ["themes": ["type": "array", "items": [
                 "type": "object", "additionalProperties": false,
-                "required": ["name", "description", "kind", "suggested_destination", "why", "item_ids"],
+                "required": ["name", "description", "kind", "suggested_destination", "why", "continues", "item_ids"],
                 "properties": [
                     "name": ["type": "string"], "description": ["type": "string"],
                     "kind": ["type": "string", "enum": ["work", "research", "personal", "hobby", "noise", "errand"]],
                     "suggested_destination": ["type": "string"], "why": ["type": "string"],
+                    "continues": ["type": "string"],
                     "item_ids": ["type": "array", "items": ["type": "integer"]],
                 ],
             ]]],
         ]
         struct Themes: Decodable { let themes: [ThemeProposal] }
         return try await Self.ask(backend: backend, system: system, user: user, schema: schema, as: Themes.self).themes
+    }
+
+    /// Which other themes each link also feeds, beyond the one it is in.
+    /// Most links feed one theme; the answer lists only clear second uses.
+    func connections(_ items: [(item: Item, theme: String)], themes: [Project]) async throws -> [Int: [String]] {
+        let names = themes.map(\.name)
+        let system = """
+            A person's saved links are sorted into themes, one theme each. Some links also clearly feed a \
+            second or third theme: a post about AI in Brazilian schools feeds both an AI theme and an \
+            education theme. For each link, list the OTHER themes it clearly feeds, at most two. Most links \
+            feed only their own theme: give them an empty list. Do not repeat the link's own theme.
+
+            Themes:
+            \(themes.map { "- \($0.name): \($0.summary)" }.joined(separator: "\n"))
+            """
+        let user = "Links (id, theme, site, title, text):\n" + items.enumerated().map { index, pair in
+            let host = URL(string: pair.item.url)?.host() ?? ""
+            return "\(index)\t\(pair.theme)\t\(host)\t\(pair.item.title.prefix(120))\t\(pair.item.preview.prefix(160))"
+                .replacingOccurrences(of: "\n", with: " ")
+        }.joined(separator: "\n")
+        let schema: [String: Any] = [
+            "type": "object", "additionalProperties": false, "required": ["links"],
+            "properties": ["links": ["type": "array", "items": [
+                "type": "object", "additionalProperties": false, "required": ["id", "also"],
+                "properties": [
+                    "id": ["type": "integer"],
+                    "also": ["type": "array", "items": ["type": "string", "enum": names]],
+                ],
+            ]]],
+        ]
+        struct Answer: Decodable { struct Link: Decodable { let id: Int; let also: [String] }; let links: [Link] }
+        let answer = try await Self.ask(backend: backend, system: system, user: user, schema: schema, as: Answer.self)
+        var result: [Int: [String]] = [:]
+        for l in answer.links where items.indices.contains(l.id) {
+            result[l.id] = Array(l.also.filter { names.contains($0) && $0 != items[l.id].theme }.prefix(2))
+        }
+        return result
     }
 
     static var actionGuide: String {
@@ -179,7 +221,7 @@ struct Sorter: Sendable {
     }
 
     static func systemPrompt(projects: [Project]) -> String {
-        let catalogue = projects.map { "- \($0.name): \($0.summary.isEmpty ? "(no description)" : $0.summary)" }
+        let catalogue = projects.map { "- \($0.name): \($0.summary.isEmpty ? "(no description)" : $0.summary)\($0.notes.isEmpty ? "" : " Owner's note: \($0.notes)")" }
             .joined(separator: "\n")
         return """
             You sort a person's open browser tabs into their projects or themes. \

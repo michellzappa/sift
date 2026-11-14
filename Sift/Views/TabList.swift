@@ -11,6 +11,8 @@ struct TabList: View {
     @State private var showInspector = false
     @State private var showShortcutGuide = false
     @State private var siteFilter: String?
+    /// Full-text matches for the filter: url to snippet, from the search index.
+    @State private var textHits: [String: String] = [:]
 
     private var project: String? {
         if case .project(let p) = item { return p }
@@ -52,7 +54,8 @@ struct TabList: View {
         let base = siteFilter.map { host in all.filter { $0.host == host } } ?? all
         guard !search.isEmpty else { return base }
         return base.filter {
-            $0.title.localizedCaseInsensitiveContains(search) || $0.url.localizedCaseInsensitiveContains(search)
+            textHits[$0.url] != nil
+                || $0.title.localizedCaseInsensitiveContains(search) || $0.url.localizedCaseInsensitiveContains(search)
                 || (model.assignment(for: $0)?.use.localizedCaseInsensitiveContains(search) ?? false)
                 || (model.previews[$0.url]?.text.localizedCaseInsensitiveContains(search) ?? false)
         }
@@ -62,6 +65,11 @@ struct TabList: View {
         VStack(spacing: 0) {
             if item == .closeQueue { closeHeader }
             ScrollView {
+                if let project, model.themes.contains(where: { $0.name == project }) {
+                    ThemeMemory(theme: project).frame(maxWidth: 640, alignment: .leading)
+                        .frame(maxWidth: .infinity, alignment: .leading)
+                        .padding([.horizontal, .top], 16)
+                }
                 LazyVGrid(columns: [TabCard.column], spacing: 14) {
                     ForEach(rows) { tab in
                         TabCard(tab: tab, isSelected: selected == tab.id, showTheme: project == nil || Project.buckets.contains(project ?? ""))
@@ -78,7 +86,14 @@ struct TabList: View {
                 ContentUnavailableView(item == .unsorted ? "Nothing left to sort" : "No tabs here", systemImage: "checkmark.circle")
             }
         }
-        .searchable(text: $search, prompt: "Filter")
+        .searchable(text: $search, prompt: "Search titles, page text and transcripts")
+        .task(id: search) {
+            guard search.count > 1 else { textHits = [:]; return }
+            try? await Task.sleep(for: .milliseconds(250))
+            guard !Task.isCancelled else { return }
+            let hits = await model.searchLibrary(search)
+            textHits = Dictionary(hits.map { ($0.url, $0.snippet) }, uniquingKeysWith: { a, _ in a })
+        }
         .navigationTitle(title)
         .navigationSubtitle(subtitle)
         // The browser slides in over the right side. The grid underneath

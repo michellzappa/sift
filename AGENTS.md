@@ -86,7 +86,23 @@ project and as an overview network (one hub per project, one dot per tab).
   to `Exporter`, registered in `Exporters.all`. They read only the
   `ExportSnapshot`: no network, keychain or app state. CONTRIBUTING.md is the
   checklist.
-- Next direction: a graph view (themes as hubs, links as nodes, edges where a
+- Search (2026-11-14): `Engine/SearchIndex.swift` rebuilds
+  `Application Support/Sift/search.sqlite` (FTS5 over titles, page text,
+  transcripts, previews; tables links, fts, themes, meta) 3 s after library,
+  archive or theme changes, into a temp file swapped in. The filter in every
+  list matches it. `SiftMCP/` is a stdio MCP server (`sift-mcp`, embedded in
+  Contents/MacOS) that reads the same file read-only: tools search,
+  get_link, list_themes, theme_links. Keep both schemas in step.
+  `scripts/build-app.sh` signs sift-mcp before the app.
+- Theme memory (2026-11-14): `Project.notes` (the user's words, sent to
+  Claude when sorting and rediscovering) and `Project.history` (dated lines).
+  Discovery returns `continues` so notes follow a renamed or merged theme.
+- Connections (2026-11-14): `Sorter.connections` asks, 60 links at a time,
+  which other themes a link feeds (`Assignment.also`, max 2; nil = not
+  checked). The graph weighs shared links 3x a shared site and draws a dashed
+  line from such a link to the other hub. New themes reset `also`.
+- Graph focus selects the theme in the sidebar (`AppModel.graphTheme`);
+  Overview or a source in the sidebar zooms back out.
   link feeds two themes or destinations). Not built.
 
 - No HouseKit code dependency: Sift is a window app, not a menu-bar app, and

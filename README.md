@@ -238,6 +238,23 @@ macOS speech recognition turns it into text, on the Mac where the language
 allows, and the audio is deleted). It shows progress while each runs, the size on disk, and Show
 Library in Finder.
 
+**Search** works in every list: the filter field searches titles, saved
+page text and transcripts (SQLite full-text index on this Mac).
+
+**Claude can read your library.** Sift ships a small MCP server,
+`sift-mcp`. Settings > Claude > Add to Claude Code runs
+`claude mcp add --scope user sift -- /Applications/Sift.app/Contents/MacOS/sift-mcp`.
+Claude can then search your links, page text and transcripts, list your
+themes and read a link in full. It only reads Sift's index.
+
+**Theme memory.** Each theme has your own notes (Claude reads them when it
+sorts and rediscovers themes) and a dated history. Notes follow a theme when
+Discover Themes renames or merges it.
+
+**Connections.** After sorting, Claude marks links that feed a second
+theme. The graph pulls those themes closer and draws a dashed line from the
+link to the other theme.
+
 **Outputs** runs each exporter and shows its last folder or file, shows the
 iPhone close list and the Shortcut guide, and explains Add to Reading List
 (Safari asks once for Automation permission).

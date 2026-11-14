@@ -19,6 +19,10 @@ struct GraphView: View {
     @State private var picked: String?
     @State private var hover: Int?
     @State private var redraw = 0
+    /// Where the sidebar was before a theme was focused.
+    @State private var returnTo: SidebarItem?
+    /// A link to another theme it also feeds: leaf index, theme hub index.
+    @State private var crossEdges: [(Int, Int)] = []
     @State private var panBase: CGSize?
     @State private var pinchBase: CGFloat = 1
     @Environment(\.colorScheme) private var scheme
@@ -60,6 +64,13 @@ struct GraphView: View {
         .navigationSubtitle(focusTheme.map { "\(links(in: $0).count) links" } ?? "\(model.tabs.count) links · \(model.themes.count) themes")
         .onAppear { rebuild() }
         .onChange(of: dataKey) { rebuild() }
+        // Overview or a source picked in the sidebar: zoom back out.
+        .onChange(of: selection) { _, new in
+            switch new {
+            case .overview, .source, nil: if focusTheme != nil { zoomOut() }
+            default: break
+            }
+        }
     }
 
     // MARK: Canvas
@@ -138,9 +149,24 @@ struct GraphView: View {
         cam.animate(to: CGSize(width: -p.x * target, height: -p.y * target), scale: target)
         withAnimation(.easeOut(duration: 0.3)) { focusTheme = theme }
         redraw += 1
+        // The sidebar selects the theme too.
+        if model.themes.contains(where: { $0.name == theme }) || Project.buckets.contains(theme) {
+            if case .project = selection {} else { returnTo = selection }
+            model.graphTheme = theme
+            selection = .project(theme)
+        }
     }
 
     private func unfocus() {
+        zoomOut()
+        if case .project = selection {
+            model.graphTheme = nil
+            selection = returnTo ?? .overview
+        }
+    }
+
+    /// Back to all themes without touching the sidebar.
+    private func zoomOut() {
         withAnimation(.snappy) { picked = nil }
         withAnimation(.easeOut(duration: 0.25)) { focusTheme = nil }
         cam.animate(to: .zero, scale: 1)
@@ -185,6 +211,18 @@ struct GraphView: View {
             ctx.stroke(path, with: .linearGradient(Gradient(colors: [a.color.opacity(opacity), b.color.opacity(opacity)]), startPoint: pa, endPoint: pb),
                        lineWidth: (b.kind == .leaf ? 0.7 : b.kind == .group ? 1.1 : 1.2) * dotScale)
         }
+        // A link that feeds a second theme: a faint line to that theme's hub,
+        // brighter when either theme is lit.
+        for (l, t) in crossEdges where sim.nodes.indices.contains(l) && sim.nodes.indices.contains(t) {
+            let leaf = sim.nodes[l], hub = sim.nodes[t]
+            if hidden(leaf) { continue }
+            let pa = screen(leaf.p, size: size), pb = screen(hub.p, size: size)
+            var path = Path(); path.move(to: pa); path.addLine(to: pb)
+            let on = lit != nil && (leaf.theme == lit || hub.theme == lit)
+            let opacity = lit == nil ? 0.1 : (on ? 0.1 + 0.35 * f : blend(0.1, 0.02, true))
+            ctx.stroke(path, with: .linearGradient(Gradient(colors: [leaf.color.opacity(opacity), hub.color.opacity(opacity)]), startPoint: pa, endPoint: pb),
+                       style: StrokeStyle(lineWidth: 0.7 * dotScale, dash: [3, 3]))
+        }
         for n in sim.nodes where !hidden(n) {
             let dim = lit != nil && n.theme != lit
             let p = screen(n.p, size: size)
@@ -225,6 +263,9 @@ struct GraphView: View {
                     Text(theme).font(.title2.weight(.semibold)).foregroundStyle(color)
                     if !summary.isEmpty { Text(summary).font(.callout).foregroundStyle(.secondary) }
                     Text("\(tabs.count) links").font(.caption).foregroundStyle(.tertiary)
+                    if model.themes.contains(where: { $0.name == theme }) {
+                        ThemeMemory(theme: theme).frame(maxWidth: 640, alignment: .leading).padding(.top, 4)
+                    }
                 }
                 LazyVGrid(columns: columns, spacing: 14) {
                     ForEach(tabs) { tab in chipCell(tab, color: color) }
@@ -351,15 +392,30 @@ struct GraphView: View {
             }
             for h in hosts where !Self.genericHosts.contains(h) { sources[theme, default: []].insert(h) }
         }
+        // Links that feed two themes (Claude's connections) count three times
+        // as much as a shared site.
+        var linked: [String: Int] = [:]
+        for a in model.state.assignments.values {
+            for other in a.also ?? [] where themeNode[other] != nil && themeNode[a.project] != nil {
+                linked[[a.project, other].sorted().joined(separator: "|"), default: 0] += 1
+            }
+        }
         let names = Array(themeNode.keys).sorted()
         for (x, a) in names.enumerated() {
             for b in names[(x + 1)...] {
-                let shared = (sources[a] ?? []).intersection(sources[b] ?? []).count
+                let shared = (sources[a] ?? []).intersection(sources[b] ?? []).count + 3 * (linked[a + "|" + b] ?? 0)
                 guard shared > 0, let ia = themeNode[a], let ib = themeNode[b] else { continue }
                 edges.append(.init(a: ia, b: ib, length: max(30, 150 - CGFloat(shared) * 30), weight: shared))
             }
         }
         sim.load(nodes: nodes, edges: edges)
+        var cross: [(Int, Int)] = []
+        for (i, n) in nodes.enumerated() where n.kind == .leaf {
+            for other in model.state.assignments[n.key]?.also ?? [] {
+                if let t = themeNode[other] { cross.append((i, t)) }
+            }
+        }
+        crossEdges = cross
         if let f = focusTheme, !themeNames.contains(f) { focusTheme = nil }
         // The layout is settled already; draw it now.
         redraw += 1

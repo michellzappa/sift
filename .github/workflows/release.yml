@@ -83,6 +83,7 @@ jobs:
             CODE_SIGN_STYLE=Manual \
             CODE_SIGN_IDENTITY="Developer ID Application" \
             DEVELOPMENT_TEAM="$APPLE_TEAM_ID" \
+            OTHER_CODE_SIGN_FLAGS="--timestamp" \
             archive
 
       - name: Verify app signature and build number
@@ -90,6 +91,12 @@ jobs:
         run: |
           app_path="$RUNNER_TEMP/Sift.xcarchive/Products/Applications/Sift.app"
           codesign --verify --deep --strict --verbose=2 "$app_path"
+          # The embedded MCP server must carry Developer ID, hardened runtime
+          # and a secure timestamp, or notarization rejects the app.
+          codesign -dvv "$app_path/Contents/MacOS/sift-mcp" 2>&1 | tee "$RUNNER_TEMP/sift-mcp-sign.txt"
+          grep -q "Authority=Developer ID Application" "$RUNNER_TEMP/sift-mcp-sign.txt"
+          grep -q "flags=.*runtime" "$RUNNER_TEMP/sift-mcp-sign.txt"
+          grep -q "^Timestamp=" "$RUNNER_TEMP/sift-mcp-sign.txt"
           /usr/libexec/PlistBuddy -c 'Print :CFBundleVersion' "$app_path/Contents/Info.plist"
 
       - name: Notarize

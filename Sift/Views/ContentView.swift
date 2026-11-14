@@ -26,10 +26,15 @@ struct ContentView: View {
                         .navigationSplitViewColumnWidth(min: 200, ideal: 240)
                 } detail: {
                     Group {
-                        switch selection ?? .overview {
-                        case .overview, .source: GraphView(selection: $selection)
-                        case let other: TabList(item: other).id(other)
+                        let item = selection ?? .overview
+                        if showsGraph(item) {
+                            GraphView(selection: $selection)
+                        } else {
+                            TabList(item: item).id(item)
                         }
+                    }
+                    .onChange(of: selection) { _, new in
+                        if let new, !showsGraph(new) { model.graphTheme = nil }
                     }
                     .safeAreaInset(edge: .top, spacing: 0) { UnsortedBanner() }
                 }
@@ -48,6 +53,15 @@ struct ContentView: View {
             Button("OK") { model.sortError = nil }
         } message: {
             Text(model.sortError ?? "")
+        }
+    }
+
+    /// The overview, a source, or the theme the graph is zoomed into.
+    private func showsGraph(_ item: SidebarItem) -> Bool {
+        switch item {
+        case .overview, .source: true
+        case .project(let p): p == model.graphTheme
+        default: false
         }
     }
 

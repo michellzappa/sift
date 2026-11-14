@@ -406,8 +406,59 @@ private struct ClaudeSettings: View {
                 Text("Sift sends the title, URL and preview text of each unsorted tab, and your project names and descriptions, to Claude. The key stays in your login keychain.")
                     .foregroundStyle(.secondary)
             }
+            Section {
+                Toggle("Find links that feed two themes", isOn: $model.state.findConnections)
+                if model.isConnecting {
+                    ProgressView(value: Double(model.connectProgress.done), total: Double(max(model.connectProgress.total, 1))) {
+                        Text("Checking \(model.connectProgress.done) of \(model.connectProgress.total)").font(.caption)
+                    }
+                }
+            } header: {
+                Text("Connections")
+            } footer: {
+                Text("After sorting, Claude checks 60 links at a time for a second or third theme they feed. The graph draws those as lines between themes.")
+                    .foregroundStyle(.secondary)
+            }
+            Section {
+                LabeledContent("Command") {
+                    Text(Self.mcpCommand).font(.caption.monospaced()).textSelection(.enabled).lineLimit(2)
+                }
+                HStack {
+                    Button("Add to Claude Code") { Task { mcpMessage = await Self.addToClaudeCode() } }
+                        .disabled(ClaudeCodeRunner.executable == nil)
+                    Button("Copy Command") {
+                        NSPasteboard.general.clearContents()
+                        NSPasteboard.general.setString(Self.mcpCommand, forType: .string)
+                    }
+                    if let mcpMessage { Text(mcpMessage).font(.caption).foregroundStyle(.secondary) }
+                }
+            } header: {
+                Text("Claude can read your library")
+            } footer: {
+                Text("Sift includes a small MCP server, sift-mcp. Claude Code and Claude Desktop can then search your saved links, page text and transcripts, list your themes and read a link in full. It only reads Sift's search index on this Mac. For Claude Desktop, add it as a server named sift with the path above as its command.")
+                    .foregroundStyle(.secondary)
+            }
         }
         .formStyle(.grouped)
+    }
+
+    @State private var mcpMessage: String?
+
+    static var mcpPath: String { Bundle.main.bundleURL.appending(path: "Contents/MacOS/sift-mcp").path(percentEncoded: false) }
+    static var mcpCommand: String { "claude mcp add --scope user sift -- \(mcpPath)" }
+
+    /// Runs `claude mcp add` for the user's own Claude Code.
+    static func addToClaudeCode() async -> String {
+        guard let claude = ClaudeCodeRunner.executable else { return "Claude Code was not found." }
+        return await withCheckedContinuation { c in
+            let p = Process()
+            p.executableURL = claude
+            p.arguments = ["mcp", "add", "--scope", "user", "sift", "--", mcpPath]
+            p.standardOutput = FileHandle.nullDevice
+            p.standardError = FileHandle.nullDevice
+            p.terminationHandler = { c.resume(returning: $0.terminationStatus == 0 ? "Added. Start a new Claude Code session to use it." : "Not added. It may be there already: run claude mcp list.") }
+            do { try p.run() } catch { c.resume(returning: "Could not run Claude Code.") }
+        }
     }
 }
 

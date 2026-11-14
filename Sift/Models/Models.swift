@@ -54,6 +54,12 @@ struct Project: Identifiable, Hashable, Codable, Sendable {
     var isTheme: Bool = false
     /// Where a theme's links should go (Starlings projects, repos), as text.
     var destination: String = ""
+    /// The user's own words on this theme: why it matters, what they want
+    /// from it. Claude reads them when it sorts and rediscovers themes.
+    var notes: String = ""
+    /// What happened to the theme, one dated line each: found, renamed,
+    /// continued from another theme, link counts at each rediscovery.
+    var history: [String] = []
 
     init(name: String, summary: String, isTheme: Bool = true, destination: String = "") {
         self.name = name
@@ -68,7 +74,12 @@ struct Project: Identifiable, Hashable, Codable, Sendable {
         summary = try c.decodeIfPresent(String.self, forKey: .summary) ?? ""
         isTheme = try c.decodeIfPresent(Bool.self, forKey: .isTheme) ?? false
         destination = try c.decodeIfPresent(String.self, forKey: .destination) ?? ""
+        notes = try c.decodeIfPresent(String.self, forKey: .notes) ?? ""
+        history = try c.decodeIfPresent([String].self, forKey: .history) ?? []
     }
+
+    /// Notes and history as one text, for prompts and the search index.
+    var memory: String { history.joined(separator: "\n") }
 
     /// Buckets that are not projects. The sorter may use them too.
     static let personal = "personal"
@@ -99,6 +110,8 @@ struct Assignment: Codable, Hashable, Sendable {
     var manual: Bool
     /// What to do with the link next. Nil until sorted or suggested.
     var action: NextAction?
+    /// Other themes this link also feeds. Nil until checked; empty when none.
+    var also: [String]? = nil
 }
 
 /// What to do with a link, so a sorted tab can leave the browser.

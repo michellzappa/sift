@@ -27,11 +27,14 @@ command -v build-lock >/dev/null && lock=(build-lock "sift build-app")
   CODE_SIGNING_ALLOWED=NO -quiet build
 app="build/DerivedData/Build/Products/$config/Sift.app"
 /usr/libexec/PlistBuddy -c "Set :CFBundleVersion $build" "$app/Contents/Info.plist"
-codesign --force --sign "${SIGN_IDENTITY:-Apple Development}" --entitlements Sift/Resources/Sift.entitlements --options runtime "$app"
+identity="${SIGN_IDENTITY:-Apple Development}"
+# Nested code first: the MCP server in Contents/MacOS, then the app around it.
+codesign --force --sign "$identity" --identifier app.sift.sift-mcp --options runtime "$app/Contents/MacOS/sift-mcp"
+codesign --force --sign "$identity" --entitlements Sift/Resources/Sift.entitlements --options runtime "$app"
 
 target=/Applications/Sift.app
 if pgrep -xq Sift; then osascript -e 'tell application "Sift" to quit' >/dev/null 2>&1 || true; sleep 0.5; fi
 rm -rf "$target"
 /usr/bin/ditto "$app" "$target"
-codesign --verify --strict "$target"
+codesign --verify --deep --strict "$target"
 printf '%s (build %s)\n' "$target" "$build"
