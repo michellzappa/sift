@@ -9,6 +9,13 @@ ships this file and shows it in Settings > About and in Sift > Version
 History. Headings are `## X.Y.Z - YYYY-MM-DD`; groups are `### Added`,
 `### Changed` and `### Fixed`.
 
+## 1.3.0 - 2026-11-15
+
+### Added
+
+- **Keyboard shortcuts in the style of Google Reader.** j and k move through any list, o or Return opens the page beside it, v opens the original, s keeps a Today or feed item, m marks seen or unseen, Shift-A marks the whole list seen, c copies the link, f follows the site, e sends to the theme's destination. g then t, a, u, k, r, x or d goes to Today, all items, Unsorted, Kept, Archive, Transcripts or Duplicates; Shift-J and Shift-K step through feeds and themes; r refreshes, / searches, a follows something new. ? (or Help > Keyboard Shortcuts) shows them all.
+- **Go to (⌘K).** One search field for the whole app: themes, feeds, sources and lists, Settings panes, actions such as Reload or Export, and your links by title or by their text. Type a handle or address to follow it. Arrow keys move, Return opens, Esc closes. An empty field shows the places you opened last.
+
 ## 1.2.2 - 2026-11-15
 
 ### Fixed

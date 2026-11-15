@@ -83,6 +83,7 @@ struct ContentView: View {
             }
         }
         .animation(.snappy, value: model.notice)
+        .overlay { if model.showPalette { CommandPalette() } }
         .sheet(isPresented: Binding(get: { model.showAddFeed }, set: { model.showAddFeed = $0 })) { AddFeedSheet() }
         // With feeds, Today is the start view: it is the primary input.
         .onAppear { if selection == .overview, !model.state.feeds.isEmpty, !Demo.isOn { selection = .today } }

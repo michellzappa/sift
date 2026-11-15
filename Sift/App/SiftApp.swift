@@ -37,6 +37,9 @@ struct SiftApp: App {
                     }
                 }
             }
+            CommandGroup(before: .sidebar) {
+                Button("Go to…") { model.showPalette.toggle() }.keyboardShortcut("k")
+            }
             CommandGroup(after: .appInfo) {
                 Button("Check for Updates…") { Task { await UpdateChecker.shared.checkFromMenu() } }
                 VersionHistoryCommand()

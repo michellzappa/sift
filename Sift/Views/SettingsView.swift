@@ -5,8 +5,9 @@ import SwiftUI
 /// shape): General first, Sift's own panes, About last. A new pane is one
 /// more `SettingsPane` in `panes`.
 struct SettingsView: View {
-    /// Demo mode can open on a given pane (`-demoView settings:<pane>`).
-    @State private var navigation = SettingsNavigation(selection: Demo.settingsTab ?? SettingsPane.generalID)
+    /// Shared, so the command palette can pick a pane. Demo mode can open
+    /// on a given pane (`-demoView settings:<pane>`).
+    @State private var navigation = SettingsRoute.navigation
 
     var body: some View {
         HouseSettingsView(appName: "Sift", panes: panes, navigation: navigation, floats: false)
