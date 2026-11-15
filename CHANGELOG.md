@@ -9,6 +9,12 @@ ships this file and shows it in Settings > About and in Sift > Version
 History. Headings are `## X.Y.Z - YYYY-MM-DD`; groups are `### Added`,
 `### Changed` and `### Fixed`.
 
+## 1.4.4 - 2026-11-15
+
+### Changed
+
+- **No banner above Today.** The window title says how many items are new and when the next digest comes, as Mail shows its unread count.
+
 ## 1.4.3 - 2026-11-15
 
 ### Changed

@@ -11,7 +11,7 @@ struct TodayView: View {
     private var open: [TodayPick] { picks.filter { !model.isSeen($0.url) && !model.isKept($0.url) } }
 
     var body: some View {
-        OfferedList(picks: picks, header: header, empty: ContentUnavailableView {
+        OfferedList(picks: picks, header: EmptyView(), empty: ContentUnavailableView {
             Label("Nothing new right now", systemImage: "sun.max")
         } description: {
             Text(model.state.feeds.isEmpty
@@ -29,22 +29,11 @@ struct TodayView: View {
         .onAppear { model.refreshToday() }
     }
 
+    /// The count lives in the subtitle, as in Mail; no banner over the list.
     private var subtitle: String {
-        guard let digest = model.state.today else { return "" }
-        let slot = digest.slot.formatted(date: .omitted, time: .shortened)
-        return "\(picks.count - open.count) of \(picks.count) done · digest of \(slot)"
-    }
-
-    private var header: some View {
-        HStack(spacing: 8) {
-            Image(systemName: "sun.max").foregroundStyle(.orange)
-            Text(open.isEmpty && !picks.isEmpty
-                 ? "That's Today. The next digest comes at \(TodayBuilder.nextSlot().formatted(date: .omitted, time: .shortened))."
-                 : "\(open.count) new from your feeds. Keep what you want in your library; the rest leaves Today on its own.")
-                .font(.callout)
-            Spacer()
-        }
-        .padding(.horizontal, 14).padding(.vertical, 8)
+        guard model.state.today != nil, !picks.isEmpty else { return "" }
+        let next = TodayBuilder.nextSlot().formatted(date: .omitted, time: .shortened)
+        return open.isEmpty ? "All seen · next at \(next)" : "\(open.count) new · next at \(next)"
     }
 }
 
@@ -93,8 +82,10 @@ struct OfferedList<Header: View, Empty: View>: View {
         // can drag, the reader on the content background.
         ReaderSplit(showing: showPane && picks.contains { $0.url == selected }) {
         VStack(spacing: 0) {
-            header
-            Divider()
+            if Header.self != EmptyView.self {
+                header
+                Divider()
+            }
             if picks.isEmpty {
                 empty
             } else {
