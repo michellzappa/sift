@@ -24,18 +24,24 @@ func drawIcon(_ c: CGContext, in plate: CGRect) {
     c.saveGState()
     c.drawLinearGradient(g, start: CGPoint(x: 0, y: plate.maxY), end: CGPoint(x: 0, y: plate.minY), options: [])
     c.restoreGState()
-    // Two cards behind, fainter as they go back.
-    c.setFillColor(rgb(255, 255, 255, 0.26)); c.addPath(round(R(0.33, 0.50, 0.34, 0.33), 0.055 * s)); c.fillPath()
-    c.setFillColor(rgb(255, 255, 255, 0.50)); c.addPath(round(R(0.26, 0.44, 0.48, 0.33), 0.058 * s)); c.fillPath()
+    // The stack: every card has the front card's size, steps up by the
+    // same `rise` and fades by the same amount, so only the top edges show
+    // (owner: equidistant and equal in size). `inset` narrows them if set.
+    let front = (x: 0.18, y: 0.19, w: 0.64, h: 0.46)
+    let rise = 0.075, inset = 0.0
+    for (step, alpha) in [(2.0, 0.28), (1.0, 0.64)] {
+        let r = R(front.x + inset * step, front.y + rise * step, front.w - 2 * inset * step, front.h)
+        c.setFillColor(rgb(255, 255, 255, alpha)); c.addPath(round(r, 0.062 * s)); c.fillPath()
+    }
     // The top card.
-    let card = R(0.18, 0.17, 0.64, 0.46)
+    let card = R(front.x, front.y, front.w, front.h)
     c.saveGState()
     c.setShadow(offset: CGSize(width: 0, height: -0.012 * s), blur: 0.04 * s, color: rgb(0, 0, 0, 0.5))
     c.setFillColor(rgb(250, 250, 250)); c.addPath(round(card, 0.062 * s)); c.fillPath()
     c.restoreGState()
-    c.setFillColor(rgb(255, 149, 0)); c.addPath(round(R(0.24, 0.395, 0.52, 0.18), 0.03 * s)); c.fillPath()
-    c.setFillColor(rgb(40, 40, 48, 0.85)); c.addPath(round(R(0.24, 0.305, 0.42, 0.042), 0.021 * s)); c.fillPath()
-    c.setFillColor(rgb(40, 40, 48, 0.35)); c.addPath(round(R(0.24, 0.225, 0.29, 0.042), 0.021 * s)); c.fillPath()
+    c.setFillColor(rgb(255, 149, 0)); c.addPath(round(R(0.24, 0.415, 0.52, 0.18), 0.03 * s)); c.fillPath()
+    c.setFillColor(rgb(40, 40, 48, 0.85)); c.addPath(round(R(0.24, 0.325, 0.42, 0.042), 0.021 * s)); c.fillPath()
+    c.setFillColor(rgb(40, 40, 48, 0.35)); c.addPath(round(R(0.24, 0.245, 0.29, 0.042), 0.021 * s)); c.fillPath()
 }
 
 func bitmap(_ px: Int, alpha: Bool, draw: (CGContext, CGFloat) -> Void) -> NSBitmapImageRep {

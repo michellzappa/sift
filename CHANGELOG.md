@@ -9,6 +9,12 @@ ships this file and shows it in Settings > About and in Sift > Version
 History. Headings are `## X.Y.Z - YYYY-MM-DD`; groups are `### Added`,
 `### Changed` and `### Fixed`.
 
+## 1.4.6 - 2026-11-15
+
+### Changed
+
+- The icon's cards are now one size and step back at equal distances, each one fainter.
+
 ## 1.4.5 - 2026-11-15
 
 ### Changed
