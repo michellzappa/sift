@@ -1,3 +1,4 @@
+import HouseKit
 import AppKit
 import Foundation
 import Observation
@@ -167,4 +168,22 @@ final class UpdateChecker {
             alert.runModal()
         }
     }
+}
+
+/// The house Updates section (HouseKit `UpdatesSection`) reads Sift's checker
+/// through this.
+extension UpdateChecker: UpdateChecking {
+    var installedVersion: String { UpdateCheck.installedVersion }
+    var latestVersion: String? { latest }
+    var availableVersion: String? { available }
+    var automaticChecks: Bool {
+        get { automatic }
+        set { automatic = newValue }
+    }
+    var canInstall: Bool { UpdateCheck.canSelfUpdate }
+    var policyNote: String {
+        "Sift asks GitHub once a day. An update downloads, checks the checksum, Apple's notarization and the developer signature, then Sift quits and opens on the new version."
+    }
+    func checkForUpdates() async { await check() }
+    func installUpdate() throws { install() }
 }

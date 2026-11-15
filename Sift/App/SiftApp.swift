@@ -1,3 +1,4 @@
+import HouseKit
 import SwiftUI
 import UniformTypeIdentifiers
 
@@ -49,7 +50,7 @@ struct SiftApp: App {
 
         // Sift > Version History: the bundled CHANGELOG.md.
         Window("Version History", id: VersionHistory.windowID) {
-            ChangelogView()
+            ChangelogView(onlineURL: VersionHistory.onlineURL)
                 .frame(minWidth: 520, minHeight: 480)
         }
         .defaultSize(width: 620, height: 640)
@@ -101,4 +102,11 @@ private struct VersionHistoryCommand: View {
     var body: some View {
         Button("Version History…") { openWindow(id: VersionHistory.windowID) }
     }
+}
+
+/// Sift > Version History…: HouseKit's `ChangelogView` over the bundled
+/// CHANGELOG.md, in its own window.
+enum VersionHistory {
+    static let windowID = "version-history"
+    static let onlineURL = URL(string: "https://github.com/michellzappa/sift/blob/main/CHANGELOG.md")!
 }

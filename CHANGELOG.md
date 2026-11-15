@@ -9,6 +9,12 @@ ships this file and shows it in Settings > About and in Sift > Version
 History. Headings are `## X.Y.Z - YYYY-MM-DD`; groups are `### Added`,
 `### Changed` and `### Fixed`.
 
+## 0.5.3 - 2026-11-15
+
+### Changed
+
+- **Settings uses the shared house layout.** General now also has Launch at login, and About shows the GitHub star count and opens the changelog. Sift and Headroom settings work the same way.
+
 ## 0.5.2 - 2026-11-15
 
 ### Added

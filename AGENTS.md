@@ -226,9 +226,14 @@ The one exception is anonymous diagnostics (owner, 2026-11-15, below).
   screenshots from real data. sift-mcp and sift-chrome do not know demo
   mode and still read the real Sift folder.
 
-- No HouseKit code dependency: Sift is a window app, not a menu-bar app, and
-  uses the SwiftUI Settings scene. The icon is the HouseKit `sift` glyph;
-  `scripts/build-app.sh` regenerates `AppIcon.icns` from `../../housekit`.
+- HouseKit (2026-11-15, owner): Sift depends on HouseKit for the settings
+  shell (`HouseSettingsView`, `SettingsPane`, `GeneralSettingsPane`,
+  `AboutSettingsPane`, `UpdatesSection` through `UpdateChecker:
+  UpdateChecking`) and the changelog (`Changelog`, `ChangelogView`). It is a
+  URL package pinned to a commit in project.yml, so CI and the mini resolve
+  it without a sibling checkout; move the pin on purpose. The icon is the
+  HouseKit `sift` glyph; `scripts/build-app.sh` regenerates `AppIcon.icns`
+  from `../../housekit`.
 - `*.csv` is ignored so exported tab lists (browsing data) never get committed.
 - X previews use oEmbed by default. An optional setting (`xSyndication`, off
   by default) asks X's syndication endpoint
@@ -297,15 +302,13 @@ The one exception is anonymous diagnostics (owner, 2026-11-15, below).
   label and count above the bar. The banner above the list shows decisions
   only (unsorted links, no themes) and hides while sorting or discovery
   runs. A new background job adds its row to `activities`, never its own bar.
-- Changelog (2026-11-15, Headroom's logic): `CHANGELOG.md` is the one
-  source. Add `## X.Y.Z - YYYY-MM-DD` with `### Added/Changed/Fixed` before
-  tagging; release.yml fails without it (`scripts/changelog-section.sh`) and
-  uses the section as the GitHub release notes. The file ships in
-  Resources: Sift > Version History… (Window `version-history`) and
-  Settings > About show it (`Views/ChangelogView.swift`).
-- Settings layout (2026-11-15, owner: Headroom's house style): a
-  `NavigationSplitView`, 200 pt sidebar of `SettingsPane` cases (General,
-  Inputs, Library, Outputs, Intelligence, Themes, Privacy, About), grouped
-  Form per pane, 820x600. General holds updates, the Setup Guide and
-  Version History. A shared version of this shell is being built in
-  HouseKit; move Sift to it when it lands.
+- Changelog (2026-11-15, Headroom's logic, now HouseKit's): `CHANGELOG.md`
+  is the one source. Add `## X.Y.Z - YYYY-MM-DD` with `### Added/Changed/
+  Fixed` before tagging; release.yml fails without it
+  (`scripts/changelog-section.sh`) and uses the section as the GitHub
+  release notes. The file ships in Resources: Sift > Version History…
+  (Window `version-history`) and Settings > About show it.
+- Settings layout (2026-11-15, owner): the HouseKit shell, panes General,
+  Inputs, Library, Outputs, Intelligence, Themes, Privacy, About (ids are
+  the lowercase names; `-demoView settings:<id>`). A new pane is one more
+  `SettingsPane` in `SettingsView.panes`.
