@@ -9,6 +9,11 @@ ships this file and shows it in Settings > About and in Sift > Version
 History. Headings are `## X.Y.Z - YYYY-MM-DD`; groups are `### Added`,
 `### Changed` and `### Fixed`.
 
+## 1.5.3 - 2026-11-15
+
+### Changed
+- The Privacy settings pane is now named Telemetry, so the usage report is easy to find.
+
 ## 1.5.2 - 2026-11-15
 
 ### Added

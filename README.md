@@ -238,7 +238,7 @@ contribute; see [CONTRIBUTING.md](CONTRIBUTING.md).
 - **To Sift's diagnostics**, once a week: an anonymous report with the app
   and macOS version, which kinds of source and destination you use, which
   switches are on, and rough sizes such as "100-999 links". No link, title,
-  theme name, note or install id. It is on by default; Settings > Privacy
+  theme name, note or install id. It is on by default; Settings > Telemetry
   turns it off and shows the exact report.
   [Privacy contract](docs/telemetry.md) ·
   [Community Pulse](https://sift-telemetry.envisioning.workers.dev/community)

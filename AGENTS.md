@@ -268,7 +268,7 @@ The one exception is anonymous diagnostics (owner, 2026-11-15, below).
   `/v1/batches`, `/v1/community`, `/community`). Contract:
   `docs/telemetry.md`. No install id: a week-scoped HMAC of a local secret
   (keychain `app.sift.telemetry` + `telemetry/install_secret`) dedupes, and
-  the Mac sends its own cohort word. Off in demo mode. Settings > Privacy
+  the Mac sends its own cohort word. Off in demo mode. Settings > Telemetry
   has the switch and shows the batch. A new field needs three changes in
   step: `TelemetryBatch`, the Worker's whitelist, and docs/telemetry.md.
   Never add a field that carries library content or an identifier.
@@ -284,7 +284,7 @@ The one exception is anonymous diagnostics (owner, 2026-11-15, below).
   `Sift/App/Updates.swift`: `UpdateChecker` asks GitHub's
   `releases/latest` for michellzappa/sift once a day (first check 60 s
   after launch; off in demo mode and for copies outside /Applications),
-  shows "Update to X" in the toolbar and in Settings > Privacy, and
+  shows "Update to X" in the toolbar and in Settings > General, and
   File-menu "Check for Updates…" in the app menu. The install is
   `scripts/update-app.sh`, shipped in Contents/Resources (project.yml;
   release.yml fails without it), run detached with `--yes --version X`,
@@ -316,7 +316,7 @@ The one exception is anonymous diagnostics (owner, 2026-11-15, below).
   release notes. The file ships in Resources: Sift > Version History…
   (Window `version-history`) and Settings > About show it.
 - Settings layout (2026-11-15, owner): the HouseKit shell, panes General,
-  Inputs, Library, Outputs, Intelligence, Themes, Privacy, About (ids are
+  Inputs, Library, Outputs, Intelligence, Themes, Telemetry, About (ids are
   the lowercase names; `-demoView settings:<id>`). A new pane is one more
   `SettingsPane` in `SettingsView.panes`.
 - Seen and unseen (2026-11-15, owner: "swipe = seen", email-style).

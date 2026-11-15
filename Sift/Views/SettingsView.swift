@@ -21,7 +21,7 @@ struct SettingsView: View {
             SettingsPane(id: "outputs", title: "Outputs", symbol: "tray.and.arrow.up") { OutputSettings() },
             SettingsPane(id: "intelligence", title: "Intelligence", symbol: "sparkles") { ClaudeSettings() },
             SettingsPane(id: "themes", title: "Themes", symbol: "circle.hexagongrid") { ThemeSettings() },
-            SettingsPane(id: "privacy", title: "Privacy", symbol: "hand.raised") { PrivacySettings() },
+            SettingsPane(id: "telemetry", title: "Telemetry", symbol: "chart.bar.xaxis") { PrivacySettings() },
             .about {
                 AboutSettingsPane(
                     appName: "Sift",

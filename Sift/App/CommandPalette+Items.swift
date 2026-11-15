@@ -75,7 +75,7 @@ enum SettingsRoute {
         ("outputs", "Outputs", "tray.and.arrow.up"),
         ("intelligence", "Intelligence", "sparkles"),
         ("themes", "Themes", "circle.hexagongrid"),
-        ("privacy", "Privacy", "hand.raised"),
+        ("telemetry", "Telemetry", "chart.bar.xaxis"),
         ("about", "About", "info.circle"),
     ]
 }

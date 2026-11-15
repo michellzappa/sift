@@ -2,7 +2,7 @@
 
 Sift keeps your library on your Mac. The one thing it sends to its makers
 is a small weekly report, so we can see which versions, Macs and features
-are in use. It is on by default. **Settings > Privacy** turns it off and
+are in use. It is on by default. **Settings > Telemetry** turns it off and
 shows the exact report it would send. Turning it off deletes any report
 waiting to go out. Demo mode never sends one.
 
@@ -58,7 +58,7 @@ the ids that match. Every other feed stays on the Mac. A feed address that
 looks like it carries a secret (a token, key or long random part) is never
 matched.
 
-This part is on by default, with its own switch in **Settings > Privacy**
+This part is on by default, with its own switch in **Settings > Telemetry**
 ("Include well-known feeds you follow"). It is off whenever the usage
 counts are off. The Community Pulse shows a well-known feed only when at
 least 5 Macs follow it that week.

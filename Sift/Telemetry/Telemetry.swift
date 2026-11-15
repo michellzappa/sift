@@ -5,7 +5,7 @@ import Security
 /// Anonymous diagnostics: one aggregate batch per Mac per ISO week.
 ///
 /// Ported from Headroom's telemetry (same contract, same Worker shape). It is
-/// on by default and has one switch, in Settings > Privacy. It never sends a
+/// on by default and has one switch, in Settings > Telemetry. It never sends a
 /// link, title, theme name, note, file path, account or token, only the
 /// counts and switches in `TelemetryBatch`. Settings shows the exact batch.
 /// docs/telemetry.md is the privacy contract; `telemetry/` is the Worker.
