@@ -41,6 +41,8 @@ struct TodayPick: Codable, Hashable, Sendable, Identifiable {
     var content: String? = nil
     /// A vertical video (a YouTube Short), for the phone's video cards.
     var vertical: Bool? = nil
+    /// The same link is in two or more of your feeds right now.
+    var hot: Bool? = nil
 }
 
 struct TodayDigest: Codable, Hashable, Sendable {
@@ -128,13 +130,21 @@ enum TodayBuilder {
         let keptURLs = Set(input.kept.map(\.url))
         let keptPerFeed = Dictionary(grouping: input.kept.compactMap(\.feedID), by: { $0 }).mapValues(\.count)
 
+        // Hot: the same link in several of your feeds. An item counts for its
+        // own address and, for link aggregators (Hacker News, Reddit), for
+        // the article it points to.
         var feedsPerURL: [String: Set<String>] = [:]
+        var keysOf: [String: Set<String>] = [:]
         for feed in input.feeds where feed.enabled {
-            for e in input.entries[feed.id] ?? [] { feedsPerURL[URLKey.normalize(e.url), default: []].insert(feed.id) }
+            for e in input.entries[feed.id] ?? [] {
+                let keys = linkKeys(e)
+                keysOf[e.url] = keys
+                for k in keys { feedsPerURL[k, default: []].insert(feed.id) }
+            }
         }
         let themeWords: [(name: String, words: Set<String>)] = input.themes.map { ($0.name, words($0.name + " " + $0.summary)) }
 
-        struct Candidate { var pick: TodayPick; var score: Double; var priority: FeedPriority; var strong: Bool }
+        struct Candidate { var pick: TodayPick; var score: Double; var priority: FeedPriority; var strong: Bool; var mentions: Int }
         var must: [TodayPick] = []
         var candidates: [Candidate] = []
         var seenURL = Set<String>()
@@ -161,24 +171,26 @@ enum TodayBuilder {
                 let keeps = keptPerFeed[feed.id] ?? 0
                 if affinity > 0.4 || keeps >= 2 { pick.reason = "You often read \(feed.title)" }
                 let itemWords = words(e.title + " " + e.summary)
-                if let best = themeWords.map({ ($0.name, $0.words.intersection(itemWords).count) }).max(by: { $0.1 < $1.1 }), best.1 >= 2 {
+                if let best = themeWords.map({ ($0.name, $0.words.intersection(itemWords).count) }).max(by: { $0.1 < $1.1 }), best.1 >= 3 {
                     score += min(Double(best.1), 4) * 0.15
                     pick.reason = "Fits \(best.0)"
                     strong = true
                 }
-                let mentions = feedsPerURL[key]?.count ?? 1
+                let mentions = (keysOf[e.url] ?? [key]).reduce(into: Set<String>()) { $0.formUnion(feedsPerURL[$1] ?? []) }.count
                 if mentions > 1 {
                     score += Double(mentions - 1) * 0.6
-                    pick.reason = "In \(mentions) of your feeds"
+                    pick.reason = "Hot in \(mentions) of your feeds"
+                    pick.hot = true
                     strong = true
                 }
                 if affinity > 0.4 { strong = true }
-                candidates.append(Candidate(pick: pick, score: score, priority: priority, strong: strong))
+                candidates.append(Candidate(pick: pick, score: score, priority: priority, strong: strong, mentions: mentions))
             }
         }
 
         must.sort { ($0.date ?? .distantPast) > ($1.date ?? .distantPast) }
-        candidates.sort { $0.score > $1.score }
+        // Hot first (most feeds, then score), then the rest by score.
+        candidates.sort { ($0.mentions > 1 ? $0.mentions : 0, $0.score) > ($1.mentions > 1 ? $1.mentions : 0, $1.score) }
         var picks = must
         var perFeedCount: [String: Int] = [:]
         let fill = max(size - 2, picks.count)
@@ -200,13 +212,37 @@ enum TodayBuilder {
         // One wildcard: from a feed not in the digest yet, not the top scores.
         let used = Set(picks.map(\.feedID))
         let urls = Set(picks.map(\.url))
-        if var wild = candidates.dropFirst(size).filter({ !used.contains($0.pick.feedID) && $0.priority != .best }).randomElement()?.pick
-            ?? candidates.filter({ !urls.contains($0.pick.url) }).randomElement()?.pick {
+        // One wildcard, always from a feed not in the digest yet; none if every feed is in.
+        if var wild = (candidates.dropFirst(size).filter({ !used.contains($0.pick.feedID) && $0.priority != .best }).randomElement()
+            ?? candidates.filter({ !urls.contains($0.pick.url) && !used.contains($0.pick.feedID) }).randomElement())?.pick {
             wild.reason = "Something different"
             wild.wildcard = true
             picks.append(wild)
         }
         return picks
+    }
+
+    /// The keys an item counts under for Hot: its own address and, when its
+    /// text links out to another site (a Hacker News or Reddit post), that
+    /// article's address.
+    static func linkKeys(_ e: FeedEntry) -> Set<String> {
+        var keys: Set<String> = [URLKey.normalize(e.url)]
+        let own = URL(string: e.url)?.host()?.replacingOccurrences(of: "www.", with: "")
+        let aggregators = ["reddit.com", "news.ycombinator.com", "lobste.rs", "redd.it"]
+        guard let own, aggregators.contains(where: { own.hasSuffix($0) }), let text = e.content ?? Optional(e.summary) else { return keys }
+        let pattern = #"\]\((https?://[^)\s]+)\)|https?://[^\s)\]]+"#
+        if let re = try? NSRegularExpression(pattern: pattern) {
+            let ns = text as NSString
+            for m in re.matches(in: text, range: NSRange(location: 0, length: ns.length)) {
+                let r = m.range(at: 1).location != NSNotFound ? m.range(at: 1) : m.range
+                let link = ns.substring(with: r)
+                guard let h = URL(string: link)?.host()?.replacingOccurrences(of: "www.", with: ""),
+                      !aggregators.contains(where: { h.hasSuffix($0) }), !h.hasSuffix("redditmedia.com"), !h.hasSuffix("redditstatic.com") else { continue }
+                keys.insert(URLKey.normalize(link))
+                break
+            }
+        }
+        return keys
     }
 
     /// Lowercased words of five letters or more, without common ones.

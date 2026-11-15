@@ -9,6 +9,23 @@ ships this file and shows it in Settings > About and in Sift > Version
 History. Headings are `## X.Y.Z - YYYY-MM-DD`; groups are `### Added`,
 `### Changed` and `### Fixed`.
 
+## 1.4.0 - 2026-11-15
+
+### Added
+
+- **Today learns, like a For You page for your feeds.** Each feed has a place in Today: Auto (the default), Don't Miss, Normal, Best Only or Not in Today; right-click a feed and choose In Today. Auto puts busy feeds such as Hacker News on Best Only, so they show only when an item stands out. Don't Miss items come first and stay until you have seen them.
+- **Rare posts count more.** A quiet blog's new essay outranks the thirtieth post of a busy feed.
+- **Sift learns from what you do.** Keeping, reading and lingering on a card raise a feed; flicking past lowers it a little. The iPhone sends how long each card stays on screen. Recent behaviour counts most.
+- **Hot.** When the same link is in two or more of your feeds (also when a Hacker News or Reddit post points to an article another feed has), it goes to the top with a flame: "Hot in 3 of your feeds".
+- **Vertical video on the iPhone.** YouTube Shorts, Instagram posts and TikToks show as full cards: the picture first, one tap plays it in the card, swiping on stops it.
+- **sift://today** opens Today and builds it again.
+
+### Changed
+
+- Today keeps one slot for a feed Sift knows little about yet, and its wildcard always comes from a feed not already in the digest.
+- "Fits a theme" needs a closer match.
+- On the iPhone, Library is one set of cards.
+
 ## 1.3.8 - 2026-11-15
 
 ### Changed

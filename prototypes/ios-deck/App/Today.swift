@@ -16,6 +16,8 @@ struct TodayPick: Codable, Hashable, Sendable, Identifiable {
     var image: String?
     var reason: String
     var wildcard: Bool?
+    /// The same link is in two or more of the user's feeds.
+    var hot: Bool?
     /// The full text as Markdown, when the feed carries it.
     var content: String?
     /// True for a vertical video (the Mac sets it for YouTube Shorts).

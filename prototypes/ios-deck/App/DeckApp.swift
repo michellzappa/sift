@@ -29,23 +29,11 @@ struct DeckApp: App {
     }
 }
 
-/// Library: your saved items. Deck is seven unseen cards that end; Deeper
-/// goes down one theme at a time.
+/// Library: your saved items as cards, seven unseen ones that end.
 struct LibraryView: View {
-    @State private var mode = "deck"
-
-    var body: some View {
-        VStack(spacing: 0) {
-            Picker("Mode", selection: $mode) {
-                Text("Deck").tag("deck")
-                Text("Deeper").tag("deeper")
-            }
-            .pickerStyle(.segmented)
-            .padding(.horizontal, 16)
-            .padding(.vertical, 6)
-            if mode == "deck" { DeckView() } else { StreamView() }
-        }
-    }
+    // One level: cards (owner, 2026-11-15). The deep stream (StreamView)
+    // stays in the code for later, not in the app.
+    var body: some View { DeckView() }
 }
 
 /// What you did, the week's numbers, and the deck file.

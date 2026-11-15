@@ -516,3 +516,21 @@ The one exception is anonymous diagnostics (owner, 2026-11-15, below).
   `open`, `keep`, `unseen`, `play`. Today picks only. One file per device,
   like `seen/` and `kept/`. `TodayPick.vertical` (optional) marks a
   vertical video (YouTube Shorts) for the phone's full-card player.
+- Today ranking (2026-11-15, owner: "think like tiktok/instagram but for
+  rss"; "popularity of link in my feeds shud also be SIGNAL"). See
+  `TodayBuilder.build` and `Feeds/Signals.swift`. `Feed.priority` (nil =
+  Auto: Best Only above `FeedPriority.busyPerDay` = 5 posts a day, from
+  `postsPerDay` over the span the items cover). Order: Don't Miss (14 days,
+  until seen), Hot (same `linkKeys` in 2+ feeds; aggregator items also count
+  for the article they link), then score = freshness × 1/sqrt(posts per day)
+  × (1 + 0.8 × affinity) + theme fit (3+ shared words) + cross-mentions; Best
+  Only needs a strong signal and gets 1 slot, Normal 2, Not in Today 0; one
+  exploration slot (feed with < 3 signals), one wildcard from an unused
+  feed. Affinity: `FeedSignals.affinity` over this Mac's `signals.json`
+  (keep, reader open) and `iCloud Drive/Sift/signals/*.json` from phones,
+  30-day decay, tanh to -1…1. `markShorts` sets `TodayPick.vertical` (HEAD
+  youtube.com/shorts/<id>, no redirect). Phone: vertical cards
+  (`VerticalVideo.swift`) for Shorts, all Instagram posts, TikToks; the
+  player is made after the poster tap and plays at once (one tap). Library
+  is one level (DeckView); StreamView stays in code, unused.
+

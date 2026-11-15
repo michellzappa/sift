@@ -19,10 +19,10 @@ enum VerticalVideo: Hashable, Sendable {
         }
         if let m = match(url, #"instagram\.com/(reels?|p)/([\w-]+)"#) {
             let path = m[0].hasPrefix("reel") ? "reel" : "p"
-            // A post is a video only when the item says so.
-            if path == "reel" || item.kind == "video" || item.video?.provider == "instagram" {
-                return .instagram(path: path, id: m[1])
-            }
+            // Instagram's export lists most saved reels as /p/ addresses, so
+            // every post gets the embed: it plays a reel and shows a photo
+            // post alike. The poster shows first either way.
+            return .instagram(path: path, id: m[1])
         }
         if let m = match(url, #"tiktok\.com/@[^/?#]+/video/(\d+)"#) {
             return .tikTok(m[0])
@@ -48,7 +48,7 @@ enum VerticalVideo: Hashable, Sendable {
     var label: String {
         switch self {
         case .youTube: "Short"
-        case .instagram: "Reel"
+        case .instagram: "Instagram"
         case .tikTok: "TikTok"
         }
     }
@@ -199,7 +199,8 @@ private struct PosterImage: View {
 }
 
 /// The inline player in a web view: plays inline, needs a tap in the player
-/// to start (never autoplays), and unloads the page when it goes away, so
+/// to start: it is made only after the tap on the poster, then plays at once
+/// (one tap), and unloads the page when it goes away, so
 /// the sound stops at once.
 struct VerticalPlayer: UIViewRepresentable {
     let video: VerticalVideo
@@ -207,14 +208,17 @@ struct VerticalPlayer: UIViewRepresentable {
     func makeUIView(context: Context) -> WKWebView {
         let config = WKWebViewConfiguration()
         config.allowsInlineMediaPlayback = true
-        config.mediaTypesRequiringUserActionForPlayback = .all
+        // The player is made only after the user taps the poster, so it may
+        // start at once: one tap plays (owner, 2026-11-15). Nothing plays
+        // before that tap.
+        config.mediaTypesRequiringUserActionForPlayback = []
         let web = WKWebView(frame: .zero, configuration: config)
         web.scrollView.isScrollEnabled = false
         web.isOpaque = false
         web.backgroundColor = .black
         switch video {
         case .youTube(let id):
-            let src = "https://www.youtube-nocookie.com/embed/\(id)?playsinline=1&rel=0&loop=1&playlist=\(id)"
+            let src = "https://www.youtube-nocookie.com/embed/\(id)?playsinline=1&rel=0&loop=1&playlist=\(id)&autoplay=1"
             let html = """
             <html><head><meta name="viewport" content="width=device-width,initial-scale=1"><style>html,body{margin:0;background:#000}iframe{position:absolute;inset:0;width:100%;height:100%;border:0}</style></head>
             <body><iframe src="\(src)" allow="encrypted-media; picture-in-picture" allowfullscreen></iframe></body></html>
@@ -223,7 +227,7 @@ struct VerticalPlayer: UIViewRepresentable {
         case .instagram(let path, let id):
             if let url = URL(string: "https://www.instagram.com/\(path)/\(id)/embed/") { web.load(URLRequest(url: url)) }
         case .tikTok(let id):
-            if let url = URL(string: "https://www.tiktok.com/embed/v2/\(id)") { web.load(URLRequest(url: url)) }
+            if let url = URL(string: "https://www.tiktok.com/embed/v2/\(id)?autoplay=1") { web.load(URLRequest(url: url)) }
         }
         return web
     }

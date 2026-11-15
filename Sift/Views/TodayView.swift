@@ -270,9 +270,14 @@ private struct TodayRow: View {
                     Text(pick.summary).font(.callout).foregroundStyle(.secondary).lineLimit(2)
                 }
                 if !pick.reason.isEmpty {
-                    Text(pick.reason)
-                        .font(.caption.weight(.medium))
-                        .foregroundStyle(pick.wildcard ? Color.purple : Color.orange)
+                    Label {
+                        Text(pick.reason)
+                    } icon: {
+                        if pick.hot == true { Image(systemName: "flame.fill") }
+                    }
+                    .labelStyle(.titleAndIcon)
+                    .font(.caption.weight(.medium))
+                    .foregroundStyle(pick.wildcard ? Color.purple : (pick.hot == true ? Color.red : Color.orange))
                 }
             }
         }
