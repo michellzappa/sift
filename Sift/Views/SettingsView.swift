@@ -28,9 +28,32 @@ private struct PrivacySettings: View {
     @Environment(AppModel.self) private var model
     @State private var on = Telemetry.enabled
     @State private var showBatch = false
+    @State private var automatic = UpdateChecker.shared.automatic
+    private var updates: UpdateChecker { .shared }
 
     var body: some View {
         Form {
+            Section {
+                LabeledContent("This version", value: UpdateCheck.installedVersion)
+                LabeledContent("Latest", value: updates.latest ?? "Not checked yet")
+                Toggle("Check for updates every day", isOn: $automatic)
+                    .onChange(of: automatic) { _, value in updates.automatic = value }
+                HStack {
+                    Button("Check Now") { Task { await updates.check() } }
+                        .disabled(updates.isChecking || Demo.isOn)
+                    if let version = updates.available {
+                        Button("Update to \(version)") { updates.install() }
+                            .buttonStyle(.borderedProminent)
+                    }
+                    if updates.isChecking { ProgressView().controlSize(.small) }
+                    if let error = updates.lastError { Text(error).font(.caption).foregroundStyle(.secondary) }
+                }
+            } header: {
+                Text("Updates")
+            } footer: {
+                Text("Sift asks GitHub for the latest release. An update downloads, checks the checksum, Apple's notarization and the developer signature, then Sift quits and opens on the new version. Only the copy in Applications updates itself.")
+                    .foregroundStyle(.secondary)
+            }
             Section {
                 Toggle("Share anonymous usage counts", isOn: $on)
                     .disabled(Demo.isOn)

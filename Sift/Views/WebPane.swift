@@ -11,11 +11,27 @@ struct WebPane: View {
     let tab: SafariTab
     var onClose: (() -> Void)?
     @State private var page = WebPage()
-    /// Demo mode opens the saved text: pages do not load there.
-    @State private var reader = Demo.isOn
+    /// Demo mode opens the saved text: pages do not load there. A video or
+    /// reel with a transcript opens on its transcript too.
+    @State private var reader = false
 
     var body: some View {
         let a = model.assignment(for: tab)
+        content(a)
+            .onAppear { reader = opensInReader }
+            .onChange(of: tab.url) { reader = opensInReader }
+            .onChange(of: reader) { _, on in if on { page.stop() } }
+    }
+
+    private var hasTranscript: Bool { model.library[tab.url]?.transcript == true }
+    private var hasText: Bool {
+        let e = model.library[tab.url]
+        return e?.status == "ok" || e?.status == "thin" || e?.transcript == true
+    }
+    private var opensInReader: Bool { Demo.isOn || (hasTranscript && Library.text(for: tab.url) != nil) }
+
+    @ViewBuilder
+    private func content(_ a: Assignment?) -> some View {
         VStack(spacing: 0) {
             HStack(spacing: 8) {
                 Button { page.webView.goBack() } label: { Image(systemName: "chevron.left") }
@@ -26,10 +42,10 @@ struct WebPane: View {
                 Text(page.url?.host() ?? tab.host)
                     .font(.callout).foregroundStyle(.secondary).lineLimit(1).truncationMode(.middle)
                     .frame(maxWidth: .infinity)
-                if model.library[tab.url]?.status == "ok" || model.library[tab.url]?.status == "thin" {
-                    Toggle(isOn: $reader) { Image(systemName: "doc.plaintext") }
+                if hasText {
+                    Toggle(isOn: $reader) { Image(systemName: hasTranscript ? "captions.bubble" : "doc.plaintext") }
                         .toggleStyle(.button)
-                        .help("Reader: the text Sift captured into your library")
+                        .help(hasTranscript ? "Transcript: what the video says, as text. Turn off to watch." : "Reader: the text Sift captured into your library")
                 }
                 Button {
                     let p = model.previews[tab.url]
@@ -39,7 +55,7 @@ struct WebPane: View {
                 Button { TabActions.openInSafari(page.url?.absoluteString ?? tab.url) } label: { Image(systemName: "safari") }
                     .help("Open in Safari")
                 if let onClose {
-                    Button(action: onClose) { Image(systemName: "sidebar.right") }.help("Close the browser")
+                    Button { page.stop(); onClose() } label: { Image(systemName: "sidebar.right") }.help("Close the browser")
                 }
             }
             .buttonStyle(.borderless)
@@ -94,6 +110,7 @@ struct WebPane: View {
                 }
                 WebViewHost(webView: page.webView)
                     .onAppear { page.load(tab.url) }
+                    .onDisappear { page.stop() }
                     .onChange(of: tab.url) { page.load(tab.url) }
                     .task(id: tab.url) { if model.xConnected, XClient.statusID(tab.url) != nil { await model.refreshXPosts(urls: [tab.url]) } }
             }
@@ -135,6 +152,17 @@ final class WebPage: NSObject, WKNavigationDelegate {
         guard string != loaded, let url = URL(string: string) else { return }
         loaded = string
         webView.load(URLRequest(url: url))
+    }
+
+    /// Stops sound and video at once and unloads the page. Called when the
+    /// pane closes or the browser view goes away (reader on, another view):
+    /// a WKWebView keeps playing until it is deallocated.
+    func stop() {
+        webView.pauseAllMediaPlayback()
+        webView.closeAllMediaPresentations()
+        webView.stopLoading()
+        webView.loadHTMLString("", baseURL: nil)
+        loaded = nil
     }
 
     /// Links that ask for a new window open in the same pane.

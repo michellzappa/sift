@@ -30,6 +30,7 @@ struct TabList: View {
         case .archive: "Archive"
         case .duplicates: "Duplicates"
         case .broken: "Broken Links"
+        case .transcripts: "Transcripts"
         case .saved(let q): "“\(q)”"
         case .project(let p): Project.displayName(p)
         case .site(let host): host
@@ -45,6 +46,7 @@ struct TabList: View {
         case .archive: model.archivedTabs
         case .duplicates: model.duplicateTabs
         case .broken: model.brokenTabs
+        case .transcripts: model.transcriptTabs
         case .saved: savedHits
         case .project(let p): model.tabs(in: p)
         case .site(let host): model.tabs(onSite: host)
@@ -390,14 +392,6 @@ struct TabCard: View {
                     .help("Theme: \(a.project)")
                 }
             }
-            let sent = !model.sentRecords(tab.url).isEmpty
-            SendButton(tab: tab, compact: true)
-                .menuStyle(.button)
-                .buttonStyle(.borderless)
-                .menuIndicator(.hidden)
-                .fixedSize()
-                .foregroundStyle(sent ? Color.accentColor : .secondary)
-                .opacity(sent || hovering || isSelected || model.sending.contains(tab.url) ? 1 : 0)
         }
         .padding(.horizontal, 12)
         .padding(.vertical, 8)

@@ -267,3 +267,26 @@ The one exception is anonymous diagnostics (owner, 2026-11-15, below).
   Never add a field that carries library content or an identifier.
   `wrangler d1 execute --remote` needs `--yes`, and a migration goes in
   before the Worker that reads it.
+
+- Updates (2026-11-15, ported from Headroom's updater, owner's request).
+  `Sift/App/Updates.swift`: `UpdateChecker` asks GitHub's
+  `releases/latest` for michellzappa/sift once a day (first check 60 s
+  after launch; off in demo mode and for copies outside /Applications),
+  shows "Update to X" in the toolbar and in Settings > Privacy, and
+  File-menu "Check for Updates…" in the app menu. The install is
+  `scripts/update-app.sh`, shipped in Contents/Resources (project.yml;
+  release.yml fails without it), run detached with `--yes --version X`,
+  log in `Application Support/Sift/logs/update.log`. Before it touches
+  anything it checks SHA256SUMS, `spctl`, `codesign --deep --strict`, team
+  992N457T8D (compiled into the script, never read from the release) and
+  that the bundle version equals the tag; then it quits Sift, keeps the old
+  bundle until `ditto` succeeds, strips quarantine and opens Sift. No
+  Sparkle. The zip name `Sift-<version>.zip` and `SHA256SUMS` are part of
+  the contract: release.yml and the script must agree.
+- Transcripts (2026-11-15): sidebar "Transcripts" lists links whose
+  library entry has `transcript == true`. The web pane opens such a link on
+  its transcript (reader view); the toggle switches to the video. The pane
+  stops media (`WebPage.stop`) when it closes or switches to the reader.
+- Rows carry no icon buttons (owner, 2026-11-15): Send is in the context
+  menu and the web pane header, not on the row.
+

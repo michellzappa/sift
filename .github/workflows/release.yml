@@ -113,6 +113,8 @@ jobs:
           grep -q "Authority=Developer ID Application" "$RUNNER_TEMP/sift-chrome-sign.txt"
           grep -q "flags=.*runtime" "$RUNNER_TEMP/sift-chrome-sign.txt"
           grep -q "^Timestamp=" "$RUNNER_TEMP/sift-chrome-sign.txt"
+          # Without the updater script, this release could never update itself.
+          test -f "$app_path/Contents/Resources/update-app.sh"
           /usr/libexec/PlistBuddy -c 'Print :CFBundleVersion' "$app_path/Contents/Info.plist"
 
       - name: Notarize

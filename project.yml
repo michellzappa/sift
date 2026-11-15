@@ -49,6 +49,9 @@ targets:
       - path: Demo
         type: folder
         buildPhase: resources
+      # The updater (Sift/App/Updates.swift runs it from Contents/Resources).
+      - path: scripts/update-app.sh
+        buildPhase: resources
     settings:
       base:
         PRODUCT_BUNDLE_IDENTIFIER: app.sift.Sift

@@ -30,6 +30,13 @@ extension AppModel {
     }
 
     /// Links whose page is gone (404, 410 or no such site).
+    /// Videos and reels with a transcript in the library, newest first.
+    var transcriptTabs: [SafariTab] {
+        let urls = Set(library.filter { $0.value.transcript == true }.map(\.key))
+        var seen = Set<String>()
+        return (tabs + archivedTabs).filter { urls.contains($0.url) && seen.insert($0.url).inserted }
+    }
+
     var brokenTabs: [SafariTab] {
         let urls = Set(library.filter { $0.value.status == "gone" }.map(\.key))
         return tabs.filter { urls.contains($0.url) } + archivedTabs.filter { urls.contains($0.url) }

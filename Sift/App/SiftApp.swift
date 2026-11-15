@@ -28,6 +28,9 @@ struct SiftApp: App {
                     }
                 }
             }
+            CommandGroup(after: .appInfo) {
+                Button("Check for Updates…") { Task { await UpdateChecker.shared.checkFromMenu() } }
+            }
             CommandGroup(replacing: .help) {
                 SetupGuideCommand(model: model)
             }

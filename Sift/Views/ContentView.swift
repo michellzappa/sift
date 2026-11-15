@@ -7,6 +7,8 @@ enum SidebarItem: Hashable {
     case archive
     case duplicates
     case broken
+    /// Videos and reels with a transcript.
+    case transcripts
     /// A saved full-text search.
     case saved(String)
     /// The overview, showing one source (see AppModel.selectDevice).
@@ -187,6 +189,16 @@ struct ContentView: View {
         ToolbarItem(placement: .primaryAction) {
             Button { model.reload() } label: { Label("Reload", systemImage: "arrow.clockwise") }
         }
+        // Shows once a newer release exists (UpdateChecker, daily).
+        if let version = UpdateChecker.shared.available {
+            ToolbarItem(placement: .primaryAction) {
+                Button { UpdateChecker.shared.install() } label: {
+                    Label("Update to \(version)", systemImage: "arrow.down.circle")
+                        .labelStyle(.titleAndIcon)
+                }
+                .help("Download Sift \(version), check it, then quit and open the new version.")
+            }
+        }
     }
 }
 
@@ -230,6 +242,12 @@ private struct Sidebar: View {
                 Label { HStack { Text("Duplicates"); Spacer(); count(dupes) } } icon: { Image(systemName: "square.on.square") }
                     .tag(SidebarItem.duplicates)
                     .help("The same page saved more than once, from different sources or with tracking parameters.")
+            }
+            let transcripts = model.transcriptTabs.count
+            if transcripts > 0 {
+                Label { HStack { Text("Transcripts"); Spacer(); count(transcripts) } } icon: { Image(systemName: "captions.bubble") }
+                    .tag(SidebarItem.transcripts)
+                    .help("Videos and reels whose words Sift saved. Select one to read its transcript.")
             }
             let broken = model.brokenTabs.count
             if broken > 0 {

@@ -121,6 +121,7 @@ final class AppModel {
         // Demo mode has no background jobs and no Chrome.
         if !Demo.isOn {
             TelemetryCoordinator.shared.start(self)
+            UpdateChecker.shared.start()
             startLibraryWorker()
             startChromeWatcher()
         }
