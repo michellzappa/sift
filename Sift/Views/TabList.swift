@@ -304,6 +304,9 @@ struct TabCard: View {
                 model.exportMessage = TabActions.addToReadingList(tab.url, title: cardTitle(preview), preview: bodyText(preview) ?? "")
             }
             Button("Copy Link") { model.copy(tab.url) }
+            if let label = AppModel.followLabel(forLink: tab.url), let input = AppModel.followInput(forLink: tab.url) {
+                Button("Follow \(label)") { model.followQuick(input) }
+            }
             Button(model.note(for: tab.url) == nil ? "Add Note…" : "Edit Note…") {
                 noteDraft = model.note(for: tab.url) ?? ""
                 editingNote = true

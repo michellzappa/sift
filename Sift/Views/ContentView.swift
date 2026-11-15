@@ -248,18 +248,29 @@ private struct Sidebar: View {
                     }
                 } icon: { Image(systemName: "sun.max") }
                     .tag(SidebarItem.today)
-                // Followed feeds, like a reader: folders, then feeds without
-                // one. No unread counts.
-                Section("Feeds", isExpanded: $showFeeds) {
-                    ForEach(model.feedFolders, id: \.self) { folder in
-                        DisclosureGroup {
-                            ForEach(model.feeds(inFolder: folder)) { feedRow($0) }
-                        } label: {
-                            Label(folder, systemImage: "folder").tag(SidebarItem.feedFolder(folder))
-                        }
+            }
+            // Followed feeds, like a reader: folders, then feeds without one.
+            // No unread counts. Always shown, so following is one click away;
+            // a link dropped here is followed.
+            Section("Feeds", isExpanded: $showFeeds) {
+                ForEach(model.feedFolders, id: \.self) { folder in
+                    DisclosureGroup {
+                        ForEach(model.feeds(inFolder: folder)) { feedRow($0) }
+                    } label: {
+                        Label(folder, systemImage: "folder").tag(SidebarItem.feedFolder(folder))
                     }
-                    ForEach(model.feeds(inFolder: "")) { feedRow($0) }
                 }
+                ForEach(model.feeds(inFolder: "")) { feedRow($0) }
+                Button { model.showAddFeed = true } label: {
+                    Label("Follow…", systemImage: "plus.circle")
+                }
+                .buttonStyle(.plain)
+                .foregroundStyle(.secondary)
+                .help("Follow a site, a subreddit, a Bluesky or Mastodon account, a YouTube channel, a podcast… Or drop a link here.")
+            }
+            .dropDestination(for: URL.self) { urls, _ in
+                for url in urls { if let input = AppModel.followInput(forLink: url.absoluteString) { model.followQuick(input) } }
+                return !urls.isEmpty
             }
             Label { HStack { Text("Overview"); Spacer(); count(model.allSourcesCount) } } icon: { Image(systemName: "circle.hexagongrid") }
                 .tag(SidebarItem.overview)

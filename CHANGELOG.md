@@ -9,6 +9,17 @@ ships this file and shows it in Settings > About and in Sift > Version
 History. Headings are `## X.Y.Z - YYYY-MM-DD`; groups are `### Added`,
 `### Changed` and `### Fixed`.
 
+## 1.1.0 - 2026-11-15
+
+### Added
+
+- **Suggested from what you save.** The Follow sheet lists sites, subreddits and GitHub repositories you save from again and again, with how often ("You saved 7"), and follows one with a click.
+- **Follow from anywhere.** Right-click a link and choose Follow with the site's name (or r/name, owner/repo, the YouTube channel); the button above an open page does the same. Drop a link on Feeds in the sidebar to follow it. Feeds is always in the sidebar, with a Follow row at the end.
+
+### Changed
+
+- **Reddit, GitHub, YouTube and the other known kinds are found from any address.** A feed:// link, a site from OPML or a pasted page address now gets the right feed (a subreddit's .rss, a repository's releases), not only what the page advertises.
+
 ## 1.0.0 - 2026-11-15
 
 ### Added

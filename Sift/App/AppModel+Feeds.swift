@@ -120,6 +120,64 @@ extension AppModel {
         refreshToday(force: true)
     }
 
+    // MARK: Following from anywhere
+
+    /// What "Follow Site" follows for a link: r/name for Reddit, owner/repo
+    /// for GitHub, the page itself for YouTube (the provider reads the
+    /// channel), Bluesky and Mastodon profiles, else the site's host.
+    static func followInput(forLink link: String) -> String? {
+        guard let u = URL(string: link), let h = u.host()?.lowercased() else { return nil }
+        let host = h.replacingOccurrences(of: #"^(www\.|m\.|old\.)"#, with: "", options: .regularExpression)
+        let parts = u.pathComponents.filter { $0 != "/" }
+        if host.hasSuffix("reddit.com"), parts.count >= 2, parts[0] == "r" { return "r/\(parts[1])" }
+        if host == "github.com", parts.count >= 2 { return "\(parts[0])/\(parts[1])" }
+        if host.hasSuffix("youtube.com") || host == "youtu.be" || host == "bsky.app" || host.hasSuffix("medium.com") { return link }
+        if parts.first?.hasPrefix("@") == true { return "https://\(host)/\(parts[0])" }
+        return host
+    }
+
+    /// A short name for the Follow Site menu item.
+    static func followLabel(forLink link: String) -> String? {
+        guard let input = followInput(forLink: link) else { return nil }
+        if input.hasPrefix("http"), let u = URL(string: input) {
+            let host = u.host()?.replacingOccurrences(of: "www.", with: "") ?? input
+            return host.hasSuffix("youtube.com") || host == "youtu.be" ? "This YouTube Channel" : host
+        }
+        return input
+    }
+
+    /// Follows without the sheet: the first feed the matching provider
+    /// finds. Says what happened in the message alert.
+    func followQuick(_ input: String) {
+        guard !Demo.isOn else { exportMessage = Demo.offMessage; return }
+        Task {
+            guard let found = await FeedProviders.resolve(input).first else {
+                exportMessage = "Sift found no feed for \(input)."
+                return
+            }
+            if state.feeds.contains(where: { $0.url == found.url }) {
+                exportMessage = "You already follow \(found.parsed.title)."
+                return
+            }
+            addFeed(found)
+            exportMessage = "Following \(found.label ?? found.parsed.title). Its new items show in Today."
+        }
+    }
+
+    /// Sites, subreddits and repositories you save from often, not followed.
+    var feedSuggestions: [FeedSuggestion] {
+        var hosts = Set<String>()
+        var inputs = Set<String>()
+        for f in state.feeds {
+            for raw in [f.url, f.site].compactMap({ $0 }) {
+                if let h = URL(string: raw)?.host()?.lowercased() { hosts.insert(h.replacingOccurrences(of: "www.", with: "")) }
+                if let i = Self.followInput(forLink: raw) { inputs.insert(i.lowercased()) }
+            }
+        }
+        let urls = Array(archive.keys) + tabs.map(\.url)
+        return FeedSuggestions.make(urls: Array(Set(urls)), followedHosts: hosts, followedInputs: inputs)
+    }
+
     /// A provider for a feed address from OPML, by its host, for the icon.
     static func providerID(forFeed url: String) -> String? {
         guard let host = URL(string: url)?.host()?.lowercased() else { return nil }

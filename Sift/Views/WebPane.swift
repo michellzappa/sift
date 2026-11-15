@@ -52,6 +52,10 @@ struct WebPane: View {
                     model.exportMessage = TabActions.addToReadingList(tab.url, title: model.archiveRecord(for: tab.url)?.title ?? tab.displayTitle, preview: p?.text ?? "")
                 } label: { Image(systemName: "eyeglasses") }
                     .help("Add to Safari's Reading List")
+                if let input = AppModel.followInput(forLink: page.url?.absoluteString ?? tab.url) {
+                    Button { model.followQuick(input) } label: { Image(systemName: "dot.radiowaves.up.forward") }
+                        .help("Follow \(AppModel.followLabel(forLink: page.url?.absoluteString ?? tab.url) ?? "this site"): its new posts show in Today.")
+                }
                 Button { TabActions.openInSafari(page.url?.absoluteString ?? tab.url) } label: { Image(systemName: "safari") }
                     .help("Open in Safari")
                 if let onClose {

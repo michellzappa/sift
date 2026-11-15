@@ -13,6 +13,7 @@ struct AddFeedSheet: View {
     @State private var results: [FeedProviders.Found] = []
     @State private var failed = false
     @State private var folder = ""
+    @State private var followed: Set<String> = []
     @FocusState private var focused: Bool
 
     private var match: any FeedProvider { FeedProviders.match(input) }
@@ -55,6 +56,7 @@ struct AddFeedSheet: View {
                     .frame(maxWidth: 280)
                 }
             } else {
+                suggestions
                 providerHints
             }
 
@@ -92,6 +94,32 @@ struct AddFeedSheet: View {
         }
         .padding(10)
         .background(RoundedRectangle(cornerRadius: 8).fill(Color.secondary.opacity(0.07)))
+    }
+
+    /// Feeds from what you already save, with the evidence. One click follows.
+    @ViewBuilder private var suggestions: some View {
+        let list = model.feedSuggestions
+        if !list.isEmpty {
+            VStack(alignment: .leading, spacing: 6) {
+                Text("Suggested from what you save").font(.caption.weight(.semibold)).foregroundStyle(.secondary)
+                ForEach(list.prefix(8)) { s in
+                    HStack(spacing: 8) {
+                        Image(systemName: FeedProviders.provider(id: s.providerID)?.symbol ?? "globe")
+                            .frame(width: 16).foregroundStyle(.secondary)
+                        Text(s.label).lineLimit(1)
+                        Text(s.evidence).font(.caption).foregroundStyle(.tertiary)
+                        Spacer()
+                        if followed.contains(s.input) {
+                            Text("Following…").font(.caption).foregroundStyle(.secondary)
+                        } else {
+                            Button("Follow") { followed.insert(s.input); model.followQuick(s.input) }
+                                .controlSize(.small)
+                        }
+                    }
+                }
+            }
+            Divider()
+        }
     }
 
     private var providerHints: some View {

@@ -386,4 +386,16 @@ The one exception is anonymous diagnostics (owner, 2026-11-15, below).
 - Version numbers (owner, 2026-11-15): odometer style. Each part of X.Y.Z
   runs 0 to 9: after x.y.9 comes x.(y+1).0, after x.9.z comes (x+1).0.0.
   Never a two-digit part (0.10.0 was re-cut as 1.0.0).
+- Following from anywhere (2026-11-15, owner: "make it easy to add new
+  feeds via ux/ia"). `FeedFetcher.discover` asks the matching provider's
+  pattern rules first (Reddit .rss, GitHub releases.atom, YouTube, Medium,
+  Tumblr…), so every caller gets them. `Feeds/FeedSuggestions.swift`:
+  hosts saved 3+ times (platforms without feeds skipped), subreddits and
+  GitHub repos saved 2+ times, not followed; local only, shown in the Follow
+  sheet with evidence. `AppModel.followInput(forLink:)` maps a link to what
+  Follow takes (r/name, owner/repo, a YouTube page, a profile, else the
+  host); `followQuick` follows the first result without the sheet. Entry
+  points: Follow sheet, File > Follow… (Shift-Command-N), toolbar +, the
+  sidebar Feeds section (always shown, Follow row, drop a link), "Follow
+  <site>" in every row's context menu, the button above the open page.
 

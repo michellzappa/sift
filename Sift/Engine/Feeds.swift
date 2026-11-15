@@ -332,6 +332,15 @@ enum FeedFetcher {
     /// Finds the feed for a site or page: the URL itself if it is a feed,
     /// else the page's <link rel="alternate">, else the usual paths.
     static func discover(_ input: String) async -> (url: String, parsed: FeedParser.Parsed)? {
+        // Pattern rules first: Reddit (<page>/.rss), GitHub (releases.atom),
+        // YouTube, Medium, Tumblr and the rest come from the provider plugins,
+        // so every caller (Follow, feed:// links, OPML sites) gets them.
+        let provider = FeedProviders.match(input)
+        if provider.id != WebProvider.id {
+            for c in await provider.candidates(for: input).prefix(3) {
+                if let u = URL(string: c.url), let parsed = await FeedProviders.fetch(u) { return (c.url, parsed) }
+            }
+        }
         var s = input.trimmingCharacters(in: .whitespacesAndNewlines)
         if !s.contains("://") { s = "https://" + s }
         guard let url = URL(string: s) else { return nil }
