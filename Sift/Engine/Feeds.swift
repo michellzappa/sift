@@ -156,6 +156,16 @@ enum FeedParser {
                 s = s.replacingOccurrences(of: pattern, with: template, options: [.regularExpression, .caseInsensitive])
             }
             sub(#"<(script|style|noscript|iframe|svg)[\s\S]*?</\1>"#, "")
+            // A quote holds paragraphs of its own: convert the inside first,
+            // then quote every line, so "> " never stands alone on a line.
+            if let re = try? NSRegularExpression(pattern: #"<blockquote[^>]*>([\s\S]*?)</blockquote>"#, options: .caseInsensitive) {
+                for m in re.matches(in: s, range: NSRange(s.startIndex..., in: s)).reversed() {
+                    guard let whole = Range(m.range, in: s), let inner = Range(m.range(at: 1), in: s) else { continue }
+                    let quoted = markdown(String(s[inner])).split(separator: "\n", omittingEmptySubsequences: false)
+                        .map { $0.isEmpty ? ">" : "> " + $0 }.joined(separator: "\n")
+                    s.replaceSubrange(whole, with: "\n\n" + quoted + "\n\n")
+                }
+            }
             sub(#"<pre[^>]*>\s*(?:<code[^>]*>)?([\s\S]*?)(?:</code>)?\s*</pre>"#, "\n\n```\n$1\n```\n\n")
             for level in 1...4 {
                 sub("<h\(level)[^>]*>([\\s\\S]*?)</h\(level)>", "\n\n" + String(repeating: "#", count: min(level + 1, 4)) + " $1\n\n")
@@ -169,7 +179,6 @@ enum FeedParser {
             sub(#"<a\s[^>]*href=["']([^"']+)["'][^>]*>([\s\S]*?)</a>"#, "[$2]($1)")
             sub(#"<li[^>]*>"#, "\n- ")
             sub(#"</li>"#, "")
-            sub(#"<blockquote[^>]*>([\s\S]*?)</blockquote>"#, "\n\n> $1\n\n")
             sub(#"<br\s*/?>"#, "\n")
             sub(#"</(p|div|ul|ol|section|article|figure|figcaption|table|tr)>"#, "\n\n")
             sub(#"<hr[^>]*>"#, "\n\n---\n\n")

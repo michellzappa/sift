@@ -91,7 +91,7 @@ struct OfferedList<Header: View, Empty: View>: View {
     var body: some View {
         // A split view, as in Mail and NetNewsWire: the list, a divider you
         // can drag, the reader on the content background.
-        HSplitView {
+        ReaderSplit(showing: showPane && picks.contains { $0.url == selected }) {
         VStack(spacing: 0) {
             header
             Divider()
@@ -101,7 +101,7 @@ struct OfferedList<Header: View, Empty: View>: View {
                 list
             }
         }
-        .frame(minWidth: 320, maxWidth: .infinity)
+        } pane: {
             if showPane, let pick = picks.first(where: { $0.url == selected }) {
                         VStack(spacing: 0) {
                             HStack {
@@ -138,8 +138,6 @@ struct OfferedList<Header: View, Empty: View>: View {
                                 }
                             }
                         }
-                        .frame(minWidth: 380, idealWidth: 560, maxWidth: .infinity)
-                        .background(Color(nsColor: .textBackgroundColor))
             }
         }
     }
@@ -254,10 +252,12 @@ private struct TodayRow: View {
                         if let img = phase.image { img.resizable().scaledToFill() }
                     }
                 } else {
-                    // No picture: the site's icon, in grey.
-                    FeedIconView(feedID: pick.feedID, size: 18).id(model.feedIconVersion)
+                    // No picture: the site's icon.
+                    FeedIconView(feedID: pick.feedID, size: 18, grey: seen && !kept).id(model.feedIconVersion)
                 }
             }
+            // Unseen in colour, seen in grey, like read mail.
+            .saturation(seen && !kept ? 0 : 1)
             .frame(width: 64, height: 64)
             .clipShape(RoundedRectangle(cornerRadius: 8))
 
@@ -344,7 +344,9 @@ struct FeedReader: View {
                     } else {
                         // A quote: every line starts with "> "; ReaderBlock wants one.
                         ReaderBlock(block: block.hasPrefix("> ")
-                            ? "> " + block.split(separator: "\n").map { $0.hasPrefix("> ") ? String($0.dropFirst(2)) : String($0) }.joined(separator: "\n")
+                            ? "> " + block.split(separator: "\n").map { line in
+                                line.hasPrefix(">") ? String(line.dropFirst().drop { $0 == " " }) : String(line)
+                            }.joined(separator: "\n")
                             : block)
                     }
                 }
@@ -380,6 +382,16 @@ struct FeedReader: View {
             }
         }
         if let c = code { out.append(c) }
-        return out.map { $0.trimmingCharacters(in: .whitespacesAndNewlines) }.filter { !$0.isEmpty }
+        out = out.map { $0.trimmingCharacters(in: .whitespacesAndNewlines) }.filter { !$0.isEmpty }
+        // Text saved before 1.4.2 can have a lone ">" before the quoted
+        // paragraph: it quotes the next block.
+        var merged: [String] = []
+        var quoteNext = false
+        for block in out {
+            if block == ">" { quoteNext = true; continue }
+            merged.append(quoteNext && !block.hasPrefix(">") ? "> " + block : block)
+            quoteNext = false
+        }
+        return merged
     }
 }

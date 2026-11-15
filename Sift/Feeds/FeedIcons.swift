@@ -42,18 +42,20 @@ enum FeedIcons {
     }
 }
 
-/// A feed's icon in grey, or a symbol when there is none.
+/// A feed's icon, or a symbol when there is none. Grey by default (the
+/// sidebar); a list row shows it in colour while the item is unseen.
 struct FeedIconView: View {
     let feedID: String
     var symbol = "dot.radiowaves.up.forward"
     var size: CGFloat = 16
+    var grey = true
 
     var body: some View {
         if let image = FeedIcons.image(feedID) {
             Image(nsImage: image)
                 .resizable().interpolation(.high).scaledToFit()
-                .saturation(0)
-                .opacity(0.75)
+                .saturation(grey ? 0 : 1)
+                .opacity(grey ? 0.75 : 1)
                 .frame(width: size, height: size)
                 .clipShape(RoundedRectangle(cornerRadius: size * 0.2))
         } else {

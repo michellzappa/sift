@@ -484,10 +484,13 @@ The one exception is anonymous diagnostics (owner, 2026-11-15, below).
   a check, follow and unfollow), folder total = sum. They count items held,
   not unread items.
 - Reader beside the list (2026-11-15, owner: "standard macos patterns").
-  TabList and OfferedList are an `HSplitView`: the list (min 320) and the
-  pane (min 380, ideal 560) on `textBackgroundColor`, a draggable divider.
-  No `safeAreaInset`, overlay or own Divider (the list's row separators
-  ran under the old pane). TodayRow shows the content's first paragraph
+  TabList and OfferedList use `Views/ReaderSplit.swift`: an HStack of the
+  list (min 300) and the pane (min 360, width in AppStorage
+  `reader.width`) on `textBackgroundColor`, with a draggable divider. The
+  minimum widths reach the window, so the sidebar never slides out. Not
+  `HSplitView`: its minimums did not reach the window and the window
+  shrank under the content. Seen items show grey pictures and icons,
+  unseen in colour (`FeedIconView(grey:)`, `.saturation`). TodayRow shows the content's first paragraph
   when the summary is under 12 characters ("…").
 - Unsorted in the Library box (2026-11-15, owner): `LibraryStatus` shows
   "N not in a theme" with a Sort menu button (primary: Sort into Themes;

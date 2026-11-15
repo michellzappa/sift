@@ -83,7 +83,7 @@ struct TabList: View {
     var body: some View {
         // A split view, as in Mail: the list, a divider you can drag, the page
         // on the content background.
-        HSplitView {
+        ReaderSplit(showing: showInspector && rows.contains { $0.id == selected }) {
         VStack(spacing: 0) {
             if item == .closeQueue { closeHeader }
             if item == .duplicates { duplicatesHeader }
@@ -135,11 +135,9 @@ struct TabList: View {
         }
         .navigationTitle(title)
         .navigationSubtitle(subtitle)
-        .frame(minWidth: 320, maxWidth: .infinity)
+        } pane: {
             if showInspector, let tab = rows.first(where: { $0.id == selected }) {
                 WebPane(tab: tab) { showInspector = false }
-                    .frame(minWidth: 380, idealWidth: 560, maxWidth: .infinity)
-                    .background(Color(nsColor: .textBackgroundColor))
             }
         }
         .toolbar { listToolbar }
@@ -395,6 +393,8 @@ struct TabCard: View {
     private func row(_ a: Assignment?, _ preview: Preview?, _ closing: Bool) -> some View {
         HStack(spacing: 12) {
             thumbnail(preview)
+                // Unseen in colour, seen in grey, like read mail.
+                .saturation(model.isSeen(tab.url) ? 0 : 1)
                 .frame(width: 48, height: 48)
                 .clipShape(RoundedRectangle(cornerRadius: 8))
                 .overlay(RoundedRectangle(cornerRadius: 8).strokeBorder(Color.primary.opacity(0.06)))

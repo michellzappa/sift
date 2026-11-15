@@ -9,6 +9,17 @@ ships this file and shows it in Settings > About and in Sift > Version
 History. Headings are `## X.Y.Z - YYYY-MM-DD`; groups are `### Added`,
 `### Changed` and `### Fixed`.
 
+## 1.4.2 - 2026-11-15
+
+### Changed
+
+- **Unseen items show in colour, seen items in grey.** The picture and the site icon go grey once you have seen an item, like read mail.
+
+### Fixed
+
+- The window can no longer get narrower than the sidebar, the list and the reader together, so the sidebar stays in the window. The pane keeps the width you drag it to.
+- Quotes in the reader show as quotes. Before, a stray ">" stood on its own line above them.
+
 ## 1.4.1 - 2026-11-15
 
 ### Changed
