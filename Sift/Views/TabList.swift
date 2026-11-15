@@ -132,21 +132,15 @@ struct TabList: View {
         }
         .navigationTitle(title)
         .navigationSubtitle(subtitle)
-        // The browser slides in over the right side. The grid underneath
-        // keeps its size and position, so no card moves.
-        .overlay(alignment: .trailing) {
+        // The page sits beside the list; the list gets narrower, nothing
+        // covers it.
+        .safeAreaInset(edge: .trailing, spacing: 0) {
             if showInspector, let tab = rows.first(where: { $0.id == selected }) {
-                GeometryReader { geo in
-                    HStack(spacing: 0) {
-                        Spacer(minLength: 0)
-                        WebPane(tab: tab) { withAnimation(.snappy) { showInspector = false } }
-                            .frame(width: BrowserOverlay.width(for: geo.size.width))
-                            .background(.background)
-                            .overlay(alignment: .leading) { Divider() }
-                            .shadow(color: .black.opacity(0.12), radius: 12, x: -2)
-                    }
-                }
-                .transition(.move(edge: .trailing))
+                WebPane(tab: tab) { withAnimation(.snappy) { showInspector = false } }
+                    .containerRelativeFrame(.horizontal) { width, _ in BrowserOverlay.width(for: width) }
+                    .background(.background)
+                    .overlay(alignment: .leading) { Divider() }
+                    .transition(.move(edge: .trailing))
             }
         }
         .toolbar { listToolbar }

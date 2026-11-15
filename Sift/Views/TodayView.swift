@@ -98,11 +98,10 @@ struct OfferedList<Header: View, Empty: View>: View {
                 list
             }
         }
-        .overlay(alignment: .trailing) {
+        // The reader sits beside the list; the list gets narrower, nothing
+        // covers it.
+        .safeAreaInset(edge: .trailing, spacing: 0) {
             if showPane, let pick = picks.first(where: { $0.url == selected }) {
-                GeometryReader { geo in
-                    HStack(spacing: 0) {
-                        Spacer(minLength: 0)
                         VStack(spacing: 0) {
                             HStack {
                                 Text(pick.reason.isEmpty ? pick.feedTitle : pick.reason).font(.callout).foregroundStyle(.secondary).lineLimit(1)
@@ -113,6 +112,9 @@ struct OfferedList<Header: View, Empty: View>: View {
                                     Text("Page").tag(true)
                                 }
                                 .pickerStyle(.segmented).labelsHidden().fixedSize()
+                                Button { withAnimation(.snappy) { showPane = false } } label: { Image(systemName: "sidebar.right") }
+                                    .buttonStyle(.borderless)
+                                    .help("Close the reader (Space)")
                                 if model.isKept(pick.url) {
                                     Label("Kept", systemImage: "star.fill").foregroundStyle(.yellow)
                                 } else {
@@ -135,12 +137,10 @@ struct OfferedList<Header: View, Empty: View>: View {
                                 }
                             }
                         }
-                        .frame(width: BrowserOverlay.width(for: geo.size.width))
+                        .containerRelativeFrame(.horizontal) { width, _ in BrowserOverlay.width(for: width) }
                         .background(.background)
                         .overlay(alignment: .leading) { Divider() }
-                        .shadow(color: .black.opacity(0.12), radius: 12, x: -2)
-                    }
-                }
+                        .transition(.move(edge: .trailing))
             }
         }
     }

@@ -483,4 +483,9 @@ The one exception is anonymous diagnostics (owner, 2026-11-15, below).
   `feedItemCounts` (stored, refreshed by `refreshFeedCounts` on launch, after
   a check, follow and unfollow), folder total = sum. They count items held,
   not unread items.
+- Reader beside the list (2026-11-15, owner: "opening reader shud shrink
+  entries list, not overlay it … horizontally"). TabList and OfferedList put
+  the pane in `.safeAreaInset(edge: .trailing)` with
+  `containerRelativeFrame(.horizontal)` (`BrowserOverlay.width`), so the
+  list narrows; no overlay, no shadow.
 

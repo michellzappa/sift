@@ -9,6 +9,12 @@ ships this file and shows it in Settings > About and in Sift > Version
 History. Headings are `## X.Y.Z - YYYY-MM-DD`; groups are `### Added`,
 `### Changed` and `### Fixed`.
 
+## 1.3.4 - 2026-11-15
+
+### Changed
+
+- **The reader sits beside the list.** Opening an item (Today, a feed or any list) makes the list narrower instead of sliding the page over it, so the list stays readable. The reader has a close button; Space still opens and closes it.
+
 ## 1.3.3 - 2026-11-15
 
 ### Added
