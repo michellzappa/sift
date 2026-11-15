@@ -580,6 +580,7 @@ private struct ThemeSettings: View {
     @State private var newSummary = ""
     @State private var editing: String?
     @State private var draft = ""
+    @State private var mergeRequest: MergeRequest?
 
     var body: some View {
         Form {
@@ -606,6 +607,9 @@ private struct ThemeSettings: View {
                         Button { draft = theme.name; editing = theme.name } label: { Image(systemName: "pencil") }
                             .buttonStyle(.borderless)
                             .help("Rename")
+                        Menu { MergeThemeMenu(theme: theme.name, pending: $mergeRequest) } label: { Image(systemName: "arrow.triangle.merge") }
+                            .menuStyle(.borderlessButton).menuIndicator(.hidden).fixedSize()
+                            .help("Merge into another theme")
                         Button(role: .destructive) { model.removeTheme(theme.name) } label: { Image(systemName: "minus.circle") }
                             .buttonStyle(.borderless)
                             .help("Delete the theme. Its links become unsorted.")
@@ -634,5 +638,6 @@ private struct ThemeSettings: View {
             }
         }
         .formStyle(.grouped)
+        .mergeConfirmation($mergeRequest, model: model)
     }
 }

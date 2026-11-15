@@ -259,6 +259,40 @@ extension AppModel {
         state = s
     }
 
+    /// Merges one theme into another: its links (hand moves too), second
+    /// themes, notes and history move to `into`, and `from` goes away. Its
+    /// Send default is used only when `into` has none.
+    func mergeTheme(_ from: String, into: String) {
+        guard from != into,
+              let fi = state.extraProjects.firstIndex(where: { $0.isTheme && $0.name == from }),
+              state.extraProjects.contains(where: { $0.isTheme && $0.name == into }) else { return }
+        var s = state
+        let source = s.extraProjects[fi]
+        let moved = s.assignments.values.filter { $0.project == from }.count
+        for (url, a) in s.assignments {
+            if a.project == from { s.assignments[url]?.project = into }
+            if let also = a.also, also.contains(from) || also.contains(into) {
+                let project = s.assignments[url]?.project
+                var seen = Set<String>()
+                s.assignments[url]?.also = also.map { $0 == from ? into : $0 }
+                    .filter { $0 != project && seen.insert($0).inserted }
+            }
+        }
+        s.extraProjects.remove(at: fi)
+        if let ti = s.extraProjects.firstIndex(where: { $0.isTheme && $0.name == into }) {
+            let day = Date.now.formatted(.iso8601.year().month().day())
+            s.extraProjects[ti].history += source.history
+            s.extraProjects[ti].history.append("\(day): merged \(from) (\(moved) links)")
+            if !source.notes.isEmpty {
+                s.extraProjects[ti].notes = [s.extraProjects[ti].notes, source.notes].filter { !$0.isEmpty }.joined(separator: "\n\n")
+            }
+            if s.extraProjects[ti].sendTo == nil { s.extraProjects[ti].sendTo = source.sendTo }
+        }
+        state = s
+        if graphTheme == from { graphTheme = into }
+        if navigationRequest == nil { navigationRequest = .project(into) }
+    }
+
     // MARK: Sorting
 
     /// Sorts every tab that has no assignment yet. Hand-sorted tabs stay as they are.

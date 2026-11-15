@@ -589,3 +589,9 @@ The one exception is anonymous diagnostics (owner, 2026-11-15, below).
   `applyNewThemes` appends new themes and fills only empty assignments
   (never a hand move, never a sorted link). Discover Themes Again still
   rebuilds the whole set and resets the mode.
+- Merge themes (2026-11-15, owner). `AppModel.mergeTheme(_:into:)` moves
+  every assignment (hand moves too), rewrites `also` without duplicates or
+  self-links, appends the source's history and notes, keeps the target's
+  `sendTo` (else the source's), removes the source. UI: `Views/MergeTheme.swift`
+  (`MergeThemeMenu` + `.mergeConfirmation`), in the sidebar theme context
+  menu and Settings > Themes.

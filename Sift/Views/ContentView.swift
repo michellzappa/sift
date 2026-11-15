@@ -260,6 +260,7 @@ private struct Sidebar: View {
     @State private var folderDraft = ""
     @State private var newFolderFor: String?
     @State private var renamingFolder: String?
+    @State private var mergeRequest: MergeRequest?
     @AppStorage("sidebar.library") private var showLibrary = true
     @AppStorage("sidebar.actions") private var showActions = true
     @AppStorage("sidebar.sites") private var showSites = true
@@ -391,6 +392,11 @@ private struct Sidebar: View {
                     HStack { Text(item.project).fontWeight(unseen > 0 ? .semibold : .regular); Spacer(); count(unseen) }
                         .tag(SidebarItem.project(item.project))
                         .help("\(unseen) unseen of \(item.count)")
+                        .contextMenu {
+                            if model.themes.contains(where: { $0.name == item.project }) {
+                                MergeThemeMenu(theme: item.project, pending: $mergeRequest)
+                            }
+                        }
                 }
             }
             Section("Sent to", isExpanded: $showActions) {
@@ -419,6 +425,7 @@ private struct Sidebar: View {
             }
         }
         .listStyle(.sidebar)
+        .mergeConfirmation($mergeRequest, model: model)
         // A source row switches the source; the canvas then shows only it.
         .onChange(of: selection) { _, new in
             if case .source(let id) = new, model.state.deviceID != id { model.selectDevice(id) }

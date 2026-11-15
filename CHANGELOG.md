@@ -9,6 +9,11 @@ ships this file and shows it in Settings > About and in Sift > Version
 History. Headings are `## X.Y.Z - YYYY-MM-DD`; groups are `### Added`,
 `### Changed` and `### Fixed`.
 
+## 1.5.6 - 2026-11-15
+
+### Added
+- Merge Into for themes: right-click a theme in the sidebar, or use the merge button in Settings > Themes. Its links, second themes, notes and history move to the other theme, after a confirmation.
+
 ## 1.5.5 - 2026-11-15
 
 ### Added
