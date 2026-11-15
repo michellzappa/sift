@@ -31,6 +31,17 @@ Sift, Starlings or any server. Delete this folder once the answers are in.
   synthesis card after five, a time marker every six, and a card when the
   thread runs dry. Sideways changes thread, only when you swipe.
 - **Log:** the week's numbers, the deck file, the decision log.
+- **Vertical video:** a YouTube Short (a `/shorts/` URL or `vertical: true`
+  on a Today pick), an Instagram reel and a TikTok get a full-card layout:
+  the poster fills the card, the title sits at the bottom, a large play
+  button in the middle. A tap loads the player inline in the card (it
+  never autoplays; the player's own button starts the sound). Swiping on
+  unloads it. The Text pill opens the transcript or summary. In Today,
+  double-tap and the Keep pill still keep.
+- **Signals:** what you do with Today picks goes to
+  `iCloud Drive/Sift/signals/iphone-<id>.json` for the Mac's ranking:
+  dwell (seconds on screen, 1.5 s or more), skip, open, keep, unseen and
+  play. A copy stays in the app's Documents (`signals-here.json`).
 
 `App/sample-deck.json` is the export of Sift's demo data (`--demo`), so it is
 safe to commit.
