@@ -9,6 +9,11 @@ ships this file and shows it in Settings > About and in Sift > Version
 History. Headings are `## X.Y.Z - YYYY-MM-DD`; groups are `### Added`,
 `### Changed` and `### Fixed`.
 
+## 1.5.4 - 2026-11-15
+
+### Added
+- The Community Pulse now shows inside Settings > Telemetry, as in Headroom: weekly active Macs, week over week, new and returning Macs, versions, sources, feeds followed, well-known feeds, destinations, library sizes, macOS, countries and feature adoption.
+
 ## 1.5.3 - 2026-11-15
 
 ### Changed

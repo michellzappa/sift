@@ -269,7 +269,9 @@ The one exception is anonymous diagnostics (owner, 2026-11-15, below).
   `docs/telemetry.md`. No install id: a week-scoped HMAC of a local secret
   (keychain `app.sift.telemetry` + `telemetry/install_secret`) dedupes, and
   the Mac sends its own cohort word. Off in demo mode. Settings > Telemetry
-  has the switch and shows the batch. A new field needs three changes in
+  has the switch, shows the batch and, while on, the Community Pulse
+  (`Telemetry/CommunityPulse.swift`, reads `/v1/community`, Headroom's
+  layout). A new Pulse field: Worker `communityStats` and `CommunityStats`. A new field needs three changes in
   step: `TelemetryBatch`, the Worker's whitelist, and docs/telemetry.md.
   Never add a field that carries library content or an identifier.
   `wrangler d1 execute --remote` needs `--yes`, and a migration goes in
