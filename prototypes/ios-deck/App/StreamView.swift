@@ -30,7 +30,6 @@ private struct ThreadView: View {
     @State private var items: [Item] = []
     @State private var reading: Item?
     @State private var browsing: Item?
-    @State private var acted: [String: Decision] = [:]
     @State private var feedback = 0
 
     var body: some View {
@@ -85,25 +84,17 @@ private struct ThreadView: View {
                 if depth > 0 {
                     Text(depthLabel(depth)).font(.caption2).foregroundStyle(.tertiary)
                 }
-                HStack(alignment: .bottom, spacing: 10) {
-                    CardView(item: item, tall: true)
-                        .contentShape(Rectangle())
-                        .onTapGesture {
-                            guard URL(string: item.url) != nil else { return }
-                            browsing = item
-                            store.record(item, .open, mode: "stream", position: depth, thread: theme.name)
-                        }
-                    ActionRail(item: item, decision: acted[item.id], text: {
-                        reading = item
-                        store.record(item, .read, mode: "stream", position: depth, thread: theme.name)
-                    }) { d in
-                        acted[item.id] = d
-                        feedback += 1
-                        store.record(item, d, mode: "stream", position: depth, thread: theme.name)
-                    }
-                }
+                FullCard(item: item, number: depth + 1, total: items.count, mode: "stream", open: {
+                    guard URL(string: item.url) != nil else { return }
+                    browsing = item
+                    store.setSeen([item], true, mode: "stream")
+                    store.record(item, .open, mode: "stream", position: depth, thread: theme.name)
+                }, text: {
+                    reading = item
+                    store.record(item, .read, mode: "stream", position: depth, thread: theme.name)
+                })
             }
-            .padding(.horizontal, 12)
+            .padding(.horizontal, 0)
             .padding(.vertical, 12)
         case .synthesis(let s):
             VStack(alignment: .leading, spacing: 14) {
@@ -117,7 +108,7 @@ private struct ThreadView: View {
         case .marker(let n):
             VStack(spacing: 8) {
                 Spacer()
-                Text("\(store.minutesThisSession) min · \(n) deep · \(acted.count) decided")
+                Text("\(store.minutesThisSession) min · \(n) deep · \(items.filter { store.isSeen($0.url) }.count) seen")
                     .font(.title3.weight(.semibold))
                 Text("Still in \(theme.name).").foregroundStyle(.secondary)
                 Spacer()
@@ -127,7 +118,7 @@ private struct ThreadView: View {
                 Spacer()
                 Image(systemName: "drop").font(.system(size: 40)).foregroundStyle(theme.color)
                 Text("That's everything you saved on this").font(.title3.weight(.semibold))
-                Text("\(acted.count) decided in this thread. Swipe sideways for the next thread, or stop here.")
+                Text("\(items.filter { store.isSeen($0.url) }.count) seen in this thread. Swipe sideways for the next thread, or stop here.")
                     .multilineTextAlignment(.center).foregroundStyle(.secondary)
                 Spacer()
             }
@@ -137,24 +128,6 @@ private struct ThreadView: View {
 
     private func depthLabel(_ depth: Int) -> String {
         depth == 1 ? "Near the first one" : "\(depth) steps in"
-    }
-
-    private func actions(_ item: Item, depth: Int) -> some View {
-        HStack(spacing: 10) {
-            ForEach([Decision.letGo, .send, .keep], id: \.self) { d in
-                Button {
-                    acted[item.id] = d
-                    feedback += 1
-                    store.record(item, d, mode: "stream", position: depth, thread: theme.name)
-                } label: {
-                    Label(d.label, systemImage: d.symbol)
-                        .frame(maxWidth: .infinity)
-                }
-                .buttonStyle(.bordered)
-                .tint(acted[item.id] == d ? d.color : .secondary)
-            }
-        }
-        .font(.callout)
     }
 }
 

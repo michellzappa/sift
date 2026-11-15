@@ -18,8 +18,8 @@ struct WebPane: View {
     var body: some View {
         let a = model.assignment(for: tab)
         content(a)
-            .onAppear { reader = opensInReader }
-            .onChange(of: tab.url) { reader = opensInReader }
+            .onAppear { reader = opensInReader; model.setSeen([tab.url], true) }
+            .onChange(of: tab.url) { reader = opensInReader; model.setSeen([tab.url], true) }
             .onChange(of: reader) { _, on in if on { page.stop() } }
     }
 

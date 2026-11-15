@@ -79,6 +79,8 @@ struct ContentView: View {
         // Coming back from System Settings: check Full Disk Access again.
         .onReceive(NotificationCenter.default.publisher(for: NSApplication.didBecomeActiveNotification)) { _ in
             if model.loadError != nil, !model.onboardingOpen { model.reload() }
+            // Seen marks from the phone and other Macs.
+            model.loadSeen()
         }
         // While the Setup Guide is open, it shows the review itself.
         .sheet(isPresented: .init(get: { model.themeProposal != nil && !model.onboardingOpen }, set: { if !$0 { model.themeProposal = nil } })) {
@@ -271,8 +273,11 @@ private struct Sidebar: View {
             }
             Section("Themes", isExpanded: $showThemes) {
                 ForEach(model.activeProjects, id: \.project) { item in
-                    HStack { Text(item.project); Spacer(); count(item.count) }
+                    // Unseen links, like an unread count; the total is in the help.
+                    let unseen = model.unseenCount(model.tabs(in: item.project))
+                    HStack { Text(item.project).fontWeight(unseen > 0 ? .semibold : .regular); Spacer(); count(unseen) }
                         .tag(SidebarItem.project(item.project))
+                        .help("\(unseen) unseen of \(item.count)")
                 }
             }
             Section("Sent to", isExpanded: $showActions) {

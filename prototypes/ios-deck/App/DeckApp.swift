@@ -7,15 +7,19 @@ import UniformTypeIdentifiers
 @main
 struct DeckApp: App {
     @State private var store = Store()
+    @Environment(\.scenePhase) private var phase
 
     var body: some Scene {
         WindowGroup {
             TabView {
                 DeckView().tabItem { Label("Deck", systemImage: "rectangle.stack") }
                 StreamView().tabItem { Label("Stream", systemImage: "arrow.down.to.line") }
+                ListsView().tabItem { Label("Lists", systemImage: "tray.full") }
                 LogView().tabItem { Label("Log", systemImage: "list.bullet.rectangle") }
             }
             .environment(store)
+            // Seen marks from the Mac, and a newer Deck, whenever the app comes back.
+            .onChange(of: phase) { _, p in if p == .active { store.sync() } }
         }
     }
 }
@@ -24,6 +28,7 @@ struct DeckApp: App {
 struct LogView: View {
     @Environment(Store.self) private var store
     @State private var importing = false
+    @State private var connecting = false
 
     var body: some View {
         NavigationStack {
@@ -36,6 +41,15 @@ struct LogView: View {
                     LabeledContent("Let go", value: "\(store.count(.letGo, since: since))")
                     LabeledContent("Later", value: "\(store.count(.later, since: since))")
                     LabeledContent("Threads opened", value: "\(Set(store.log.compactMap(\.thread)).count)")
+                }
+                Section {
+                    LabeledContent("Folder", value: store.connectedFolder ?? "Not connected")
+                    Button(store.connectedFolder == nil ? "Connect iCloud Drive/Sift…" : "Connect Again…") { connecting = true }
+                    Button("Sync Now") { store.sync() }.disabled(store.connectedFolder == nil)
+                } header: {
+                    Text("Sync with the Mac")
+                } footer: {
+                    Text("Pick the Sift folder in iCloud Drive once. The phone then reads the newest Deck and the seen marks from your Macs, and writes its own, every time it opens.")
                 }
                 Section {
                     LabeledContent("Items", value: "\(store.deck.items.count) in \(store.deck.themes.count) themes")
@@ -70,6 +84,9 @@ struct LogView: View {
             .navigationTitle("Log")
             .fileImporter(isPresented: $importing, allowedContentTypes: [.folder, .json]) { result in
                 if case .success(let url) = result { store.importDeck(from: url) }
+            }
+            .fileImporter(isPresented: $connecting, allowedContentTypes: [.folder]) { result in
+                if case .success(let url) = result { store.connect(folder: url) }
             }
         }
     }

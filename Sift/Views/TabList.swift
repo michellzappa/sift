@@ -11,6 +11,8 @@ struct TabList: View {
     @State private var showInspector = false
     @State private var showShortcutGuide = false
     @State private var siteFilter: String?
+    /// Only unseen links, like an unread filter in mail.
+    @AppStorage("list.unseenOnly") private var unseenOnly = false
     /// A saved search's links, loaded from the search index.
     @State private var savedHits: [SafariTab] = []
     /// Full-text matches for the filter: url to snippet, from the search index.
@@ -62,7 +64,8 @@ struct TabList: View {
     }
 
     private var rows: [SafariTab] {
-        let base = siteFilter.map { host in all.filter { $0.host == host } } ?? all
+        var base = siteFilter.map { host in all.filter { $0.host == host } } ?? all
+        if unseenOnly { base = base.filter { !model.isSeen($0.url) } }
         guard !search.isEmpty else { return base }
         return base.filter {
             textHits[$0.url] != nil
@@ -153,6 +156,13 @@ struct TabList: View {
                 .help("Keep this search in the sidebar.")
         }
         ToolbarItemGroup {
+            Toggle(isOn: $unseenOnly) { Label("Unseen Only", systemImage: "circle.inset.filled") }
+                .help("Show only links nobody has opened or marked as seen, on any device.")
+            Menu {
+                Button("Mark All as Seen") { model.setSeen(rows.map(\.url), true) }
+                Button("Mark All as Unseen") { model.setSeen(rows.map(\.url), false) }
+            } label: { Label("Seen", systemImage: "eye") }
+            .help("Mark every link in this list as seen or unseen.")
             if listSites.count > 1 {
                 Menu {
                     Button("All sites") { siteFilter = nil }
@@ -282,6 +292,10 @@ struct TabCard: View {
         .contentShape(Rectangle())
         .task(id: tab.url) { await model.preview(for: tab) }
         .contextMenu {
+            Button(model.isSeen(tab.url) ? "Mark as Unseen" : "Mark as Seen") {
+                model.setSeen([tab.url], !model.isSeen(tab.url))
+            }
+            Divider()
             Button("Open in Safari") { TabActions.openInSafari(tab.url) }
             Button("Add to Reading List") {
                 model.exportMessage = TabActions.addToReadingList(tab.url, title: cardTitle(preview), preview: bodyText(preview) ?? "")
@@ -343,9 +357,15 @@ struct TabCard: View {
                 .clipShape(RoundedRectangle(cornerRadius: 8))
                 .overlay(RoundedRectangle(cornerRadius: 8).strokeBorder(Color.primary.opacity(0.06)))
             VStack(alignment: .leading, spacing: 3) {
-                Text(cardTitle(preview))
-                    .font(.body.weight(.semibold))
-                    .lineLimit(1)
+                // Unseen reads like unread mail: a dot and a heavier title.
+                let seen = model.isSeen(tab.url)
+                HStack(spacing: 6) {
+                    if !seen { Circle().fill(Color.accentColor).frame(width: 7, height: 7) }
+                    Text(cardTitle(preview))
+                        .font(.body.weight(seen ? .regular : .semibold))
+                        .foregroundStyle(seen ? .secondary : .primary)
+                        .lineLimit(1)
+                }
                     .strikethrough(closing, color: .secondary)
                 HStack(spacing: 5) {
                     Image(systemName: tab.sourceSymbol).help("From \(tab.source)")

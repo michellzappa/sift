@@ -2,18 +2,16 @@ import SafariServices
 import SwiftUI
 
 /// The daily deck, vertical like a short-video app: swipe up for the next
-/// card. Seven cards, then an end page; nothing loads after it. Decisions
-/// are the buttons on the right edge. A tap opens the link in the in-app
+/// card, and the card you leave counts as seen. Seven unseen cards, then an
+/// end page; nothing loads after it. A tap opens the link in the in-app
 /// browser.
 struct DeckView: View {
     @Environment(Store.self) private var store
     @State private var cards: [Item] = []
-    @State private var decided: [String: Decision] = [:]
     @State private var theme: String?
     @State private var browsing: Item?
     @State private var reading: Item?
     @State private var position: String?
-    @State private var feedback = 0
 
     var body: some View {
         NavigationStack {
@@ -21,15 +19,13 @@ struct DeckView: View {
             ScrollView(.vertical) {
                 LazyVStack(spacing: 0) {
                     ForEach(Array(cards.enumerated()), id: \.element.id) { i, item in
-                        FullCard(item: item, number: i + 1, total: cards.count, decision: decided[item.id],
-                                 open: { open(item, i) }, text: { readText(item, i) }) { d in
-                            decide(item, d, i)
-                        }
+                        FullCard(item: item, number: i + 1, total: cards.count, mode: "deck",
+                                 open: { open(item, i) }, text: { readText(item, i) })
                         .frame(width: geo.size.width, height: geo.size.height)
                         .id(item.id)
                     }
                     if !cards.isEmpty {
-                        DeckEnd(decided: decided, total: cards.count, deal: deal)
+                        DeckEnd(seen: cards.filter { store.isSeen($0.url) }.count, total: cards.count, deal: deal)
                             .frame(width: geo.size.width, height: geo.size.height)
                             .id("end")
                     }
@@ -63,7 +59,6 @@ struct DeckView: View {
             }
             .sheet(item: $browsing) { InAppBrowser(url: URL(string: $0.url)!).ignoresSafeArea() }
             .sheet(item: $reading) { ReaderView(item: $0) }
-            .sensoryFeedback(.impact(weight: .medium), trigger: feedback)
             .onAppear { if cards.isEmpty { deal() } }
         }
     }
@@ -71,6 +66,7 @@ struct DeckView: View {
     private func open(_ item: Item, _ i: Int) {
         guard URL(string: item.url) != nil else { return }
         store.record(item, .open, mode: "deck", position: i)
+        store.setSeen([item], true, mode: "deck")
         browsing = item
     }
 
@@ -79,34 +75,24 @@ struct DeckView: View {
         reading = item
     }
 
-    private func decide(_ item: Item, _ d: Decision, _ i: Int) {
-        decided[item.id] = d
-        feedback += 1
-        store.record(item, d, mode: "deck", position: i)
-        // A decision moves on to the next card, like a swipe up.
-        let next = i + 1 < cards.count ? cards[i + 1].id : "end"
-        DispatchQueue.main.asyncAfter(deadline: .now() + 0.25) {
-            withAnimation(.snappy) { position = next }
-        }
-    }
-
     private func deal() {
         cards = store.deal(theme: theme)
-        decided = [:]
         position = cards.first?.id
     }
 }
 
-/// One full-height card with the action rail on the right.
+/// One full-height card. A card on screen for a second counts as seen when
+/// you swipe on, like a mail you opened. The rail has the saved text and a
+/// switch back to unseen.
 struct FullCard: View {
     @Environment(Store.self) private var store
     let item: Item
     let number: Int
     let total: Int
-    let decision: Decision?
+    let mode: String
     let open: () -> Void
     let text: () -> Void
-    let decide: (Decision) -> Void
+    @State private var shownAt: Date?
 
     var body: some View {
         HStack(alignment: .bottom, spacing: 10) {
@@ -120,25 +106,28 @@ struct FullCard: View {
                         .background(.ultraThinMaterial, in: Capsule())
                         .padding(10)
                 }
-            ActionRail(item: item, decision: decision, text: text, decide: decide)
+            ActionRail(item: item, text: text, mode: mode)
         }
         .padding(.horizontal, 12)
         .padding(.vertical, 10)
+        .onAppear { shownAt = Date() }
+        .onDisappear {
+            if let shownAt, Date().timeIntervalSince(shownAt) > 1 { store.setSeen([item], true, mode: mode) }
+            shownAt = nil
+        }
     }
 }
 
-/// Keep, send, let go, and the saved text. The chosen one stays lit.
+/// The saved text, and seen or unseen. Nothing else: swiping on is the decision.
 struct ActionRail: View {
+    @Environment(Store.self) private var store
     let item: Item
-    let decision: Decision?
     let text: () -> Void
-    let decide: (Decision) -> Void
+    let mode: String
 
     var body: some View {
+        let seen = store.isSeen(item.url)
         VStack(spacing: 18) {
-            railButton(.keep)
-            railButton(.send)
-            railButton(.letGo)
             Button(action: text) {
                 VStack(spacing: 3) {
                     Image(systemName: item.transcript.isEmpty ? "doc.plaintext" : "captions.bubble")
@@ -150,28 +139,25 @@ struct ActionRail: View {
             }
             .buttonStyle(.plain)
             .disabled(item.text.isEmpty && item.transcript.isEmpty && item.passage.isEmpty)
+            Button { store.setSeen([item], !seen, mode: mode) } label: {
+                VStack(spacing: 3) {
+                    Image(systemName: seen ? "eye" : "circle.fill")
+                        .font(seen ? .title3 : .body)
+                        .foregroundStyle(seen ? Color.primary : Color.accentColor)
+                        .frame(width: 46, height: 46)
+                        .background(Circle().fill(Color(.tertiarySystemFill)))
+                    Text(seen ? "Seen" : "Unseen").font(.caption2)
+                }
+            }
+            .buttonStyle(.plain)
         }
         .padding(.bottom, 24)
-    }
-
-    private func railButton(_ d: Decision) -> some View {
-        Button { decide(d) } label: {
-            VStack(spacing: 3) {
-                Image(systemName: d.symbol)
-                    .font(.title3.weight(.semibold))
-                    .frame(width: 46, height: 46)
-                    .background(Circle().fill(decision == d ? d.color : Color(.tertiarySystemFill)))
-                    .foregroundStyle(decision == d ? .white : .primary)
-                Text(d.label).font(.caption2)
-            }
-        }
-        .buttonStyle(.plain)
     }
 }
 
 /// The last page: what you did, and no automatic next.
 private struct DeckEnd: View {
-    let decided: [String: Decision]
+    let seen: Int
     let total: Int
     let deal: () -> Void
 
@@ -179,15 +165,8 @@ private struct DeckEnd: View {
         VStack(spacing: 16) {
             Image(systemName: "checkmark.seal").font(.system(size: 44)).foregroundStyle(.green)
             Text("That's today's deck").font(.title2.weight(.semibold))
-            HStack(spacing: 18) {
-                ForEach([Decision.keep, .send, .letGo], id: \.self) { d in
-                    VStack {
-                        Text("\(decided.values.filter { $0 == d }.count)").font(.title.weight(.bold)).foregroundStyle(d.color)
-                        Text(d.label).font(.caption).foregroundStyle(.secondary)
-                    }
-                }
-            }
-            Text("\(total - decided.count) passed without a decision. They come back in a later deck.")
+            Text("\(seen) of \(total) seen").font(.title3).foregroundStyle(.secondary)
+            Text("Seen links show as seen on your Mac too. Anything you marked unseen comes back in a later deck.")
                 .font(.callout).foregroundStyle(.secondary).multilineTextAlignment(.center)
             Spacer().frame(height: 20)
             // Deliberately quiet: another deck is a choice, not the default.

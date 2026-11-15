@@ -112,9 +112,17 @@ final class AppModel {
     // Export
     var exportMessage: String?
 
+    // MARK: Seen (AppModel+Seen.swift, Storage/Seen.swift)
+    /// Newest seen or unseen mark per URL, from every device.
+    var seenMarks: [String: SeenMark] = [:]
+    /// The marks this Mac made: its own file in iCloud Drive/Sift/seen.
+    @ObservationIgnored var ownSeen: [String: SeenMark] = [:]
+    @ObservationIgnored var seenSaveTask: Task<Void, Never>?
+
     init() {
         if Demo.isOn { Demo.start() }
         state = StateFile.load()
+        loadSeen()
         if !Demo.isOn { Task { await migrateStarlingsDestinations() } }
         reload()
         settleOnboardingForExistingInstall()

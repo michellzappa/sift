@@ -312,3 +312,15 @@ The one exception is anonymous diagnostics (owner, 2026-11-15, below).
   Inputs, Library, Outputs, Intelligence, Themes, Privacy, About (ids are
   the lowercase names; `-demoView settings:<id>`). A new pane is one more
   `SettingsPane` in `SettingsView.panes`.
+- Seen and unseen (2026-11-15, owner: "swipe = seen", email-style).
+  `Storage/Seen.swift` + `App/AppModel+Seen.swift`. Each device writes only
+  its own file, `iCloud Drive/Sift/seen/<mac|iphone>-<id>.json` (URL →
+  `{seen, at}`); every device reads all of them and the newest mark per URL
+  wins. No server, no shared file, so iCloud never sees a write conflict.
+  A link is unseen until opened (web pane) or marked. Sidebar theme counts
+  are unseen counts; lists have Unseen Only and Mark All as Seen. Loaded on
+  launch, with each library round and when Sift becomes active. Not yet in
+  search.sqlite or sift-mcp. The iOS prototype (`prototypes/ios-deck`) uses
+  the same files: a card on screen for a second counts as seen when you
+  swipe on.
+

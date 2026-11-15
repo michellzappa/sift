@@ -88,7 +88,7 @@ struct Synthesis: Codable, Sendable, Hashable {
 // MARK: - Decisions
 
 enum Decision: String, Codable, Sendable, CaseIterable {
-    case keep, letGo, send, later, read, open
+    case keep, letGo, send, later, read, open, seen, unseen
 
     var label: String {
         switch self {
@@ -98,6 +98,8 @@ enum Decision: String, Codable, Sendable, CaseIterable {
         case .later: "Later"
         case .read: "Read"
         case .open: "Open"
+        case .seen: "Seen"
+        case .unseen: "Unseen"
         }
     }
     var symbol: String {
@@ -108,6 +110,8 @@ enum Decision: String, Codable, Sendable, CaseIterable {
         case .later: "clock"
         case .read: "book"
         case .open: "safari"
+        case .seen: "eye"
+        case .unseen: "eye.slash"
         }
     }
     var color: Color {
@@ -118,6 +122,8 @@ enum Decision: String, Codable, Sendable, CaseIterable {
         case .later: .orange
         case .read: .purple
         case .open: .teal
+        case .seen: .gray
+        case .unseen: .blue
         }
     }
 }
@@ -141,6 +147,13 @@ final class Store {
     var log: [LogEntry] = []
     var sessionStart = Date()
     var error: String?
+    /// Newest seen or unseen mark per URL from every device (Sync.swift).
+    var seenMarks: [String: SeenMark] = [:]
+    /// Marks made on this phone: its own file in iCloud Drive/Sift/seen.
+    @ObservationIgnored var ownSeen: [String: SeenMark] = [:]
+    @ObservationIgnored var saveTask: Task<Void, Never>?
+    /// The iCloud Drive/Sift folder, once the user picked it.
+    var connectedFolder: String?
 
     private static var documents: URL { FileManager.default.urls(for: .documentDirectory, in: .userDomainMask)[0] }
     static var deckURL: URL { documents.appending(path: "deck.json") }
@@ -158,6 +171,9 @@ final class Store {
     init() {
         deck = Store.loadDeck() ?? Deck(schema: 1, demo: true, themes: [], items: [], synthesis: [])
         log = Store.loadLog()
+        ownSeen = Store.loadOwnSeen()
+        seenMarks = ownSeen
+        sync()
     }
 
     var byID: [String: Item] { Dictionary(deck.items.map { ($0.id, $0) }, uniquingKeysWith: { a, _ in a }) }
@@ -234,9 +250,9 @@ final class Store {
 
     // MARK: Deck and thread building
 
-    /// Seven undecided items: one theme, or a spread over themes.
+    /// Seven unseen items: one theme, or a spread over themes.
     func deal(theme: String? = nil, size: Int = 7) -> [Item] {
-        let done = decided
+        let done = Set(deck.items.filter { isSeen($0.url) }.map(\.id))
         let pool = deck.items.filter { !done.contains($0.id) && (theme == nil || $0.theme == theme) }
         if theme != nil { return Array(pool.shuffled().prefix(size)) }
         var byTheme = Dictionary(grouping: pool, by: \.theme).mapValues { $0.shuffled() }

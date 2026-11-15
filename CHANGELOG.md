@@ -9,6 +9,13 @@ ships this file and shows it in Settings > About and in Sift > Version
 History. Headings are `## X.Y.Z - YYYY-MM-DD`; groups are `### Added`,
 `### Changed` and `### Fixed`.
 
+## 0.6.0 - 2026-11-15
+
+### Added
+
+- **Seen and unseen, like read and unread mail.** Unseen links have a dot and a bold title. Opening a link marks it seen; right-click switches it. Each list has an Unseen Only switch and Mark All as Seen, and the sidebar counts unseen links per theme.
+- **Seen syncs between your devices** through plain files in iCloud Drive/Sift/seen, one per device. The newest mark wins. There is no server.
+
 ## 0.5.3 - 2026-11-15
 
 ### Changed

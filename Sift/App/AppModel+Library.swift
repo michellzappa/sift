@@ -100,6 +100,8 @@ extension AppModel {
 
     /// Starts every background library job that has work and is not running.
     func startLibraryJobs() {
+        // Seen marks from the other devices come in with each round.
+        loadSeen()
         checkDataProblems()
         // Demo mode: no capture, transcripts, images or summaries.
         guard !Demo.isOn else { return }
