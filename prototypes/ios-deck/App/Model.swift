@@ -1,0 +1,244 @@
+import Foundation
+import Observation
+import SwiftUI
+
+// The deck.json that export-deck.py writes from the Mac's Sift data.
+
+struct Deck: Codable, Sendable {
+    var schema: Int
+    var demo: Bool
+    var themes: [Theme]
+    var items: [Item]
+    var synthesis: [Synthesis]
+}
+
+struct Theme: Codable, Sendable, Identifiable, Hashable {
+    var name: String
+    var summary: String
+    var hue: Double
+    var count: Int
+    var id: String { name }
+    var color: Color { Color(hue: hue / 360, saturation: 0.55, brightness: 0.78) }
+}
+
+struct Item: Codable, Sendable, Identifiable, Hashable {
+    var id: String
+    var url: String
+    var title: String
+    var theme: String
+    var kind: String
+    var site: String
+    var author: String?
+    var saved: String?
+    var duration: Int?
+    var summary: String
+    var passage: String
+    var transcript: String
+    var text: String
+    var image: String?
+    var also: [String]
+    var neighbours: [String]
+
+    var isVideo: Bool { kind == "video" || site.contains("youtube") }
+    var symbol: String {
+        switch kind {
+        case "video": "play.rectangle"
+        case "post": site.contains("instagram") ? "camera" : "text.bubble"
+        case "pdf": "doc.richtext"
+        default: "doc.text"
+        }
+    }
+    var length: String? {
+        guard let duration, duration > 0 else { return nil }
+        return duration >= 3600 ? "\(duration / 3600) h \(duration % 3600 / 60) min" : "\(max(1, duration / 60)) min"
+    }
+    /// What the card shows under the title: transcript before passage before summary.
+    var excerpt: String {
+        if !transcript.isEmpty { return String(transcript.prefix(420)) + (transcript.count > 420 ? "…" : "") }
+        if !passage.isEmpty { return passage }
+        return ""
+    }
+}
+
+struct Synthesis: Codable, Sendable, Hashable {
+    var theme: String
+    var text: String
+    var items: [String]
+}
+
+// MARK: - Decisions
+
+enum Decision: String, Codable, Sendable, CaseIterable {
+    case keep, letGo, send, later, read
+
+    var label: String {
+        switch self {
+        case .keep: "Keep"
+        case .letGo: "Let go"
+        case .send: "Send"
+        case .later: "Later"
+        case .read: "Read"
+        }
+    }
+    var symbol: String {
+        switch self {
+        case .keep: "checkmark"
+        case .letGo: "xmark"
+        case .send: "paperplane"
+        case .later: "clock"
+        case .read: "book"
+        }
+    }
+    var color: Color {
+        switch self {
+        case .keep: .green
+        case .letGo: .red
+        case .send: .blue
+        case .later: .orange
+        case .read: .purple
+        }
+    }
+}
+
+/// One line in log.jsonl. The prototype only logs; nothing reaches Sift.
+struct LogEntry: Codable, Sendable {
+    var at: Date
+    var mode: String          // deck | stream
+    var item: String
+    var theme: String
+    var decision: Decision
+    var note: String?
+    var position: Int         // place in the deck or depth in the thread
+    var thread: String?
+}
+
+@MainActor
+@Observable
+final class Store {
+    var deck: Deck
+    var log: [LogEntry] = []
+    var sessionStart = Date()
+    var error: String?
+
+    private static var documents: URL { FileManager.default.urls(for: .documentDirectory, in: .userDomainMask)[0] }
+    static var deckURL: URL { documents.appending(path: "deck.json") }
+    static var logURL: URL { documents.appending(path: "log.jsonl") }
+
+    init() {
+        deck = Store.loadDeck() ?? Deck(schema: 1, demo: true, themes: [], items: [], synthesis: [])
+        log = Store.loadLog()
+    }
+
+    var byID: [String: Item] { Dictionary(deck.items.map { ($0.id, $0) }, uniquingKeysWith: { a, _ in a }) }
+    func theme(_ name: String) -> Theme? { deck.themes.first { $0.name == name } }
+    func color(_ name: String) -> Color { theme(name)?.color ?? .gray }
+
+    /// Items with a decision other than later or read.
+    var decided: Set<String> {
+        Set(log.filter { $0.decision != .later && $0.decision != .read }.map(\.item))
+    }
+
+    private static func loadDeck() -> Deck? {
+        let decoder = JSONDecoder()
+        if let data = try? Data(contentsOf: deckURL), let d = try? decoder.decode(Deck.self, from: data) { return d }
+        if let url = Bundle.main.url(forResource: "sample-deck", withExtension: "json"),
+           let data = try? Data(contentsOf: url) { return try? decoder.decode(Deck.self, from: data) }
+        return nil
+    }
+
+    private static func loadLog() -> [LogEntry] {
+        guard let text = try? String(contentsOf: logURL, encoding: .utf8) else { return [] }
+        let decoder = JSONDecoder()
+        decoder.dateDecodingStrategy = .iso8601
+        return text.split(separator: "\n").compactMap { try? decoder.decode(LogEntry.self, from: Data($0.utf8)) }
+    }
+
+    /// Copies a deck.json the user picked in Files (from iCloud Drive/Sift).
+    func importDeck(from url: URL) {
+        let scoped = url.startAccessingSecurityScopedResource()
+        defer { if scoped { url.stopAccessingSecurityScopedResource() } }
+        do {
+            let data = try Data(contentsOf: url)
+            let d = try JSONDecoder().decode(Deck.self, from: data)
+            try data.write(to: Self.deckURL, options: .atomic)
+            deck = d
+            error = nil
+        } catch {
+            self.error = "That file is not a deck.json from export-deck.py. \(error.localizedDescription)"
+        }
+    }
+
+    func record(_ item: Item, _ decision: Decision, mode: String, position: Int, thread: String? = nil, note: String? = nil) {
+        let entry = LogEntry(at: Date(), mode: mode, item: item.id, theme: item.theme, decision: decision,
+                             note: note, position: position, thread: thread)
+        log.append(entry)
+        let encoder = JSONEncoder()
+        encoder.dateEncodingStrategy = .iso8601
+        guard let line = try? encoder.encode(entry) else { return }
+        let data = line + Data("\n".utf8)
+        if let handle = try? FileHandle(forWritingTo: Self.logURL) {
+            handle.seekToEndOfFile()
+            handle.write(data)
+            try? handle.close()
+        } else {
+            try? data.write(to: Self.logURL)
+        }
+    }
+
+    func clearLog() {
+        log = []
+        try? FileManager.default.removeItem(at: Self.logURL)
+    }
+
+    // MARK: Deck and thread building
+
+    /// Seven undecided items: one theme, or a spread over themes.
+    func deal(theme: String? = nil, size: Int = 7) -> [Item] {
+        let done = decided
+        let pool = deck.items.filter { !done.contains($0.id) && (theme == nil || $0.theme == theme) }
+        if theme != nil { return Array(pool.shuffled().prefix(size)) }
+        var byTheme = Dictionary(grouping: pool, by: \.theme).mapValues { $0.shuffled() }
+        var out: [Item] = []
+        while out.count < size, !byTheme.isEmpty {
+            for key in byTheme.keys.shuffled() where out.count < size {
+                if var list = byTheme[key], let first = list.first {
+                    out.append(first)
+                    list.removeFirst()
+                    byTheme[key] = list.isEmpty ? nil : list
+                }
+            }
+        }
+        return out
+    }
+
+    /// A thread: start at the theme's best undecided item and walk the
+    /// neighbours, depth first, staying near the start. Never changes theme
+    /// by itself beyond the neighbours' own links.
+    func thread(theme: String, limit: Int = 14) -> [Item] {
+        let map = byID
+        let done = decided
+        let candidates = deck.items.filter { $0.theme == theme && !done.contains($0.id) }
+        guard let start = candidates.first(where: { !$0.transcript.isEmpty || !$0.summary.isEmpty }) ?? candidates.first else { return [] }
+        var out: [Item] = [start]
+        var seen: Set<String> = [start.id]
+        var frontier = start.neighbours
+        while out.count < limit, !frontier.isEmpty {
+            let next = frontier.removeFirst()
+            guard !seen.contains(next), !done.contains(next), let item = map[next] else { continue }
+            seen.insert(next)
+            out.append(item)
+            frontier.insert(contentsOf: item.neighbours.filter { !seen.contains($0) }, at: 0)
+        }
+        return out
+    }
+
+    func synthesis(for theme: String) -> Synthesis? { deck.synthesis.first { $0.theme == theme } }
+
+    // MARK: Numbers
+
+    var minutesThisSession: Int { Int(Date().timeIntervalSince(sessionStart) / 60) }
+    func count(_ d: Decision, since: Date? = nil) -> Int {
+        log.filter { $0.decision == d && (since == nil || $0.at >= since!) }.count
+    }
+    var weekStart: Date { Calendar.current.date(byAdding: .day, value: -7, to: Date())! }
+}

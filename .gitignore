@@ -20,3 +20,7 @@ __pycache__/
 
 # Wrangler cache (telemetry Worker)
 .wrangler/
+
+# iOS deck prototype: exported deck.json is personal browsing data
+prototypes/ios-deck/deck.json
+prototypes/ios-deck/*.xcodeproj
