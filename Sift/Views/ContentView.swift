@@ -62,6 +62,12 @@ struct ContentView: View {
             }
         }
         .toolbar { toolbar }
+        // Shortcuts and the command palette move the sidebar through the model.
+        .onChange(of: model.navigationRequest) { _, item in
+            guard let item else { return }
+            selection = item
+            model.navigationRequest = nil
+        }
         .overlay(alignment: .bottom) {
             if let notice = model.notice {
                 Label(notice, systemImage: "dot.radiowaves.up.forward")

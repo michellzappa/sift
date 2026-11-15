@@ -116,6 +116,9 @@ final class AppModel {
     var isFetchingFeeds = false
     /// Opens the Add Feed sheet (toolbar, File menu, Settings).
     var showAddFeed = false
+    /// Ask the main window to show a sidebar item (keyboard shortcuts, the
+    /// command palette). ContentView applies it and sets it back to nil.
+    var navigationRequest: SidebarItem?
     /// A notice that fades (AppModel+Feeds `note`), shown at the window's foot.
     var notice: String?
     @ObservationIgnored var noticeTask: Task<Void, Never>?
