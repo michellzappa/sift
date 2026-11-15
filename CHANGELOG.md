@@ -9,6 +9,11 @@ ships this file and shows it in Settings > About and in Sift > Version
 History. Headings are `## X.Y.Z - YYYY-MM-DD`; groups are `### Added`,
 `### Changed` and `### Fixed`.
 
+## 1.5.5 - 2026-11-15
+
+### Added
+- New Themes from Unsorted (Sort menu in the Library box, and Settings > Themes): Claude reads only the links in no theme and proposes new themes for the ones that fit none of yours. Your themes and their links stay as they are. The review shows the new themes first, then the links that fit a theme you have; Add Themes and Sort files both.
+
 ## 1.5.4 - 2026-11-15
 
 ### Added

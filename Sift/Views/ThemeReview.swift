@@ -6,6 +6,7 @@ struct ThemeReview: View {
     @Environment(AppModel.self) private var model
     @Environment(\.dismiss) private var dismiss
     @State private var rows: [Row] = []
+    private var additive: Bool { model.themeProposalAdditive }
 
     struct Row: Identifiable {
         let id = UUID()
@@ -16,8 +17,10 @@ struct ThemeReview: View {
     var body: some View {
         VStack(alignment: .leading, spacing: 0) {
             VStack(alignment: .leading, spacing: 6) {
-                Text("Themes in your links").font(.title2.weight(.semibold))
-                Text("Claude read \(model.proposalURLs.count) links and found these themes. Rename any theme, untick the ones you do not want, then use them. Links in an unticked theme become unsorted. \"errands\", \"personal\" and \"noise\" go to their buckets.")
+                Text(additive ? "New themes for unsorted links" : "Themes in your links").font(.title2.weight(.semibold))
+                Text(additive
+                     ? "Claude read \(model.proposalURLs.count) links that are in no theme. Your current themes stay as they are. New themes come first: rename any, untick the ones you do not want. Below them, the links that fit a theme you have. Unticked links stay unsorted. \"errands\", \"personal\" and \"noise\" go to their buckets."
+                     : "Claude read \(model.proposalURLs.count) links and found these themes. Rename any theme, untick the ones you do not want, then use them. Links in an unticked theme become unsorted. \"errands\", \"personal\" and \"noise\" go to their buckets.")
                     .foregroundStyle(.secondary)
                     .fixedSize(horizontal: false, vertical: true)
             }
@@ -28,11 +31,16 @@ struct ThemeReview: View {
                     Toggle("", isOn: $row.include).labelsHidden()
                     VStack(alignment: .leading, spacing: 4) {
                         HStack {
-                            TextField("Name", text: $row.proposal.name)
-                                .textFieldStyle(.plain)
-                                .font(.headline)
+                            if row.proposal.kind == "existing" {
+                                Text(row.proposal.name).font(.headline)
+                            } else {
+                                TextField("Name", text: $row.proposal.name)
+                                    .textFieldStyle(.plain)
+                                    .font(.headline)
+                            }
                             Spacer()
-                            Text(row.proposal.kind).font(.caption).foregroundStyle(.secondary)
+                            Text(additive && row.proposal.kind != "existing" && !["noise", "personal", "errand"].contains(row.proposal.kind) ? "new" : row.proposal.kind)
+                                .font(.caption).foregroundStyle(.secondary)
                             Text("\(row.proposal.itemIDs.count)").monospacedDigit().foregroundStyle(.secondary)
                         }
                         Text(row.proposal.description).font(.callout).foregroundStyle(.secondary)
@@ -51,9 +59,13 @@ struct ThemeReview: View {
             HStack {
                 Text("\(rows.filter(\.include).count) of \(rows.count) themes").foregroundStyle(.secondary)
                 Spacer()
-                Button("Cancel") { model.themeProposal = nil; dismiss() }
-                Button("Use These Themes") {
-                    model.applyThemes(rows.filter(\.include).map(\.proposal))
+                Button("Cancel") { model.themeProposal = nil; model.themeProposalAdditive = false; dismiss() }
+                Button(additive ? "Add Themes and Sort" : "Use These Themes") {
+                    if additive {
+                        model.applyNewThemes(rows.filter(\.include).map(\.proposal))
+                    } else {
+                        model.applyThemes(rows.filter(\.include).map(\.proposal))
+                    }
                     dismiss()
                 }
                 .keyboardShortcut(.defaultAction)

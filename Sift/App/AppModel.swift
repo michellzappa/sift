@@ -84,6 +84,9 @@ final class AppModel {
     // Themes and connections
     var isDiscovering = false
     var themeProposal: [Sorter.ThemeProposal]?
+    /// The proposal adds themes for unsorted links and keeps the current ones
+    /// (`discoverNewThemes`), instead of replacing the set.
+    var themeProposalAdditive = false
     /// The URLs the proposal's item ids point at, in order.
     var proposalURLs: [String] = []
     /// The theme the graph is zoomed into. The sidebar selects it too.

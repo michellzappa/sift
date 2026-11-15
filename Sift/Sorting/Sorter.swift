@@ -134,6 +134,61 @@ struct Sorter: Sendable {
         return try await Self.ask(backend: backend, system: system, user: user, schema: schema, as: Themes.self).themes
     }
 
+    /// New themes for links that fit none of the current ones (owner,
+    /// 2026-11-15: add themes for what does not fit, keep the rest). The
+    /// current themes stay as they are: a link that fits one goes under its
+    /// exact name with kind "existing". Only the rest form new themes.
+    func discoverNewThemes(_ items: [Item], existing: [Project]) async throws -> [ThemeProposal] {
+        let system = """
+            One person sorts their saved links into themes. These themes exist and stay exactly as they are \
+            (do not rename, merge or split them):
+            \(existing.map { "- \($0.name): \($0.summary)" }.joined(separator: "\n"))
+
+            The links below are in no theme yet. Put each link that clearly fits an existing theme under that \
+            theme's exact name, with kind "existing". Group the links that fit none into NEW themes: a new theme \
+            is a sustained interest that several links feed, named the way the person would title it: short, \
+            concrete, in Title Case (keep "and", "of", "on", "for", "the" lowercase; write proper nouns and \
+            acronyms as written). Propose only as many new themes as the links call for, usually 2 to 8, and \
+            never one that repeats an existing theme. Put links with no lasting value (viral bait, music \
+            mixes, game clips, one-off curiosities, pages with no real title) in one theme named "noise" with \
+            kind noise. Put transactional pages in one theme named "errands" with kind errand. Put private life \
+            interests that are not work or a hobby (housing, travel, TV) in one theme named "personal" with \
+            kind personal. Every id goes in exactly one theme.
+
+            For each theme give a one-sentence description, a kind (existing, work, research, personal, hobby, \
+            noise, errand), suggested_destination ("none yet" is fine), a short "why", and continues = "".
+            """
+        let user = "Links (id, site, title, text):\n" + items.enumerated().map { index, item in
+            let host = URL(string: item.url)?.host() ?? ""
+            return "\(index)\t\(host)\t\(item.title.isEmpty ? "(no title)" : item.title.prefix(120))\t\(item.preview.prefix(100))"
+                .replacingOccurrences(of: "\n", with: " ")
+        }.joined(separator: "\n")
+        let schema: [String: Any] = [
+            "type": "object", "additionalProperties": false, "required": ["themes"],
+            "properties": ["themes": ["type": "array", "items": [
+                "type": "object", "additionalProperties": false,
+                "required": ["name", "description", "kind", "suggested_destination", "why", "continues", "item_ids"],
+                "properties": [
+                    "name": ["type": "string"], "description": ["type": "string"],
+                    "kind": ["type": "string", "enum": ["existing", "work", "research", "personal", "hobby", "noise", "errand"]],
+                    "suggested_destination": ["type": "string"], "why": ["type": "string"],
+                    "continues": ["type": "string"],
+                    "item_ids": ["type": "array", "items": ["type": "integer"]],
+                ],
+            ]]],
+        ]
+        struct Themes: Decodable { let themes: [ThemeProposal] }
+        let names = Dictionary(existing.map { ($0.name.lowercased(), $0.name) }, uniquingKeysWith: { a, _ in a })
+        return try await Self.ask(backend: backend, system: system, user: user, schema: schema, as: Themes.self).themes.map { p in
+            var p = p
+            // An existing name always counts as existing, in its exact spelling;
+            // an "existing" theme that matches no name is a new one.
+            if let exact = names[p.name.lowercased()] { p.name = exact; p.kind = "existing" }
+            else if p.kind == "existing" { p.kind = "research" }
+            return p
+        }
+    }
+
     /// Which other themes each link also feeds, beyond the one it is in.
     /// Most links feed one theme; the answer lists only clear second uses.
     func connections(_ items: [(item: Item, theme: String)], themes: [Project]) async throws -> [Int: [String]] {

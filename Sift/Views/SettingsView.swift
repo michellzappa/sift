@@ -614,8 +614,14 @@ private struct ThemeSettings: View {
             } header: {
                 Text("Themes")
             } footer: {
-                Button("Discover Themes Again") { Task { await model.discoverThemes() } }
-                    .disabled(model.isDiscovering || model.isSorting)
+                HStack {
+                    Button("New Themes from Unsorted") { Task { await model.discoverNewThemes() } }
+                        .disabled(model.isDiscovering || model.isSorting || model.unsortedCount == 0)
+                        .help("Proposes themes for links that fit none of yours. Your themes stay as they are.")
+                    Button("Discover Themes Again") { Task { await model.discoverThemes() } }
+                        .disabled(model.isDiscovering || model.isSorting)
+                        .help("Reads every link and rebuilds the theme set. Your themes are kept by name where they still fit.")
+                }
             }
             Section("Add a theme by hand") {
                 TextField("Name", text: $newName)

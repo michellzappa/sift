@@ -24,6 +24,7 @@ extension AppModel {
         guard !isDiscovering, !isSorting else { return }
         isDiscovering = true
         sortError = nil
+        themeProposalAdditive = false
         defer { isDiscovering = false }
 
         var corpus: [SafariTab] = []
@@ -60,6 +61,62 @@ extension AppModel {
         } catch {
             sortError = error.localizedDescription
         }
+    }
+
+    /// New themes for the links in no theme; the current themes and their
+    /// links stay as they are. Opens the review in additive mode.
+    func discoverNewThemes() async {
+        guard !Demo.isOn else { sortError = Demo.offMessage; return }
+        guard !isDiscovering, !isSorting, !themes.isEmpty else { return }
+        var corpus = tabs.filter { state.assignments[$0.url] == nil && !Errands.isErrand($0.url) }
+        var seen = Set<String>()
+        corpus.removeAll { !seen.insert($0.url).inserted }
+        guard !corpus.isEmpty else { return }
+        isDiscovering = true
+        sortError = nil
+        defer { isDiscovering = false }
+        await fetchPreviews(for: corpus.filter { !$0.hasUsefulTitle })
+        do {
+            let result = try await Sorter(backend: state.backend).discoverNewThemes(corpus.map(sortItem), existing: themes)
+            proposalURLs = corpus.map(\.url)
+            themeProposalAdditive = true
+            // New themes first (largest first), then the existing ones.
+            themeProposal = result.sorted { ($0.kind == "existing" ? 1 : 0, -$0.itemIDs.count) < ($1.kind == "existing" ? 1 : 0, -$1.itemIDs.count) }
+        } catch {
+            sortError = error.localizedDescription
+        }
+    }
+
+    /// Adds the accepted new themes and files the accepted links. Current
+    /// themes, their links and hand moves are untouched. Links in an unticked
+    /// row stay unsorted.
+    func applyNewThemes(_ accepted: [Sorter.ThemeProposal]) {
+        var s = state
+        let current = Set(s.extraProjects.filter(\.isTheme).map(\.name))
+        let day = Date.now.formatted(.iso8601.year().month().day())
+        for theme in accepted {
+            let bucket: String? = switch theme.kind {
+            case "noise": Project.drop
+            case "personal": Project.personal
+            case "errand": Project.errands
+            default: nil
+            }
+            let name = bucket ?? theme.name
+            if bucket == nil && theme.kind != "existing" && !current.contains(theme.name) {
+                var p = Project(name: theme.name, summary: theme.description, destination: theme.destination)
+                p.history.append("\(day): found among unsorted links, \(theme.itemIDs.count) links")
+                s.extraProjects.append(p)
+            }
+            for id in theme.itemIDs where proposalURLs.indices.contains(id) {
+                let url = proposalURLs[id]
+                guard s.assignments[url] == nil else { continue }
+                s.assignments[url] = Assignment(project: name, use: "", manual: false, action: nil, sortedBy: "claude")
+            }
+        }
+        state = s
+        themeProposal = nil
+        themeProposalAdditive = false
+        Task { await findConnections() }
     }
 
     /// Makes the accepted themes Sift's categories. Links in a "personal" or

@@ -580,3 +580,12 @@ The one exception is anonymous diagnostics (owner, 2026-11-15, below).
 - Install and icons: `build-app.sh` unregisters the build copy in
   build/DerivedData from LaunchServices; a registered build copy kept the
   old icon in the Dock.
+- New Themes from Unsorted (2026-11-15, owner: add themes for what does not
+  fit, keep the rest). `AppModel.discoverNewThemes` sends only unsorted,
+  non-errand links (preview cut to 100 characters) to
+  `Sorter.discoverNewThemes` with the current themes fixed; a link that
+  fits one comes back under its exact name with kind "existing".
+  `themeProposalAdditive` puts ThemeReview in additive mode;
+  `applyNewThemes` appends new themes and fills only empty assignments
+  (never a hand move, never a sorted link). Discover Themes Again still
+  rebuilds the whole set and resets the mode.

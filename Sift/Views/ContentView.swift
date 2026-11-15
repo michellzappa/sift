@@ -669,10 +669,12 @@ private struct LibraryStatus: View {
                     Spacer()
                     Menu("Sort") {
                         Button("Sort into Themes") { Task { await model.sortUnsorted() } }
+                        Button("New Themes from Unsorted") { Task { await model.discoverNewThemes() } }
+                        Divider()
                         Button("Discover Themes Again") { Task { await model.discoverThemes() } }
                     } primaryAction: { Task { await model.sortUnsorted() } }
                     .menuStyle(.button).controlSize(.mini).fixedSize()
-                    .help("Sort puts each link into one of your themes. Discover Themes Again (in the menu) is rare: Claude reads everything and may propose new themes.")
+                    .help("Sort puts each link into one of your themes. New Themes from Unsorted proposes themes for links that fit none and keeps your themes. Discover Themes Again is rare: Claude reads everything and rebuilds the theme set.")
                 }
             }
             // Every running or paused job, from the one list (Activity.swift).
