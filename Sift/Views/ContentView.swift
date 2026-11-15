@@ -402,44 +402,37 @@ private struct SafariAccessBanner: View {
 
 /// Says when the current source has links that are in no theme yet (for
 /// example right after adding Instagram or the Reading List), and offers the
-/// two ways to sort them.
+/// two ways to sort them. Decisions only: no progress here.
 private struct UnsortedBanner: View {
     @Environment(AppModel.self) private var model
     @Environment(\.openWindow) private var openWindow
 
     var body: some View {
         let count = model.unsortedCount
-        if count > 0 || model.isSorting || model.isDiscovering {
+        // Only a decision shows here. While Claude sorts or finds themes, the
+        // progress is in the sidebar footer with the other jobs.
+        if count > 0, !model.isSorting, !model.isDiscovering {
             HStack(spacing: 10) {
-                if model.isSorting {
-                    ProgressView().controlSize(.small)
-                    Text("\(model.sortingOnDevice ? "Sorting on this Mac" : "Sorting with Claude"): \(model.sortProgress.done) of \(model.sortProgress.total)")
-                } else if model.isDiscovering {
-                    ProgressView().controlSize(.small)
-                    Text("Claude is reading all your links to find themes…")
-                } else {
-                    Image(systemName: "circle.dotted").foregroundStyle(.tint)
-                    if model.themes.isEmpty {
-                        Text("\(count) links, no themes yet. Claude reads them and proposes the themes you keep coming back to.")
-                        Spacer()
-                        Button("Setup Guide") {
-                            model.startSetupGuide()
-                            model.onboardingGo(to: "themes")
-                            openWindow(id: Onboarding.windowID)
-                        }
-                        Button("Discover Themes") { Task { await model.discoverThemes() } }
-                            .buttonStyle(.borderedProminent)
-                    } else {
-                        Text("\(count) link\(count == 1 ? " is" : "s are") not in a theme yet. They are under Unsorted, not on the graph.")
-                        Spacer()
-                        Button("Discover Themes Again") { Task { await model.discoverThemes() } }
-                            .help("Rare: Claude reads every source together and may propose new themes. You review them first.")
-                        Button("Sort into Themes") { Task { await model.sortUnsorted() } }
-                            .buttonStyle(.borderedProminent)
-                            .help("Puts each link into one of the themes you have.")
+                Image(systemName: "circle.dotted").foregroundStyle(.tint)
+                if model.themes.isEmpty {
+                    Text("\(count) links, no themes yet. Claude reads them and proposes the themes you keep coming back to.")
+                    Spacer()
+                    Button("Setup Guide") {
+                        model.startSetupGuide()
+                        model.onboardingGo(to: "themes")
+                        openWindow(id: Onboarding.windowID)
                     }
+                    Button("Discover Themes") { Task { await model.discoverThemes() } }
+                        .buttonStyle(.borderedProminent)
+                } else {
+                    Text("\(count) link\(count == 1 ? " is" : "s are") not in a theme yet. They are under Unsorted, not on the graph.")
+                    Spacer()
+                    Button("Discover Themes Again") { Task { await model.discoverThemes() } }
+                        .help("Rare: Claude reads every source together and may propose new themes. You review them first.")
+                    Button("Sort into Themes") { Task { await model.sortUnsorted() } }
+                        .buttonStyle(.borderedProminent)
+                        .help("Puts each link into one of the themes you have.")
                 }
-                if model.isSorting || model.isDiscovering { Spacer() }
             }
             .font(.callout)
             .padding(.horizontal, 14).padding(.vertical, 8)
@@ -449,8 +442,47 @@ private struct UnsortedBanner: View {
     }
 }
 
-/// The library's state at the foot of the sidebar: how many links have their
-/// text saved, and a progress bar while capture runs in the background.
+/// One job: its name and count on one line, the bar under them. A paused
+/// job says until when instead of showing a bar.
+private struct ActivityRow: View {
+    let activity: Activity
+
+    var body: some View {
+        switch activity.state {
+        case .running(let done, let total):
+            VStack(alignment: .leading, spacing: 3) {
+                HStack(spacing: 4) {
+                    Text(activity.title)
+                    Spacer()
+                    if let total { Text("\(done) of \(total)").monospacedDigit() }
+                }
+                .font(.caption2).foregroundStyle(.secondary)
+                if let total {
+                    ProgressView(value: Double(min(done, total)), total: Double(max(total, 1)))
+                        .progressViewStyle(.linear).controlSize(.small)
+                } else {
+                    ProgressView().progressViewStyle(.linear).controlSize(.small)
+                }
+            }
+            .padding(.top, 3)
+        case .paused(let until):
+            HStack(spacing: 4) {
+                Image(systemName: "pause.circle")
+                Text(activity.title)
+                Spacer()
+                Text("paused until \(until.formatted(date: until.timeIntervalSinceNow > 20 * 3600 ? .abbreviated : .omitted, time: .shortened))")
+            }
+            .font(.caption2).foregroundStyle(.secondary)
+            .help("The site refused too many requests. Sift waits, then tries again by itself.")
+            .padding(.top, 3)
+        }
+    }
+}
+
+/// The foot of the sidebar: how many links have their text saved, then
+/// everything Sift is doing or waiting on (`model.activities`). This is the
+/// only place progress shows; the banner above the list only asks for
+/// decisions.
 private struct LibraryStatus: View {
     @Environment(AppModel.self) private var model
 
@@ -465,31 +497,8 @@ private struct LibraryStatus: View {
                 Spacer()
                 Text("\(saved) of \(total)").font(.caption.monospacedDigit()).foregroundStyle(.secondary)
             }
-            if model.isTranscribing {
-                ProgressView(value: Double(model.transcriptProgress.done), total: Double(max(model.transcriptProgress.total, 1)))
-                    .progressViewStyle(.linear).controlSize(.small)
-                Text("YouTube transcripts: \(model.transcriptProgress.done) of \(model.transcriptProgress.total)")
-                    .font(.caption2).foregroundStyle(.secondary)
-            }
-            if model.isTranscribingReels {
-                ProgressView(value: Double(model.reelProgress.done), total: Double(max(model.reelProgress.total, 1)))
-                    .progressViewStyle(.linear).controlSize(.small)
-                Text("Reel transcripts: \(model.reelProgress.done) of \(model.reelProgress.total)")
-                    .font(.caption2).foregroundStyle(.secondary)
-            }
-            if model.isFetchingInstagramImages {
-                ProgressView(value: Double(model.instagramImageProgress.done), total: Double(max(model.instagramImageProgress.total, 1)))
-                    .progressViewStyle(.linear).controlSize(.small)
-                Text("Instagram images: \(model.instagramImageProgress.done) of \(model.instagramImageProgress.total)")
-                    .font(.caption2).foregroundStyle(.secondary)
-            }
-            if model.isCapturing {
-                ProgressView(value: Double(model.captureProgress.done), total: Double(max(model.captureProgress.total, 1)))
-                    .progressViewStyle(.linear)
-                    .controlSize(.small)
-                Text("Saving page text: \(model.captureProgress.done) of \(model.captureProgress.total)")
-                    .font(.caption2).foregroundStyle(.secondary)
-            }
+            // Every running or paused job, from the one list (Activity.swift).
+            ForEach(model.activities) { ActivityRow(activity: $0) }
         }
         .padding(.horizontal, 14).padding(.vertical, 10)
         .background(.bar)

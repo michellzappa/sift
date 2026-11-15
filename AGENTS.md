@@ -290,3 +290,10 @@ The one exception is anonymous diagnostics (owner, 2026-11-15, below).
 - Rows carry no icon buttons (owner, 2026-11-15): Send is in the context
   menu and the web pane header, not on the row.
 
+
+- Progress (2026-11-15, owner): one list, `AppModel.activities`
+  (`App/Activity.swift`), built from the job flags and `state.blockedUntil`.
+  The sidebar footer (`LibraryStatus`) shows every running or paused job,
+  label and count above the bar. The banner above the list shows decisions
+  only (unsorted links, no themes) and hides while sorting or discovery
+  runs. A new background job adds its row to `activities`, never its own bar.
