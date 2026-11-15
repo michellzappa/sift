@@ -465,7 +465,7 @@ private struct Sidebar: View {
             if feed.lastError != nil {
                 Image(systemName: "exclamationmark.triangle").foregroundStyle(.orange)
             } else {
-                FeedIconView(feedID: feed.id, symbol: FeedProviders.provider(id: feed.provider)?.symbol ?? "dot.radiowaves.up.forward")
+                FeedIconView(feedID: feed.id, symbol: FeedProviders.provider(id: feed.provider)?.symbol ?? "dot.radiowaves.up.forward", size: 14)
                     .id(model.feedIconVersion)
             }
         }

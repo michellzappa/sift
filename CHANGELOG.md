@@ -9,6 +9,12 @@ ships this file and shows it in Settings > About and in Sift > Version
 History. Headings are `## X.Y.Z - YYYY-MM-DD`; groups are `### Added`,
 `### Changed` and `### Fixed`.
 
+## 1.3.7 - 2026-11-15
+
+### Changed
+
+- Site icons are smaller: in rows without a picture and in the sidebar.
+
 ## 1.3.6 - 2026-11-15
 
 ### Added

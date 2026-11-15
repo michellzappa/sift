@@ -246,7 +246,7 @@ private struct TodayRow: View {
                     }
                 } else {
                     // No picture: the site's icon, in grey.
-                    FeedIconView(feedID: pick.feedID, size: 28).id(model.feedIconVersion)
+                    FeedIconView(feedID: pick.feedID, size: 18).id(model.feedIconVersion)
                 }
             }
             .frame(width: 64, height: 64)
