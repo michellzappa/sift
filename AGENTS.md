@@ -552,3 +552,19 @@ The one exception is anonymous diagnostics (owner, 2026-11-15, below).
   player is made after the poster tap and plays at once (one tap). Library
   is one level (DeckView); StreamView stays in code, unused.
 
+- Follow sheet (2026-11-15, owner: "top notch"). `Views/AddFeedSheet.swift`:
+  finds while you type (700 ms pause, only input that looks complete),
+  starts from an address or handle on the clipboard, takes a dropped link
+  or OPML file (`readOPML(_ file:)`), shows cadence ("about 3 posts a week
+  · last post 2 days ago") and the 3 newest titles, folder (with New
+  Folder…) and In Today priority before Follow, Undo and Show after.
+  "Popular" lists the Worker's well-known feeds (`Telemetry.loadKnownFeeds`,
+  fetched only while usage counts are on), minus the ones followed.
+- Feeds shared with the phone (2026-11-15, owner). `App/AppModel+FeedSync.swift`:
+  the Mac writes `iCloud Drive/Sift/Deck/feeds.json` (feeds, no items, and
+  `requests`: id → working/followed/failed/done) whenever the list changes;
+  the phone writes `follows/iphone-<id>.json` (`PhoneFeedRequest`: follow
+  with the typed input, unfollow, priority, folder). `mergeDeviceFollows`
+  runs from `loadSeen` (launch, library rounds, app active) and handles
+  each id once (`state.phoneRequests`). The Mac is the only fetcher. Phone:
+  `prototypes/ios-deck/App/FeedsSync.swift`, Lists > Feeds.

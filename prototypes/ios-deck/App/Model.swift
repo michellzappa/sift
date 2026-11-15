@@ -158,6 +158,10 @@ final class Store {
     var today: TodayFile?
     /// What this phone kept from Today; written to kept/iphone-<id>.json.
     var keptHere: [KeptItem] = []
+    /// The Mac's followed feeds (Deck/feeds.json, FeedsSync.swift).
+    var macFeeds: FeedsFile?
+    /// Feed requests made on this phone; written to follows/iphone-<id>.json.
+    var feedRequests: [PhoneFeedRequest] = []
     /// What this phone did with Today picks; written to signals/iphone-<id>.json (Signals.swift).
     @ObservationIgnored var signals: [Signal] = []
     @ObservationIgnored var signalTask: Task<Void, Never>?
@@ -183,6 +187,8 @@ final class Store {
         keptHere = Store.loadKeptHere()
         today = Store.loadToday()
         signals = Store.loadSignalsHere()
+        feedRequests = Store.loadFeedRequests()
+        macFeeds = Store.loadMacFeeds()
         sync()
     }
 

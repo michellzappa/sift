@@ -9,6 +9,19 @@ ships this file and shows it in Settings > About and in Sift > Version
 History. Headings are `## X.Y.Z - YYYY-MM-DD`; groups are `### Added`,
 `### Changed` and `### Fixed`.
 
+## 1.5.1 - 2026-11-15
+
+### Added
+- Follow finds the feed while you type, and starts from an address on the clipboard.
+- Each result shows how often the feed posts, when it last did and its newest titles.
+- Pick a folder (or make a new one) and how the feed takes part in Today before you follow. Undo and Show after.
+- Popular: large public feeds you do not follow yet, one click to follow.
+- Drop a link or an OPML file on the Follow sheet.
+- Your feeds show on the iPhone (Lists > Feeds). Follow, unfollow, change priority or folder there; your Mac does the work.
+
+### Fixed
+- The Feeds settings text no longer says Today updates at 07:00 and 17:00.
+
 ## 1.5.0 - 2026-11-15
 
 ### Added

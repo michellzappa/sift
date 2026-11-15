@@ -20,6 +20,9 @@ struct SiftState: Codable, Sendable {
     var feeds: [Feed] = []
     /// Offered items the user kept from Today (Engine/Today.swift).
     var kept: [KeptItem] = []
+    /// Follow requests from the phone that this Mac handled: request id →
+    /// "followed", "failed" or "done" (App/AppModel+FeedSync.swift).
+    var phoneRequests: [String: String] = [:]
     /// The current Today digest.
     var today: TodayDigest?
     /// Capture new links into the library in the background.
@@ -81,6 +84,7 @@ struct SiftState: Codable, Sendable {
         importedSources = try c.decodeIfPresent([LinkImporter.Source].self, forKey: .importedSources) ?? []
         feeds = try c.decodeIfPresent([Feed].self, forKey: .feeds) ?? []
         kept = try c.decodeIfPresent([KeptItem].self, forKey: .kept) ?? []
+        phoneRequests = try c.decodeIfPresent([String: String].self, forKey: .phoneRequests) ?? [:]
         today = try c.decodeIfPresent(TodayDigest.self, forKey: .today)
         autoCapture = try c.decodeIfPresent(Bool.self, forKey: .autoCapture) ?? true
         youtubeTranscripts = try c.decodeIfPresent(Bool.self, forKey: .youtubeTranscripts) ?? true

@@ -33,6 +33,8 @@ extension AppModel {
         if all != seenMarks { seenMarks = all }
         // Kept items from the phone travel the same way.
         mergeDeviceKept()
+        // So do follows and unfollows made on the phone.
+        mergeDeviceFollows()
     }
 
     private func scheduleSeenSave() {

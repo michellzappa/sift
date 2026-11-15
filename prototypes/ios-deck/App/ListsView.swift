@@ -18,6 +18,11 @@ struct ListsView: View {
                             count: store.deck.items.filter { !store.isSeen($0.url) }.count)
                     }
                 }
+                Section {
+                    NavigationLink { FeedsView() } label: {
+                        row("Feeds", symbol: "dot.radiowaves.up.forward", color: .orange, count: 0)
+                    }
+                }
                 Section("Themes") {
                     ForEach(store.deck.themes) { theme in
                         NavigationLink {

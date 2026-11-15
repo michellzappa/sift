@@ -206,6 +206,7 @@ extension Store {
                 try? fm.createDirectory(at: dir, withIntermediateDirectories: true)
                 try? data.write(to: dir.appending(path: Self.deviceFile), options: .atomic)
             }
+            syncFeeds(folder)
             writeSignals(to: folder)
             if let data = try? Self.coder.0.encode(ownSeen), !ownSeen.isEmpty {
                 try? fm.createDirectory(at: dir, withIntermediateDirectories: true)

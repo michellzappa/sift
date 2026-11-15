@@ -160,6 +160,7 @@ extension AppModel {
         let dir = CloseList.folder.appending(path: "Deck", directoryHint: .isDirectory)
         try? FileManager.default.createDirectory(at: dir, withIntermediateDirectories: true)
         let url = dir.appending(path: "today.json")
+        writeFeedsForPhone()
         if (try? Data(contentsOf: url)) == data { return }
         try? data.write(to: url, options: .atomic)
     }

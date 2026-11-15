@@ -50,12 +50,18 @@ extension AppModel {
     // MARK: Adding and removing
 
     /// Reads an OPML file and returns its feeds for the import sheet.
-    func readOPML() -> [OPMLCandidate]? {
-        let panel = NSOpenPanel()
-        panel.allowedContentTypes = [UTType(filenameExtension: "opml") ?? .xml, .xml, .plainText]
-        panel.allowsMultipleSelection = false
-        panel.message = "Choose an OPML file exported from your feed reader."
-        guard panel.runModal() == .OK, let url = panel.url, let data = try? Data(contentsOf: url) else { return nil }
+    /// With `file` (a dropped file), no open panel.
+    func readOPML(_ file: URL? = nil) -> [OPMLCandidate]? {
+        var picked = file
+        if picked == nil {
+            let panel = NSOpenPanel()
+            panel.allowedContentTypes = [UTType(filenameExtension: "opml") ?? .xml, .xml, .plainText]
+            panel.allowsMultipleSelection = false
+            panel.message = "Choose an OPML file exported from your feed reader."
+            guard panel.runModal() == .OK else { return nil }
+            picked = panel.url
+        }
+        guard let url = picked, let data = try? Data(contentsOf: url) else { return nil }
         let followed = Set(state.feeds.map(\.url))
         return FeedParser.opml(data).map {
             OPMLCandidate(url: $0.url, title: $0.title.isEmpty ? (URL(string: $0.url)?.host() ?? $0.url) : $0.title,
@@ -114,16 +120,17 @@ extension AppModel {
     }
 
     /// Adds one feed a provider found (FeedProviders.resolve).
-    func addFeed(_ found: FeedProviders.Found, category: String? = nil) {
-        addFeed(url: found.url, parsed: found.parsed, provider: found.provider, title: found.label, category: category)
+    func addFeed(_ found: FeedProviders.Found, category: String? = nil, priority: FeedPriority? = nil) {
+        addFeed(url: found.url, parsed: found.parsed, provider: found.provider, title: found.label, category: category, priority: priority)
     }
 
     /// Adds one feed found from a site or feed address.
-    func addFeed(url: String, parsed: FeedParser.Parsed, provider: String? = nil, title: String? = nil, category: String? = nil) {
+    func addFeed(url: String, parsed: FeedParser.Parsed, provider: String? = nil, title: String? = nil, category: String? = nil, priority: FeedPriority? = nil) {
         guard !state.feeds.contains(where: { $0.url == url }) else { return }
         let name = !parsed.title.isEmpty ? parsed.title : (title ?? URL(string: url)?.host() ?? url)
         let feed = Feed(id: UUID().uuidString.prefix(8).lowercased(), url: url, title: name,
-                        site: parsed.site, category: category, provider: provider, added: Date(), lastFetched: Date())
+                        site: parsed.site, category: category, provider: provider, priority: priority?.rawValue,
+                        added: Date(), lastFetched: Date())
         state.feeds.append(feed)
         _ = FeedStore.merge(parsed.entries, into: feed.id)
         refreshFeedCounts()
@@ -235,6 +242,7 @@ extension AppModel {
         var counts: [String: Int] = [:]
         for f in state.feeds { counts[f.id] = FeedStore.entries(f.id).count }
         if counts != feedItemCounts { feedItemCounts = counts }
+        writeFeedsForPhone()
     }
 
     /// The total for a folder: the items of its feeds.
@@ -249,17 +257,20 @@ extension AppModel {
         guard let i = state.feeds.firstIndex(where: { $0.id == id }) else { return }
         let name = folder?.trimmingCharacters(in: .whitespacesAndNewlines)
         state.feeds[i].category = (name?.isEmpty ?? true) ? nil : name
+        writeFeedsForPhone()
     }
 
     func renameFolder(_ old: String, to new: String) {
         let name = new.trimmingCharacters(in: .whitespacesAndNewlines)
         guard !name.isEmpty else { return }
         for i in state.feeds.indices where state.feeds[i].category == old { state.feeds[i].category = name }
+        writeFeedsForPhone()
     }
 
     /// Removes the folder; its feeds stay, without a folder.
     func deleteFolder(_ name: String) {
         for i in state.feeds.indices where state.feeds[i].category == name { state.feeds[i].category = nil }
+        writeFeedsForPhone()
     }
 
     /// The feeds in a folder ("" = no folder), by title.
