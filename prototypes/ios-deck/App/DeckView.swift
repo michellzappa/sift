@@ -95,19 +95,20 @@ struct FullCard: View {
     @State private var shownAt: Date?
 
     var body: some View {
-        HStack(alignment: .bottom, spacing: 10) {
-            CardView(item: item, tall: true)
-                .contentShape(Rectangle())
-                .onTapGesture(perform: open)
-                .overlay(alignment: .topTrailing) {
-                    Text("\(number)/\(total)")
-                        .font(.caption2.weight(.semibold).monospacedDigit())
-                        .padding(.horizontal, 8).padding(.vertical, 4)
-                        .background(.ultraThinMaterial, in: Capsule())
-                        .padding(10)
-                }
-            ActionRail(item: item, text: text, mode: mode)
-        }
+        CardView(item: item, tall: true)
+            .contentShape(Rectangle())
+            .onTapGesture(perform: open)
+            .overlay(alignment: .topTrailing) {
+                Text("\(number)/\(total)")
+                    .font(.caption2.weight(.semibold).monospacedDigit())
+                    .padding(.horizontal, 8).padding(.vertical, 4)
+                    .background(.ultraThinMaterial, in: Capsule())
+                    .padding(10)
+            }
+            // Text and seen sit on the card, bottom right.
+            .overlay(alignment: .bottomTrailing) {
+                ActionRail(item: item, text: text, mode: mode).padding(12)
+            }
         .padding(.horizontal, 12)
         .padding(.vertical, 10)
         .onAppear { shownAt = Date() }
@@ -118,7 +119,7 @@ struct FullCard: View {
     }
 }
 
-/// The saved text, and seen or unseen. Nothing else: swiping on is the decision.
+/// The saved text, and seen or unseen, as two small buttons on the card.
 struct ActionRail: View {
     @Environment(Store.self) private var store
     let item: Item
@@ -127,31 +128,30 @@ struct ActionRail: View {
 
     var body: some View {
         let seen = store.isSeen(item.url)
-        VStack(spacing: 18) {
-            Button(action: text) {
-                VStack(spacing: 3) {
-                    Image(systemName: item.transcript.isEmpty ? "doc.plaintext" : "captions.bubble")
-                        .font(.title3)
-                        .frame(width: 46, height: 46)
-                        .background(Circle().fill(Color(.tertiarySystemFill)))
-                    Text(item.transcript.isEmpty ? "Text" : "Words").font(.caption2)
+        let hasText = !(item.text.isEmpty && item.transcript.isEmpty && item.passage.isEmpty)
+        HStack(spacing: 8) {
+            if hasText {
+                Button(action: text) {
+                    Label(item.transcript.isEmpty ? "Text" : "Words",
+                          systemImage: item.transcript.isEmpty ? "doc.plaintext" : "captions.bubble")
                 }
             }
-            .buttonStyle(.plain)
-            .disabled(item.text.isEmpty && item.transcript.isEmpty && item.passage.isEmpty)
             Button { store.setSeen([item], !seen, mode: mode) } label: {
-                VStack(spacing: 3) {
-                    Image(systemName: seen ? "eye" : "circle.fill")
-                        .font(seen ? .title3 : .body)
-                        .foregroundStyle(seen ? Color.primary : Color.accentColor)
-                        .frame(width: 46, height: 46)
-                        .background(Circle().fill(Color(.tertiarySystemFill)))
-                    Text(seen ? "Seen" : "Unseen").font(.caption2)
-                }
+                Label(seen ? "Seen" : "Unseen", systemImage: seen ? "eye" : "circle.fill")
+                    .foregroundStyle(seen ? Color.primary : Color.accentColor)
             }
-            .buttonStyle(.plain)
         }
-        .padding(.bottom, 24)
+        .font(.caption.weight(.semibold))
+        .buttonStyle(.plain)
+        .labelStyle(PillLabel())
+    }
+}
+
+private struct PillLabel: LabelStyle {
+    func makeBody(configuration: Configuration) -> some View {
+        HStack(spacing: 5) { configuration.icon; configuration.title }
+            .padding(.horizontal, 11).padding(.vertical, 7)
+            .background(.regularMaterial, in: Capsule())
     }
 }
 
