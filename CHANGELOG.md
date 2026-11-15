@@ -9,6 +9,12 @@ ships this file and shows it in Settings > About and in Sift > Version
 History. Headings are `## X.Y.Z - YYYY-MM-DD`; groups are `### Added`,
 `### Changed` and `### Fixed`.
 
+## 1.3.8 - 2026-11-15
+
+### Changed
+
+- Today no longer adds "New from …" under an item: the row already names the feed. Items that are there for a reason still say it (fits a theme, in several of your feeds, from a feed you often keep, something different).
+
 ## 1.3.7 - 2026-11-15
 
 ### Changed

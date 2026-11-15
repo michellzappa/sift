@@ -22,7 +22,7 @@ struct TodayPick: Codable, Hashable, Sendable, Identifiable {
     /// The card's Item: the reason line takes the theme's place.
     var item: Item {
         let vid = Self.youTubeID(url)
-        return Item(id: url, url: url, title: title, theme: reason, kind: vid == nil ? "article" : "video",
+        return Item(id: url, url: url, title: title, theme: reason.isEmpty ? feedTitle : reason, kind: vid == nil ? "article" : "video",
                     site: feedTitle, author: nil, saved: nil, duration: nil, summary: summary, passage: "",
                     transcript: "", text: content ?? "", image: image ?? vid.map { "https://i.ytimg.com/vi/\($0)/hqdefault.jpg" },
                     also: [], neighbours: [], imageFile: nil,

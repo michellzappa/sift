@@ -34,6 +34,7 @@ struct TodayPick: Codable, Hashable, Sendable, Identifiable {
     var image: String?
     /// One line on why it is here: "In 3 of your feeds", "Fits Strategic
     /// Foresight", "You often keep Stratechery", "Something different".
+    /// Empty when there is no reason beyond being new.
     var reason: String
     var wildcard = false
     /// The item's full text as Markdown, when the feed carries it.
@@ -115,7 +116,8 @@ enum TodayBuilder {
 
                 let hours = now.timeIntervalSince(date) / 3600
                 var score = exp(-max(hours, 0) / 36)
-                var reason = "New from \(feed.title)"
+                // No line for the plain case: the row already names the feed.
+                var reason = ""
 
                 let keeps = keptPerFeed[feed.id] ?? 0
                 if keeps > 0 {

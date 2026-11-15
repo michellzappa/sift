@@ -40,7 +40,7 @@ extension AppModel {
         let slot = TodayBuilder.currentSlot()
         // A digest from before titles came from the post text (URLs as
         // titles) is built again at once.
-        let stale = state.today?.picks.contains { $0.title.hasPrefix("http") } ?? false
+        let stale = state.today?.picks.contains { $0.title.hasPrefix("http") || $0.reason.hasPrefix("New from ") } ?? false
         if !force, !stale, let digest = state.today, digest.slot >= slot, !digest.picks.isEmpty { return }
         var entries: [String: [FeedEntry]] = [:]
         for feed in state.feeds where feed.enabled { entries[feed.id] = FeedStore.entries(feed.id) }
