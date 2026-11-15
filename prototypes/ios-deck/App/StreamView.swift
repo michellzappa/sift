@@ -16,7 +16,6 @@ struct StreamView: View {
                 }
             }
             .tabViewStyle(.page(indexDisplayMode: .never))
-            .ignoresSafeArea(edges: .bottom)
             .navigationTitle(store.deck.themes[safe: threadIndex]?.name ?? "Stream")
             .navigationBarTitleDisplayMode(.inline)
         }
@@ -35,21 +34,23 @@ private struct ThreadView: View {
     @State private var feedback = 0
 
     var body: some View {
+      GeometryReader { geo in
         ScrollView(.vertical) {
             LazyVStack(spacing: 0) {
                 ForEach(Array(pages.enumerated()), id: \.offset) { _, page in
                     pageView(page)
-                        .containerRelativeFrame(.vertical)
+                        .frame(width: geo.size.width, height: geo.size.height)
                 }
             }
             .scrollTargetLayout()
         }
-        .scrollTargetBehavior(.paging)
+        .scrollTargetBehavior(.viewAligned(limitBehavior: .always))
         .scrollIndicators(.hidden)
         .sheet(item: $reading) { ReaderView(item: $0) }
         .sheet(item: $browsing) { InAppBrowser(url: URL(string: $0.url)!).ignoresSafeArea() }
         .sensoryFeedback(.selection, trigger: feedback)
         .onAppear { if items.isEmpty { items = store.thread(theme: theme.name) } }
+      }
     }
 
     private enum Page { case intro, item(Item, Int), synthesis(Synthesis), marker(Int), dry }

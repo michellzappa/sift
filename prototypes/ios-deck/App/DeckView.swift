@@ -17,6 +17,7 @@ struct DeckView: View {
 
     var body: some View {
         NavigationStack {
+          GeometryReader { geo in
             ScrollView(.vertical) {
                 LazyVStack(spacing: 0) {
                     ForEach(Array(cards.enumerated()), id: \.element.id) { i, item in
@@ -24,20 +25,22 @@ struct DeckView: View {
                                  open: { open(item, i) }, text: { readText(item, i) }) { d in
                             decide(item, d, i)
                         }
-                        .containerRelativeFrame(.vertical)
+                        .frame(width: geo.size.width, height: geo.size.height)
                         .id(item.id)
                     }
                     if !cards.isEmpty {
                         DeckEnd(decided: decided, total: cards.count, deal: deal)
-                            .containerRelativeFrame(.vertical)
+                            .frame(width: geo.size.width, height: geo.size.height)
                             .id("end")
                     }
                 }
                 .scrollTargetLayout()
             }
-            .scrollTargetBehavior(.paging)
+            .scrollTargetBehavior(.viewAligned(limitBehavior: .always))
             .scrollIndicators(.hidden)
             .scrollPosition(id: $position)
+            .scrollClipDisabled(false)
+          }
             .background(Color(.systemGroupedBackground))
             .overlay {
                 if cards.isEmpty {

@@ -10,9 +10,17 @@ struct ItemImage: View {
 
     var body: some View {
         let tint = store.color(item.theme)
-        ZStack {
-            Rectangle().fill(tint.opacity(0.14))
-            if let local = store.localImage(item), let image = UIImage(contentsOfFile: local.path(percentEncoded: false)) {
+        // The box sets the size; the picture fills it as an overlay, so a
+        // wide image can never push the card wider than the screen.
+        Rectangle().fill(tint.opacity(0.14))
+            .frame(maxWidth: .infinity)
+            .frame(height: height)
+            .overlay { picture(tint) }
+            .clipped()
+    }
+
+    @ViewBuilder private func picture(_ tint: Color) -> some View {
+        if let local = store.localImage(item), let image = UIImage(contentsOfFile: local.path(percentEncoded: false)) {
                 Image(uiImage: image).resizable().scaledToFill()
             } else if let s = item.image, let url = URL(string: s) {
                 AsyncImage(url: url) { phase in
@@ -21,10 +29,6 @@ struct ItemImage: View {
             } else {
                 Image(systemName: item.symbol).font(.system(size: 34)).foregroundStyle(tint.opacity(0.6))
             }
-        }
-        .frame(height: height)
-        .frame(maxWidth: .infinity)
-        .clipped()
     }
 
     var hasPicture: Bool { item.imageFile != nil || item.image != nil }
