@@ -30,6 +30,7 @@ private struct ThreadView: View {
     let total: Int
     @State private var items: [Item] = []
     @State private var reading: Item?
+    @State private var browsing: Item?
     @State private var acted: [String: Decision] = [:]
     @State private var feedback = 0
 
@@ -46,6 +47,7 @@ private struct ThreadView: View {
         .scrollTargetBehavior(.paging)
         .scrollIndicators(.hidden)
         .sheet(item: $reading) { ReaderView(item: $0) }
+        .sheet(item: $browsing) { InAppBrowser(url: URL(string: $0.url)!).ignoresSafeArea() }
         .sensoryFeedback(.selection, trigger: feedback)
         .onAppear { if items.isEmpty { items = store.thread(theme: theme.name) } }
     }
@@ -82,11 +84,25 @@ private struct ThreadView: View {
                 if depth > 0 {
                     Text(depthLabel(depth)).font(.caption2).foregroundStyle(.tertiary)
                 }
-                CardView(item: item)
-                    .onTapGesture { reading = item; store.record(item, .read, mode: "stream", position: depth, thread: theme.name) }
-                actions(item, depth: depth)
+                HStack(alignment: .bottom, spacing: 10) {
+                    CardView(item: item, tall: true)
+                        .contentShape(Rectangle())
+                        .onTapGesture {
+                            guard URL(string: item.url) != nil else { return }
+                            browsing = item
+                            store.record(item, .open, mode: "stream", position: depth, thread: theme.name)
+                        }
+                    ActionRail(item: item, decision: acted[item.id], text: {
+                        reading = item
+                        store.record(item, .read, mode: "stream", position: depth, thread: theme.name)
+                    }) { d in
+                        acted[item.id] = d
+                        feedback += 1
+                        store.record(item, d, mode: "stream", position: depth, thread: theme.name)
+                    }
+                }
             }
-            .padding(.horizontal, 16)
+            .padding(.horizontal, 12)
             .padding(.vertical, 12)
         case .synthesis(let s):
             VStack(alignment: .leading, spacing: 14) {

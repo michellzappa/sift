@@ -88,7 +88,7 @@ struct Synthesis: Codable, Sendable, Hashable {
 // MARK: - Decisions
 
 enum Decision: String, Codable, Sendable, CaseIterable {
-    case keep, letGo, send, later, read
+    case keep, letGo, send, later, read, open
 
     var label: String {
         switch self {
@@ -97,6 +97,7 @@ enum Decision: String, Codable, Sendable, CaseIterable {
         case .send: "Send"
         case .later: "Later"
         case .read: "Read"
+        case .open: "Open"
         }
     }
     var symbol: String {
@@ -106,6 +107,7 @@ enum Decision: String, Codable, Sendable, CaseIterable {
         case .send: "paperplane"
         case .later: "clock"
         case .read: "book"
+        case .open: "safari"
         }
     }
     var color: Color {
@@ -115,6 +117,7 @@ enum Decision: String, Codable, Sendable, CaseIterable {
         case .send: .blue
         case .later: .orange
         case .read: .purple
+        case .open: .teal
         }
     }
 }
@@ -163,7 +166,7 @@ final class Store {
 
     /// Items with a decision other than later or read.
     var decided: Set<String> {
-        Set(log.filter { $0.decision != .later && $0.decision != .read }.map(\.item))
+        Set(log.filter { [.keep, .letGo, .send].contains($0.decision) }.map(\.item))
     }
 
     private static func loadDeck() -> Deck? {

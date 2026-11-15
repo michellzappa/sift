@@ -36,13 +36,15 @@ struct CardView: View {
     @Environment(Store.self) private var store
     let item: Item
     var compact = false
+    /// Full-height page in the vertical deck: a taller picture.
+    var tall = false
 
     var body: some View {
         let color = store.color(item.theme)
         let picture = item.imageFile != nil || item.image != nil
         VStack(alignment: .leading, spacing: 0) {
             if picture || item.video != nil {
-                ItemImage(item: item, height: compact ? 120 : 210)
+                ItemImage(item: item, height: compact ? 120 : (tall ? 330 : 210))
                     .overlay {
                         if item.video != nil {
                             Image(systemName: "play.circle.fill")
@@ -100,7 +102,7 @@ struct CardView: View {
                     }
                 }
                 Spacer(minLength: 0)
-                Text(item.video != nil ? "Tap to watch and read" : "Tap to read").font(.caption2).foregroundStyle(.tertiary)
+                Text(item.video != nil ? "Tap to watch" : "Tap to open").font(.caption2).foregroundStyle(.tertiary)
             }
             .padding(16)
         }
