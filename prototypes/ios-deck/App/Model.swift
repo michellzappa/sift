@@ -158,6 +158,9 @@ final class Store {
     var today: TodayFile?
     /// What this phone kept from Today; written to kept/iphone-<id>.json.
     var keptHere: [KeptItem] = []
+    /// What this phone did with Today picks; written to signals/iphone-<id>.json (Signals.swift).
+    @ObservationIgnored var signals: [Signal] = []
+    @ObservationIgnored var signalTask: Task<Void, Never>?
 
     private static var documents: URL { FileManager.default.urls(for: .documentDirectory, in: .userDomainMask)[0] }
     static var deckURL: URL { documents.appending(path: "deck.json") }
@@ -179,6 +182,7 @@ final class Store {
         seenMarks = ownSeen
         keptHere = Store.loadKeptHere()
         today = Store.loadToday()
+        signals = Store.loadSignalsHere()
         sync()
     }
 

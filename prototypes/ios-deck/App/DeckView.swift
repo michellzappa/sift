@@ -117,9 +117,7 @@ struct FullCard: View {
     @State private var shownAt: Date?
 
     var body: some View {
-        CardView(item: item, tall: true)
-            .contentShape(Rectangle())
-            .onTapGesture(perform: open)
+        content
             .overlay(alignment: .topTrailing) {
                 Text("\(number)/\(total)")
                     .font(.caption2.weight(.semibold).monospacedDigit())
@@ -127,16 +125,30 @@ struct FullCard: View {
                     .background(.ultraThinMaterial, in: Capsule())
                     .padding(10)
             }
-            // Text and seen sit on the card, bottom right.
-            .overlay(alignment: .bottomTrailing) {
-                ActionRail(item: item, text: text, mode: mode).padding(12)
-            }
         .padding(.horizontal, 12)
         .padding(.vertical, 10)
         .onAppear { shownAt = Date() }
         .onDisappear {
             if let shownAt, Date().timeIntervalSince(shownAt) > 1 { store.setSeen([item], true, mode: mode) }
             shownAt = nil
+        }
+    }
+
+    /// A vertical video (Short, reel, TikTok) plays inline after a tap; its
+    /// Text pill opens the reader. Other items open in the browser on a tap.
+    @ViewBuilder private var content: some View {
+        if let video = VerticalVideo.detect(item) {
+            VerticalVideoCard(item: item, video: video, text: text) {
+                ActionRail(item: item, text: text, mode: mode, showText: false)
+            }
+        } else {
+            CardView(item: item, tall: true)
+                .contentShape(Rectangle())
+                .onTapGesture(perform: open)
+                // Text and seen sit on the card, bottom right.
+                .overlay(alignment: .bottomTrailing) {
+                    ActionRail(item: item, text: text, mode: mode).padding(12)
+                }
         }
     }
 }
@@ -147,10 +159,12 @@ struct ActionRail: View {
     let item: Item
     let text: () -> Void
     let mode: String
+    /// False when the card has its own Text pill (vertical video).
+    var showText = true
 
     var body: some View {
         let seen = store.isSeen(item.url)
-        let hasText = !(item.text.isEmpty && item.transcript.isEmpty && item.passage.isEmpty)
+        let hasText = showText && !(item.text.isEmpty && item.transcript.isEmpty && item.passage.isEmpty)
         HStack(spacing: 8) {
             if hasText {
                 Button(action: text) {

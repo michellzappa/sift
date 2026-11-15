@@ -46,7 +46,7 @@ extension Store {
         FileManager.default.urls(for: .documentDirectory, in: .userDomainMask)[0].appending(path: "seen-own.json")
     }
 
-    private static var coder: (JSONEncoder, JSONDecoder) {
+    static var coder: (JSONEncoder, JSONDecoder) {
         let e = JSONEncoder(); e.dateEncodingStrategy = .iso8601; e.outputFormatting = [.sortedKeys]
         let d = JSONDecoder(); d.dateDecodingStrategy = .iso8601
         return (e, d)
@@ -116,6 +116,8 @@ extension Store {
             ownSeen[item.url] = mark
             seenMarks[item.url] = mark
             record(item, seen ? .seen : .unseen, mode: mode, position: 0)
+            // An unseen mark on a Today pick is a signal for the Mac's ranking.
+            if !seen, let pick = today?.picks.first(where: { $0.url == item.url }) { signal(.unseen, pick) }
         }
         saveTask?.cancel()
         saveTask = Task { [weak self] in
@@ -204,6 +206,7 @@ extension Store {
                 try? fm.createDirectory(at: dir, withIntermediateDirectories: true)
                 try? data.write(to: dir.appending(path: Self.deviceFile), options: .atomic)
             }
+            writeSignals(to: folder)
             if let data = try? Self.coder.0.encode(ownSeen), !ownSeen.isEmpty {
                 try? fm.createDirectory(at: dir, withIntermediateDirectories: true)
                 try? data.write(to: dir.appending(path: Self.deviceFile), options: .atomic)

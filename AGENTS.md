@@ -508,4 +508,11 @@ The one exception is anonymous diagnostics (owner, 2026-11-15, below).
   up to 8, faded at the bottom) instead of the summary when the text is
   longer than the summary; the picture shrinks to 200 pt then. Library deck
   cards are unchanged.
-
+- Phone signals (2026-11-15, owner: "watch time" for the Today ranking).
+  The prototype writes `iCloud Drive/Sift/signals/iphone-<id>.json`
+  (`prototypes/ios-deck/App/Signals.swift`): a JSON array of events, newest
+  last, at most 2,000: `{id, feedID, url, kind, seconds (number or null),
+  at (ISO 8601)}`. Kinds: `dwell` (on screen 1.5 s or more), `skip` (less),
+  `open`, `keep`, `unseen`, `play`. Today picks only. One file per device,
+  like `seen/` and `kept/`. `TodayPick.vertical` (optional) marks a
+  vertical video (YouTube Shorts) for the phone's full-card player.
