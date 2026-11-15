@@ -9,6 +9,13 @@ ships this file and shows it in Settings > About and in Sift > Version
 History. Headings are `## X.Y.Z - YYYY-MM-DD`; groups are `### Added`,
 `### Changed` and `### Fixed`.
 
+## 1.5.7 - 2026-11-15
+
+### Added
+- Claude can act on your library through sift-mcp, not only read it: merge and rename themes, file a link, add a note, sort, propose and apply new themes, follow and unfollow feeds, set a feed's place in Today, check feeds, mark seen, keep and send. It can also read your feeds, Today, unsorted links and Send destinations. Sift makes each change itself, the same way a button does.
+- Settings > Intelligence lists Claude's recent actions.
+- Search through sift-mcp leaves out links you dropped as noise and errands, ranks what you kept, sent or noted first, and shows those marks.
+
 ## 1.5.6 - 2026-11-15
 
 ### Added

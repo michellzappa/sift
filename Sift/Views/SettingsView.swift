@@ -561,11 +561,12 @@ private struct ClaudeSettings: View {
                     if let mcpMessage { Text(mcpMessage).font(.caption).foregroundStyle(.secondary) }
                 }
             } header: {
-                Text("Claude can read your library")
+                Text("Claude can use your library")
             } footer: {
-                Text("Sift includes a small MCP server, sift-mcp. Claude Code and Claude Desktop can then search your saved links, page text and transcripts, list your themes and read a link in full. It only reads Sift's search index on this Mac. For Claude Desktop, add it as a server named sift with the path above as its command.")
+                Text("Sift includes a small MCP server, sift-mcp. Claude Code and Claude Desktop can then search your saved links, page text and transcripts and read a link in full, and act for you: merge or rename themes, file links, sort, propose themes, follow feeds, mark seen, keep and send. Sift itself makes each change, the same way a button does, and lists it below. For Claude Desktop, add it as a server named sift with the path above as its command.")
                     .foregroundStyle(.secondary)
             }
+            AgentLogSection()
         }
         .formStyle(.grouped)
     }

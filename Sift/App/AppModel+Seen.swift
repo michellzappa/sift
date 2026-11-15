@@ -18,6 +18,7 @@ extension AppModel {
         }
         guard changed else { return }
         scheduleSeenSave()
+        updateSearchSignals(urls)
     }
 
     /// Reads every device's file again: on reload, with the library jobs and

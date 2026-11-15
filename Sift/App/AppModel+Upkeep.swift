@@ -84,12 +84,28 @@ extension AppModel {
                 return SearchIndex.Doc(url: r.url, title: r.title, theme: a?.project ?? "", source: r.source,
                                        kind: e?.kind ?? "", saved: r.firstSeen, file: e?.file ?? "",
                                        also: a?.also ?? [], fallback: r.previewText, note: r.takeaway ?? "",
-                                       summary: e?.summary ?? "")
+                                       summary: e?.summary ?? "", signals: signals(for: r.url))
             }
             let counts = Dictionary(grouping: state.assignments.values, by: \.project).mapValues(\.count)
             let themes = themes.map { SearchIndex.Theme(name: $0.name, summary: $0.summary, notes: $0.notes, memory: $0.memory, links: counts[$0.name] ?? 0) }
             await Task.detached(priority: .utility) { SearchIndex.rebuild(docs: docs, themes: themes) }.value
         }
+    }
+
+    /// What the user did with a link, for search ranking in sift-mcp.
+    func signals(for url: String) -> String {
+        var out: [String] = []
+        if state.kept.contains(where: { $0.url == url }) || archive[url]?.source == TodayStore.keptSourceID { out.append("kept") }
+        if !(state.sent[url] ?? []).isEmpty { out.append("sent") }
+        if !(archive[url]?.takeaway ?? "").isEmpty { out.append("noted") }
+        if isSeen(url) { out.append("seen") }
+        return out.joined(separator: ",")
+    }
+
+    /// Seen marks changed: update those links' signals in the index.
+    func updateSearchSignals(_ urls: [String]) {
+        let values = Dictionary(urls.filter { archive[$0] != nil }.map { ($0, signals(for: $0)) }, uniquingKeysWith: { a, _ in a })
+        Task.detached(priority: .utility) { SearchIndex.updateSignals(values) }
     }
 
     /// Full-text matches, best first: url and a snippet of the matching text.

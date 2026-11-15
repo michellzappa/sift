@@ -595,3 +595,24 @@ The one exception is anonymous diagnostics (owner, 2026-11-15, below).
   `sendTo` (else the source's), removes the source. UI: `Views/MergeTheme.swift`
   (`MergeThemeMenu` + `.mergeConfirmation`), in the sidebar theme context
   menu and Settings > Themes.
+- Agent-native (2026-11-15, owner; issue #34). sift-mcp never writes Sift's
+  state. `Shared/AgentRequests.swift` (compiled into both targets) defines
+  the request and result files in `Application Support/Sift/agent/`
+  (requests/, results/, log.jsonl; 0700, real folder, refused in demo
+  mode) and the tool lists (`AgentTools.writes/reads/local`).
+  `SiftMCP/AgentTools.swift` writes a request, opens Sift in the
+  background if it is not running (`open -g -b app.sift.Sift`), waits
+  20 s (45 s after a launch) and returns the result; long jobs answer
+  "started" and `job_status` reads them later. `App/AppModel+Agent.swift`
+  watches requests/ (DispatchSource), takes each file once, and calls the
+  same model function a button calls; long jobs run concurrently. Owner
+  defaults: themes apply without the review sheet
+  (`proposeNewThemes` + `apply_theme_proposal`), no delete theme, send
+  allowed and logged. Settings > Intelligence lists recent actions
+  (`AgentLogSection`). A new tool: its name in `AgentTools`, a definition
+  in `AgentCalls.definitions`, a case in `AppModel.handle`.
+- Search for agents (2026-11-15, owner): `links.signals` in search.sqlite
+  ("kept,sent,noted,seen"; `AppModel.signals(for:)`, seen updates in place
+  through `SearchIndex.updateSignals`). sift-mcp `search` leaves out
+  `drop` and `errands` unless `include_hidden`, ranks kept/sent/noted
+  first and seen a little, and shows the marks; `get_link` shows them.

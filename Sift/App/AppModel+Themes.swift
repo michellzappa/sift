@@ -66,31 +66,41 @@ extension AppModel {
     /// New themes for the links in no theme; the current themes and their
     /// links stay as they are. Opens the review in additive mode.
     func discoverNewThemes() async {
-        guard !Demo.isOn else { sortError = Demo.offMessage; return }
-        guard !isDiscovering, !isSorting, !themes.isEmpty else { return }
+        guard let (proposals, urls) = await proposeNewThemes() else { return }
+        proposalURLs = urls
+        themeProposalAdditive = true
+        themeProposal = proposals
+    }
+
+    /// The proposal itself, new themes first (largest first), then the links
+    /// that fit existing themes. Nil when there is nothing to do or the call
+    /// failed (`sortError` says why). Shared by the review sheet and agents.
+    func proposeNewThemes() async -> ([Sorter.ThemeProposal], [String])? {
+        guard !Demo.isOn else { sortError = Demo.offMessage; return nil }
+        guard !isDiscovering, !isSorting, !themes.isEmpty else { return nil }
         var corpus = tabs.filter { state.assignments[$0.url] == nil && !Errands.isErrand($0.url) }
         var seen = Set<String>()
         corpus.removeAll { !seen.insert($0.url).inserted }
-        guard !corpus.isEmpty else { return }
+        guard !corpus.isEmpty else { return nil }
         isDiscovering = true
         sortError = nil
         defer { isDiscovering = false }
         await fetchPreviews(for: corpus.filter { !$0.hasUsefulTitle })
         do {
             let result = try await Sorter(backend: state.backend).discoverNewThemes(corpus.map(sortItem), existing: themes)
-            proposalURLs = corpus.map(\.url)
-            themeProposalAdditive = true
-            // New themes first (largest first), then the existing ones.
-            themeProposal = result.sorted { ($0.kind == "existing" ? 1 : 0, -$0.itemIDs.count) < ($1.kind == "existing" ? 1 : 0, -$1.itemIDs.count) }
+            let sorted = result.sorted { ($0.kind == "existing" ? 1 : 0, -$0.itemIDs.count) < ($1.kind == "existing" ? 1 : 0, -$1.itemIDs.count) }
+            return (sorted, corpus.map(\.url))
         } catch {
             sortError = error.localizedDescription
+            return nil
         }
     }
 
     /// Adds the accepted new themes and files the accepted links. Current
     /// themes, their links and hand moves are untouched. Links in an unticked
     /// row stay unsorted.
-    func applyNewThemes(_ accepted: [Sorter.ThemeProposal]) {
+    func applyNewThemes(_ accepted: [Sorter.ThemeProposal], urls: [String]? = nil) {
+        let proposalURLs = urls ?? self.proposalURLs
         var s = state
         let current = Set(s.extraProjects.filter(\.isTheme).map(\.name))
         let day = Date.now.formatted(.iso8601.year().month().day())

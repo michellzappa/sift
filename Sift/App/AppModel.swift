@@ -152,6 +152,11 @@ final class AppModel {
     /// The marks this Mac made: its own file in iCloud Drive/Sift/seen.
     @ObservationIgnored var ownSeen: [String: SeenMark] = [:]
     @ObservationIgnored var seenSaveTask: Task<Void, Never>?
+    /// Agent requests from sift-mcp (AppModel+Agent.swift).
+    @ObservationIgnored var agentSource: DispatchSourceFileSystemObject?
+    @ObservationIgnored var agentBusy = false
+    /// Theme proposals made for an agent, by proposal id, until applied.
+    @ObservationIgnored var agentProposals: [String: (proposals: [Sorter.ThemeProposal], urls: [String])] = [:]
 
     init() {
         if Demo.isOn { Demo.start() }
@@ -178,6 +183,7 @@ final class AppModel {
             UpdateChecker.shared.start()
             startLibraryWorker()
             startChromeWatcher()
+            startAgentWatcher()
         }
     }
 

@@ -24,6 +24,9 @@ enum SearchIndex {
         let note: String
         /// The on-device summary, or "".
         var summary: String = ""
+        /// What the user did with it: "kept,sent,noted,seen" (any of them),
+        /// or "". sift-mcp ranks by it and shows it.
+        var signals: String = ""
     }
 
     struct Theme: Sendable {
@@ -46,7 +49,7 @@ enum SearchIndex {
         defer { sqlite3_close(db) }
         let schema = """
             PRAGMA journal_mode=OFF;
-            CREATE TABLE links(url TEXT PRIMARY KEY, title TEXT, theme TEXT, source TEXT, kind TEXT, saved TEXT, file TEXT, also TEXT, summary TEXT);
+            CREATE TABLE links(url TEXT PRIMARY KEY, title TEXT, theme TEXT, source TEXT, kind TEXT, saved TEXT, file TEXT, also TEXT, summary TEXT, signals TEXT);
             CREATE VIRTUAL TABLE fts USING fts5(url UNINDEXED, title, body, theme, summary, tokenize='unicode61 remove_diacritics 2');
             CREATE TABLE themes(name TEXT PRIMARY KEY, summary TEXT, notes TEXT, memory TEXT, links INTEGER);
             CREATE TABLE meta(key TEXT PRIMARY KEY, value TEXT);
@@ -54,12 +57,12 @@ enum SearchIndex {
             """
         guard sqlite3_exec(db, schema, nil, nil, nil) == SQLITE_OK else { return }
         let iso = ISO8601DateFormatter()
-        let link = prepare(db, "INSERT OR REPLACE INTO links VALUES (?,?,?,?,?,?,?,?,?)")
+        let link = prepare(db, "INSERT OR REPLACE INTO links VALUES (?,?,?,?,?,?,?,?,?,?)")
         let fts = prepare(db, "INSERT INTO fts VALUES (?,?,?,?,?)")
         for d in docs {
             let text = d.file.isEmpty ? d.fallback : (Library.text(for: d.url) ?? d.fallback)
             let body = d.note.isEmpty ? text : "Note: \(d.note)\n\n\(text)"
-            run(link, [d.url, d.title, d.theme, d.source, d.kind, iso.string(from: d.saved), d.file, d.also.joined(separator: "\n"), d.summary])
+            run(link, [d.url, d.title, d.theme, d.source, d.kind, iso.string(from: d.saved), d.file, d.also.joined(separator: "\n"), d.summary, d.signals])
             run(fts, [d.url, d.title, body, ([d.theme] + d.also).joined(separator: " "), d.summary])
         }
         sqlite3_finalize(link)
@@ -77,6 +80,20 @@ enum SearchIndex {
         if !FileManager.default.fileExists(atPath: url.path(percentEncoded: false)) {
             try? FileManager.default.moveItem(at: temp, to: url)
         }
+    }
+
+    /// Updates the signals of some links in the live index, without a
+    /// rebuild (seen marks change often).
+    static func updateSignals(_ values: [String: String]) {
+        guard !values.isEmpty else { return }
+        var db: OpaquePointer?
+        guard sqlite3_open_v2(url.path(percentEncoded: false), &db, SQLITE_OPEN_READWRITE, nil) == SQLITE_OK, let db else { return }
+        defer { sqlite3_close(db) }
+        guard sqlite3_exec(db, "BEGIN;", nil, nil, nil) == SQLITE_OK else { return }
+        let stmt = prepare(db, "UPDATE links SET signals = ? WHERE url = ?")
+        for (u, v) in values { run(stmt, [v, u]) }
+        sqlite3_finalize(stmt)
+        sqlite3_exec(db, "COMMIT;", nil, nil, nil)
     }
 
     /// Best matches first. Words must all match; when nothing does, any word.

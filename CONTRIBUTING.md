@@ -102,3 +102,17 @@ Setup Guide. You do not edit the guide itself.
 People who already finished the guide see the new step once, under "New in
 Sift". Sift records each step id it has shown in `onboardingSeen` in
 `state.json`.
+
+## Adding a tool for Claude (sift-mcp)
+
+sift-mcp never writes Sift's state; the running app does (issue #34).
+
+1. Add the tool's name to `AgentTools.writes` or `AgentTools.reads` in
+   `Shared/AgentRequests.swift`.
+2. Add its definition (name, description, input schema) to
+   `AgentCalls.definitions` in `SiftMCP/AgentTools.swift`. Say in the
+   description when the tool reaches outside the Mac.
+3. Add a case to `AppModel.handle` in `Sift/App/AppModel+Agent.swift` that
+   calls the same model function the app's button calls, and `finish`es
+   with what changed. A long job: add it to `longJobs` and `finish` with
+   "started" first.

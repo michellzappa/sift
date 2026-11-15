@@ -7,14 +7,18 @@ enum Tools {
         var isError = false
     }
 
-    static let names: Set<String> = ["search", "get_link", "list_themes", "theme_links"]
+    static let names: Set<String> = Set(["search", "get_link", "list_themes", "theme_links"]).union(AgentCalls.names)
 
     static let instructions = """
         Sift is the user's personal library of saved links: Safari tabs from their devices, \
         Safari Reading List, Instagram saved posts, X posts, YouTube videos and imported link lists. \
         Sift captures page text and video or reel transcripts, and groups the links into themes. \
         Use `search` to find material by words, `list_themes` to see how the library is organised, \
-        `theme_links` to list one theme, and `get_link` to read the captured text of one link.
+        `theme_links` to list one theme, and `get_link` to read the captured text of one link. \
+        Other tools change Sift for the user (merge or rename themes, file links, sort, propose themes, \
+        follow feeds, mark seen, keep, send): the running Sift app does each change and says what it did. \
+        Search leaves out dropped links and errands unless include_hidden is true, and marks links the user \
+        kept, sent, noted or has seen.
         """
 
     private static let libraryNote = "This is the user's personal Sift library of saved links "
@@ -38,6 +42,8 @@ enum Tools {
                         "theme": ["type": "string", "description": "Optional theme name (from list_themes) to search only in that theme."],
                         "limit": ["type": "integer", "minimum": 1, "maximum": 50, "default": 10,
                                   "description": "Number of hits to return (1 to 50, default 10)."],
+                        "include_hidden": ["type": "boolean", "default": false,
+                                           "description": "Also return links the user dropped as noise and errands (transactional pages). Default false."],
                     ],
                     "required": ["query"],
                 ] as [String: Any],
@@ -87,7 +93,7 @@ enum Tools {
                 ] as [String: Any],
                 "annotations": readOnly,
             ],
-        ]
+        ] + AgentCalls.definitions
     }
 
     private static var readOnly: [String: Any] {
@@ -95,6 +101,7 @@ enum Tools {
     }
 
     static func call(_ name: String, arguments: [String: Any]) -> Outcome {
+        if AgentCalls.names.contains(name) { return AgentCalls.call(name, arguments: arguments) }
         do {
             switch name {
             case "search": return try search(arguments)
@@ -119,12 +126,14 @@ enum Tools {
         }
         let theme = string(arguments["theme"])
         let limit = integer(arguments["limit"], default: 10, max: 50)
+        let includeHidden = (arguments["include_hidden"] as? Bool) ?? false
         let index = try Index()
+        let hasSignals = hasColumn(index, "signals")
 
         var sql = """
             SELECT coalesce(links.title, fts.title) AS title, fts.url AS url,
                    coalesce(links.theme, fts.theme) AS theme, links.source AS source, links.saved AS saved,
-                   snippet(fts, 2, '**', '**', ' … ', 24) AS snippet\(summaryColumn(index))
+                   snippet(fts, 2, '**', '**', ' … ', 24) AS snippet\(summaryColumn(index))\(hasSignals ? ", links.signals AS signals" : "")
             FROM fts LEFT JOIN links ON links.url = fts.url
             WHERE fts MATCH ?
             """
@@ -133,7 +142,14 @@ enum Tools {
             sql += " AND " + inTheme
             filter = [theme, theme]
         }
-        sql += " ORDER BY bm25(fts, 0, 5.0, 1.0, 2.0) LIMIT ?"
+        // Noise and errands stay out unless asked for (owner, 2026-11-15).
+        if !includeHidden { sql += " AND coalesce(links.theme, '') NOT IN ('drop', 'errands')" }
+        // What the user kept, sent or noted ranks first; seen a little.
+        let boost = hasSignals ? """
+             - (CASE WHEN links.signals LIKE '%kept%' OR links.signals LIKE '%sent%' OR links.signals LIKE '%noted%' THEN 2.0
+                     WHEN links.signals LIKE '%seen%' THEN 0.5 ELSE 0 END)
+            """ : ""
+        sql += " ORDER BY bm25(fts, 0, 5.0, 1.0, 2.0)\(boost) LIMIT ?"
 
         var hits = try index.rows(sql, [words.joined(separator: " ")] + filter + [limit])
         var loose = false
@@ -151,7 +167,7 @@ enum Tools {
         for (number, hit) in hits.enumerated() {
             lines.append("\(number + 1). **\(title(hit))**")
             lines.append("   \(hit["url"] ?? "")")
-            lines.append("   " + facts([hit["theme"], hit["source"], day(hit["saved"])]))
+            lines.append("   " + facts([hit["theme"], hit["source"], day(hit["saved"]), signals(hit["signals"])]))
             let summary = oneLine(hit["summary"] ?? "")
             if !summary.isEmpty { lines.append("   Summary: \(summary)") }
             let snippet = oneLine(hit["snippet"] ?? "")
@@ -166,7 +182,7 @@ enum Tools {
         let url = string(arguments["url"])
         guard !url.isEmpty else { return Outcome(text: "Give the link's url.", isError: true) }
         let index = try Index()
-        let sql = "SELECT url, title, theme, source, kind, saved, file, also\(summaryColumn(index)) FROM links WHERE url = ? LIMIT 1"
+        let sql = "SELECT url, title, theme, source, kind, saved, file, also\(summaryColumn(index))\(hasColumn(index, "signals") ? ", signals" : "") FROM links WHERE url = ? LIMIT 1"
         var rows = try index.rows(sql, [url])
         if rows.isEmpty {
             let other = url.hasSuffix("/") ? String(url.dropLast()) : url + "/"
@@ -183,6 +199,7 @@ enum Tools {
         if let source = link["source"], !source.isEmpty { lines.append("- Source: \(source)") }
         if let kind = link["kind"], !kind.isEmpty { lines.append("- Kind: \(kind)") }
         if let saved = day(link["saved"]) { lines.append("- Saved: \(saved)") }
+        if let marks = signals(link["signals"]) { lines.append("- User: \(marks)") }
         lines.append("")
         let summary = oneLine(link["summary"] ?? "")
         if !summary.isEmpty { lines += ["Summary: \(summary)", ""] }
@@ -279,6 +296,16 @@ enum Tools {
     }
 
     // MARK: - helpers
+
+    private static func hasColumn(_ index: Index, _ name: String) -> Bool {
+        ((try? index.rows("PRAGMA table_info(links)")) ?? []).contains { $0["name"] == name }
+    }
+
+    /// "kept, seen" as the user would say it, or nil.
+    private static func signals(_ value: String?) -> String? {
+        let words = (value ?? "").split(separator: ",").map(String.init).filter { !$0.isEmpty }
+        return words.isEmpty ? nil : words.joined(separator: ", ")
+    }
 
     /// ", links.summary AS summary" when the index has the column. An index
     /// built by an older Sift has none; the tools then leave the summary out.
