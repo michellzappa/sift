@@ -259,7 +259,7 @@ Apple, and carry a build provenance attestation. To check that a download
 came from this repository's release workflow:
 
 ```sh
-gh attestation verify Sift-0.7.0.zip -R michellzappa/sift
+gh attestation verify Sift-0.8.0.zip -R michellzappa/sift
 ```
 
 Each release also has a `SHA256SUMS` file.
@@ -326,7 +326,7 @@ theme, list, settings-library, settings-outputs).
 
 ### Releases
 
-Push a tag that matches `CFBundleShortVersionString`, for example `v0.7.0`.
+Push a tag that matches `CFBundleShortVersionString`, for example `v0.8.0`.
 The workflow in `.github/workflows/release.yml` builds a universal app,
 signs it with Developer ID, notarizes and staples it, attests its provenance,
 and publishes the ZIP and `SHA256SUMS`. It needs these repository secrets:
