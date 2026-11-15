@@ -83,6 +83,11 @@ extension AppModel {
         guard !Demo.isOn else { exportMessage = Demo.offMessage; return }
         var target = link.absoluteString
         switch link.scheme?.lowercased() {
+        case "sift" where link.host() == "today":
+            // sift://today opens Today and builds the digest again.
+            navigationRequest = .today
+            refreshToday(force: true)
+            return
         case "sift":
             guard link.host() == "subscribe",
                   let u = URLComponents(url: link, resolvingAgainstBaseURL: false)?.queryItems?.first(where: { $0.name == "url" })?.value
