@@ -71,7 +71,9 @@ private struct GeneralSettings: View {
 private struct PrivacySettings: View {
     @Environment(AppModel.self) private var model
     @State private var on = Telemetry.enabled
+    @State private var knownFeeds = (UserDefaults.standard.object(forKey: Telemetry.knownFeedsKey) as? Bool) ?? true
     @State private var showBatch = false
+    @State private var listLoaded = 0
 
     var body: some View {
         Form {
@@ -79,6 +81,9 @@ private struct PrivacySettings: View {
                 Toggle("Share anonymous usage counts", isOn: $on)
                     .disabled(Demo.isOn)
                     .onChange(of: on) { _, value in Telemetry.setEnabled(value) }
+                Toggle("Include well-known feeds you follow", isOn: $knownFeeds)
+                    .disabled(Demo.isOn || !on)
+                    .onChange(of: knownFeeds) { _, value in UserDefaults.standard.set(value, forKey: Telemetry.knownFeedsKey) }
                 HStack {
                     Button("Show What Is Sent") { showBatch.toggle() }
                     Link("Community Pulse", destination: Telemetry.communityURL)
@@ -91,14 +96,20 @@ private struct PrivacySettings: View {
                         .frame(maxWidth: .infinity, alignment: .leading)
                 }
             } footer: {
-                Text("Once a week, Sift sends one small report: the app and macOS version, which kinds of source and destination you use, which switches are on, and rough sizes such as \"100-999 links\". It never sends a link, title, theme name, note, account or file path. It sends no install id: the key that stops a Mac from counting twice changes every week. The totals are public on the Community Pulse page.")
+                Text("Once a week, Sift sends one small report: the app and macOS version, which kinds of source and destination you use, which switches are on, and rough sizes such as \"100-999 links\". It never sends a link, title, theme name, note, account or file path. It sends no install id: the key that stops a Mac from counting twice changes every week. The totals are public on the Community Pulse page.\n\nFeeds: the report counts the kinds of feed you follow (Substack, Reddit, podcasts…). With the second switch on, it also names the feeds you follow that are on Sift's public list of large, well-known feeds. Any other feed, such as a small blog or a private address, never leaves your Mac.")
                     .foregroundStyle(.secondary)
             }
         }
         .formStyle(.grouped)
+        .task(id: showBatch) {
+            guard showBatch, Telemetry.knownFeedsEnabled else { return }
+            await Telemetry.refreshKnownFeeds()
+            listLoaded += 1
+        }
     }
 
     private var batchJSON: String {
+        _ = (listLoaded, knownFeeds)
         let encoder = JSONEncoder()
         encoder.outputFormatting = [.prettyPrinted, .sortedKeys]
         guard let data = try? encoder.encode(TelemetryCoordinator.shared.preview(model)) else { return "" }

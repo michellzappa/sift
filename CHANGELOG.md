@@ -9,6 +9,13 @@ ships this file and shows it in Settings > About and in Sift > Version
 History. Headings are `## X.Y.Z - YYYY-MM-DD`; groups are `### Added`,
 `### Changed` and `### Fixed`.
 
+## 1.5.0 - 2026-11-15
+
+### Added
+- The weekly usage report counts the kinds of feed you follow (Substack, Reddit, podcasts and so on), never an address or name.
+- It also names the feeds you follow that are on Sift's public list of large, well-known feeds. Any other feed never leaves your Mac. Settings > Privacy has a switch for this part.
+- The Community Pulse shows feed kinds, and a well-known feed once 5 or more Macs follow it.
+
 ## 1.4.9 - 2026-11-15
 
 ### Changed

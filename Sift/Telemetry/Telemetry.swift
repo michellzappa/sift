@@ -50,17 +50,27 @@ struct TelemetryBatch: Codable, Equatable, Sendable {
     let backend: String
     let scale: Scale
     let features: [String: Bool]
+    /// Kinds of feed followed (`FeedProvider` ids, "web" for the rest), no
+    /// addresses or names.
+    var feedKinds: [String]? = nil
+    /// Ids from the Worker's public list of well-known feeds that this Mac
+    /// follows. Only feeds on that list; any other feed never leaves the Mac.
+    /// Nil when the Known Feeds switch is off.
+    var knownFeeds: [String]? = nil
 
     enum CodingKeys: String, CodingKey {
         case schema
         case batchID = "batch_id"
         case dedupeKey = "dedupe_key"
         case period, cohort, app, sources, destinations, backend, scale, features
+        case feedKinds = "feed_kinds"
+        case knownFeeds = "known_feeds"
     }
 }
 
 enum Telemetry {
     static let enabledKey = "telemetryEnabled"
+    static let knownFeedsKey = "telemetryKnownFeeds"
     static let lastSubmittedPeriodKey = "telemetryLastSubmittedPeriod"
     static let endpointKey = "telemetryEndpoint"
     static let schemaVersion = 1
@@ -74,6 +84,12 @@ enum Telemetry {
     static var enabled: Bool {
         guard !Demo.isOn else { return false }
         return (UserDefaults.standard.object(forKey: enabledKey) as? Bool) ?? true
+    }
+
+    /// Well-known feed ids in the report: on by default (owner, 2026-11-15),
+    /// and only while the usage counts are on.
+    static var knownFeedsEnabled: Bool {
+        enabled && ((UserDefaults.standard.object(forKey: knownFeedsKey) as? Bool) ?? true)
     }
 
     static func setEnabled(_ on: Bool) {
@@ -96,6 +112,8 @@ enum Telemetry {
     }
     static var pendingURL: URL { folder.appending(path: "pending.json") }
     static var secretURL: URL { folder.appending(path: "install_secret") }
+
+    static var knownFeedsURL: URL { folder.appending(path: "known_feeds.json") }
 
     static func loadPending() -> TelemetryBatch? {
         guard enabled, let data = try? Data(contentsOf: pendingURL) else { return nil }
@@ -207,6 +225,92 @@ enum Telemetry {
 
     static let destinationKinds: Set<String> = ["starlings", "obsidian", "markdown", "reading-list"]
 
+    /// The Worker's public list of well-known feeds (`/v1/feeds/known`). The
+    /// request carries nothing about the Mac.
+    struct KnownFeed: Codable, Sendable {
+        let id: String
+        let name: String
+        let match: [String]
+    }
+    struct KnownFeedList: Codable, Sendable {
+        let version: Int
+        let feeds: [KnownFeed]
+    }
+
+    static var knownFeedsEndpoint: URL? {
+        guard let batches = endpoint else { return nil }
+        return batches.deletingLastPathComponent().appending(path: "feeds/known")
+    }
+
+    static func loadKnownFeeds() -> KnownFeedList? {
+        guard let data = try? Data(contentsOf: knownFeedsURL) else { return nil }
+        return try? JSONDecoder().decode(KnownFeedList.self, from: data)
+    }
+
+    /// Downloads the list, at most once a day; the copy on disk is used when
+    /// the download fails.
+    static func refreshKnownFeeds() async {
+        let modified = (try? FileManager.default.attributesOfItem(atPath: knownFeedsURL.path(percentEncoded: false)))?[.modificationDate] as? Date
+        if let modified, Date().timeIntervalSince(modified) < 24 * 60 * 60 { return }
+        guard let url = knownFeedsEndpoint else { return }
+        var request = URLRequest(url: url)
+        request.timeoutInterval = 15
+        guard let (data, response) = try? await URLSession.shared.data(for: request),
+              (response as? HTTPURLResponse)?.statusCode == 200,
+              (try? JSONDecoder().decode(KnownFeedList.self, from: data)) != nil else { return }
+        try? FileManager.default.createDirectory(at: folder, withIntermediateDirectories: true, attributes: [.posixPermissions: 0o700])
+        try? data.write(to: knownFeedsURL, options: .atomic)
+    }
+
+    /// The ids of `list` entries that one of `feeds` matches. A feed whose
+    /// address looks like it carries a secret is never matched.
+    static func knownFeedIDs(_ feeds: [Feed], list: KnownFeedList) -> [String] {
+        let keys = feeds.compactMap { feedKey($0.url) }
+        var ids = Set<String>()
+        for entry in list.feeds where entry.match.contains(where: { pattern in keys.contains { matches($0, pattern) } }) {
+            ids.insert(entry.id)
+        }
+        return ids.sorted()
+    }
+
+    /// "host/path", lowercase, without "www.", or nil for an address that
+    /// looks private (a token, key or long random part).
+    static func feedKey(_ raw: String) -> String? {
+        guard let c = URLComponents(string: raw), var host = c.host?.lowercased() else { return nil }
+        if host.hasPrefix("www.") { host = String(host.dropFirst(4)) }
+        let secretNames = ["token", "key", "auth", "uid", "secret", "sig", "password", "pass", "apikey", "access"]
+        for item in c.queryItems ?? [] {
+            let name = item.name.lowercased()
+            if secretNames.contains(where: { name.contains($0) }) { return nil }
+            if let value = item.value, looksRandom(value) { return nil }
+        }
+        if c.path.split(separator: "/").contains(where: { looksRandom(String($0)) }) { return nil }
+        if c.user != nil || c.password != nil { return nil }
+        var path = c.path.lowercased()
+        while path.hasSuffix("/") { path.removeLast() }
+        return host + path
+    }
+
+    /// 20 or more letters and digits that mix both: a token, not a word.
+    private static func looksRandom(_ s: String) -> Bool {
+        guard s.count >= 20 else { return false }
+        let alnum = s.filter { $0.isLetter || $0.isNumber }
+        return alnum.count >= 20 && alnum.contains(where: \.isNumber) && alnum.contains(where: \.isLetter)
+            && !s.contains("-") && !s.contains("_")
+    }
+
+    static func matches(_ key: String, _ pattern: String) -> Bool {
+        let parts = pattern.split(separator: "/", maxSplits: 1)
+        guard let phost = parts.first.map(String.init) else { return false }
+        let ppath = parts.count > 1 ? "/" + parts[1] : ""
+        let host = String(key.prefix { $0 != "/" })
+        let path = String(key.dropFirst(host.count))
+        guard host == phost || host.hasSuffix("." + phost) else { return false }
+        if ppath.isEmpty || path == ppath { return true }
+        guard path.hasPrefix(ppath), let next = path.dropFirst(ppath.count).first else { return false }
+        return next == "/" || next == "."
+    }
+
     static func bucket(_ n: Int, _ edges: [Int]) -> String {
         if n == 0 { return "0" }
         for (i, edge) in edges.enumerated() where n < edge {
@@ -247,6 +351,7 @@ final class TelemetryCoordinator {
         }
         let period = Telemetry.period()
         guard UserDefaults.standard.string(forKey: Telemetry.lastSubmittedPeriodKey) != period else { return }
+        if Telemetry.knownFeedsEnabled { await Telemetry.refreshKnownFeeds() }
         let batch = makeBatch(model, period: period)
         if await send(batch) {
             UserDefaults.standard.set(period, forKey: Telemetry.lastSubmittedPeriodKey)
@@ -272,7 +377,13 @@ final class TelemetryCoordinator {
         let info = Bundle.main.infoDictionary ?? [:]
         let sources = Set(model.archive.values.compactMap { Telemetry.sourceKind($0.source) }).sorted()
         let destinations = Set(state.destinations.map(\.kind)).intersection(Telemetry.destinationKinds).sorted()
-        return TelemetryBatch(
+        let feeds = state.feeds.filter(\.enabled)
+        let feedKinds = Set(feeds.map { $0.provider ?? AppModel.providerID(forFeed: $0.url) ?? WebProvider.id }).sorted()
+        var knownFeeds: [String]? = nil
+        if Telemetry.knownFeedsEnabled, let list = Telemetry.loadKnownFeeds() {
+            knownFeeds = Telemetry.knownFeedIDs(feeds, list: list)
+        }
+        var batch = TelemetryBatch(
             schema: Telemetry.schemaVersion,
             batchID: UUID().uuidString.lowercased(),
             dedupeKey: Telemetry.dedupeKey(period: period),
@@ -303,6 +414,9 @@ final class TelemetryCoordinator {
                 "close_after_send": state.closeAfterSend,
             ]
         )
+        batch.feedKinds = feedKinds
+        batch.knownFeeds = knownFeeds
+        return batch
     }
 
     private func send(_ batch: TelemetryBatch) async -> Bool {

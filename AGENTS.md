@@ -273,7 +273,12 @@ The one exception is anonymous diagnostics (owner, 2026-11-15, below).
   step: `TelemetryBatch`, the Worker's whitelist, and docs/telemetry.md.
   Never add a field that carries library content or an identifier.
   `wrangler d1 execute --remote` needs `--yes`, and a migration goes in
-  before the Worker that reads it.
+  before the Worker that reads it. Feeds (issue #33, owner: on by
+  default): `feed_kinds` (provider ids) and `known_feeds` (ids from the
+  Worker's public list `telemetry/known_feeds.js`, served at
+  `/v1/feeds/known`, matched on the Mac; own switch `telemetryKnownFeeds`;
+  Pulse floor 5). Never report a feed that is not on that list. Add only
+  large public feeds to it; never rename an id.
 
 - Updates (2026-11-15, ported from Headroom's updater, owner's request).
   `Sift/App/Updates.swift`: `UpdateChecker` asks GitHub's

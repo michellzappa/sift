@@ -24,6 +24,10 @@ At most one report per Mac per ISO week:
 - switches: themes exist, on-device model available, on-device first pass,
   on-device summaries, YouTube transcript tool installed, reel transcript
   tool installed, YouTube audio route, connections, close after send;
+- the kinds of feed you follow: `web`, `reddit`, `youtube`, `substack`,
+  `bluesky`, `mastodon`, `medium`, `tumblr`, `github`, `podcast`,
+  `hackernews`, `news`, `arxiv`; never a feed address or name;
+- the well-known feeds you follow (see below), as ids from a public list;
 - a week key, `HMAC-SHA256(install secret, ISO week)`, so a second report
   from the same Mac in the same week is ignored;
 - one cohort word: `new`, `returning` or `reactivated`.
@@ -40,6 +44,28 @@ The install secret stays on the Mac, in the login keychain (service
 Only the week key leaves, and it changes every week, so the server cannot
 join one week's report to the next. The random `batch_id` only lets the
 server ignore a retried request.
+
+## Well-known feeds
+
+A list of the feeds one person follows is close to unique, and a small
+blog can point at a person. So the report names a feed only when it is on
+Sift's public list of large, well-known feeds: big publications, popular
+subreddits, the Hacker News front page. The list is in
+`telemetry/known_feeds.js` and anyone can read it at
+`/v1/feeds/known`. The Mac downloads that list (the request carries
+nothing about the Mac), compares it with its own follows, and sends only
+the ids that match. Every other feed stays on the Mac. A feed address that
+looks like it carries a secret (a token, key or long random part) is never
+matched.
+
+This part is on by default, with its own switch in **Settings > Privacy**
+("Include well-known feeds you follow"). It is off whenever the usage
+counts are off. The Community Pulse shows a well-known feed only when at
+least 5 Macs follow it that week.
+
+Later (issue #33): a threshold scheme (STAR) can grow the list from feeds
+that many Macs follow, without the server reading an address until k Macs
+report it. It is not built.
 
 ## Retention without an install id
 

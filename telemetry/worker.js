@@ -3,6 +3,7 @@
 // contract is docs/telemetry.md. Every field is whitelisted before storage.
 // Request headers and IP addresses are never stored.
 import { communityPage } from "./community_page.js";
+import { KNOWN_FEEDS, KNOWN_FEEDS_VERSION, KNOWN_FEED_IDS } from "./known_feeds.js";
 
 const ALLOWED_SOURCES = new Set([
   "safari", "chrome", "reading-list", "instagram", "x", "import", "feed",
@@ -10,6 +11,14 @@ const ALLOWED_SOURCES = new Set([
 const ALLOWED_DESTINATIONS = new Set([
   "starlings", "obsidian", "markdown", "reading-list",
 ]);
+// FeedProvider ids in the Mac app (Sift/Feeds/Providers), plus "web".
+const ALLOWED_FEED_KINDS = new Set([
+  "web", "reddit", "youtube", "substack", "bluesky", "mastodon", "medium",
+  "tumblr", "github", "podcast", "hackernews", "news", "arxiv",
+]);
+// A well-known feed shows on the Community Pulse only when at least this
+// many Macs follow it in a week (its own floor; the rest of the page uses 1).
+const KNOWN_FEED_MINIMUM_GROUP_SIZE = 5;
 const ALLOWED_BACKENDS = new Set(["claude-code", "api"]);
 const ALLOWED_LINK_BUCKETS = new Set(["0", "1-99", "100-999", "1000-9999", "10000+"]);
 const ALLOWED_THEME_BUCKETS = new Set(["0", "1-4", "5-9", "10-19", "20+"]);
@@ -101,6 +110,8 @@ function sanitize(payload) {
       themes: ALLOWED_THEME_BUCKETS.has(scale.themes) ? scale.themes : null,
     },
     features,
+    feed_kinds: allowedList(payload.feed_kinds, ALLOWED_FEED_KINDS),
+    known_feeds: allowedList(payload.known_feeds, KNOWN_FEED_IDS).slice(0, 100),
   };
   return JSON.stringify(safe).length <= 8192 ? safe : null;
 }
@@ -294,6 +305,14 @@ async function communityStats(env) {
       library_sizes: items("links"),
       theme_counts: items("themes"),
       features,
+      feed_kinds: items("feed_kind"),
+      known_feeds: countedItems(dimensionRows(rows, "known_feed", latest.period))
+        .filter((row) => row.count >= KNOWN_FEED_MINIMUM_GROUP_SIZE)
+        .map((row) => ({
+          name: KNOWN_FEEDS.find((feed) => feed.id === row.name)?.name ?? row.name,
+          count: row.count,
+        })),
+      known_feed_minimum_group_size: KNOWN_FEED_MINIMUM_GROUP_SIZE,
     },
   };
 }
@@ -330,6 +349,8 @@ async function recordRollups(env, safe, receivedAt, country) {
   if (safe.backend) statements.push(upsertDimension(env, p, "backend", safe.backend));
   if (safe.scale.links) statements.push(upsertDimension(env, p, "links", safe.scale.links));
   if (safe.scale.themes) statements.push(upsertDimension(env, p, "themes", safe.scale.themes));
+  for (const kind of safe.feed_kinds) statements.push(upsertDimension(env, p, "feed_kind", kind));
+  for (const id of safe.known_feeds) statements.push(upsertDimension(env, p, "known_feed", id));
   for (const [feature, on] of Object.entries(safe.features)) {
     statements.push(upsertDimension(env, p, "feature", feature, on ? 1 : 0));
   }
@@ -343,6 +364,12 @@ export default {
       return json(await communityStats(env), 200, {
         "access-control-allow-origin": "*",
         "cache-control": "public, max-age=300",
+      });
+    }
+    if (request.method === "GET" && url.pathname === "/v1/feeds/known") {
+      return json({ version: KNOWN_FEEDS_VERSION, feeds: KNOWN_FEEDS }, 200, {
+        "access-control-allow-origin": "*",
+        "cache-control": "public, max-age=3600",
       });
     }
     if (request.method === "GET" && (url.pathname === "/" || url.pathname === "/community")) {

@@ -475,6 +475,8 @@ const COMMUNITY_PAGE = `<!doctype html>
         panel('macOS major', 'major version', countRows((latest.macos_majors || []).map((item) => ({ name: 'macOS ' + item.name, count: item.count })), total), 1) +
         panel('Countries', 'Cloudflare edge geo · ISO code only, never an IP', countRows((latest.countries || []).map((item) => ({ name: countryName(item.name), count: item.count })), total), 1) +
         panel('Sources', 'kinds of source with links', countRows(latest.sources || [], total), 1) +
+        panel('Feeds', 'kinds of feed followed', countRows(latest.feed_kinds || [], total), 1) +
+        panel('Well-known feeds', 'public feeds on the known list · shown at ' + (latest.known_feed_minimum_group_size || 5) + '+ Macs', countRows(latest.known_feeds || [], total), 2) +
         panel('Destinations', 'kinds of Send destination set up', countRows(latest.destinations || [], total, true), 1) +
         panel('Sorting', 'Claude Code or API key', countRows(latest.backends || [], total), 1) +
         panel('Library size', 'saved links, in ranges', countRows(sizeOrder(latest.library_sizes || []), total, true), 1) +
