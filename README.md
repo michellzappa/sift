@@ -54,11 +54,15 @@ The source picker in the toolbar reads, all read-only:
 - **YouTube Watch Later and playlists**, from a Google Takeout export of
   "YouTube and YouTube Music" (the YouTube API cannot read Watch Later).
   Import the Takeout zip with File > Import Links File.
-- **Feeds**: blogs, newsletters and sites with RSS, Atom or JSON Feed. In
-  Settings > Inputs, Import OPML shows every feed in the file by folder;
-  follow all of them or tick a subset. Add Feed finds a site's feed from its
-  address. Sift checks each feed about once an hour and keeps 90 days of
-  items. Export OPML takes them to any other reader.
+- **Feeds**, in **Today**: blogs, newsletters and sites with RSS, Atom or
+  JSON Feed. In Settings > Inputs, Import OPML shows every feed in the file
+  by folder; follow all of them or tick a subset. Add Feed finds a site's
+  feed from its address. Feed items are offered, not saved: they show only
+  in Today, a digest of about ten at 07:00 and 17:00, ranked on your Mac by
+  freshness, the feeds you keep from, your themes and links several feeds
+  share. Keep one (K) and it moves into **Kept from Today** and your library.
+  The rest leave Today after three days, so no unread pile builds up. Export
+  OPML takes your feeds to any other reader.
 - **All Sources**: everything above together, each link once, newest first,
   with a small icon for where it came from.
 

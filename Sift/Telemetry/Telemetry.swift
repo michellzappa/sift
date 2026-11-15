@@ -196,7 +196,7 @@ enum Telemetry {
         if id.hasPrefix("tabs") || id.hasPrefix("demo-") { return "safari" }
         if id.hasPrefix(ChromeReader.sourcePrefix) { return "chrome" }
         if id.hasPrefix(LinkImporter.sourcePrefix) { return "import" }
-        if id == FeedStore.sourceID { return "feed" }
+        if id == TodayStore.keptSourceID { return "feed" }
         switch id {
         case ReadingListReader.sourceID: return "reading-list"
         case InstagramReader.sourceID: return "instagram"

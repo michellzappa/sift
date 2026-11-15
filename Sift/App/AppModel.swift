@@ -128,6 +128,7 @@ final class AppModel {
         state = StateFile.load()
         loadSeen()
         if !Demo.isOn { Task { await migrateStarlingsDestinations() } }
+        if state.today == nil { pruneOfferedFromArchive() }
         reload()
         settleOnboardingForExistingInstall()
         // Demo mode has no background jobs and no Chrome.
@@ -205,7 +206,7 @@ final class AppModel {
                 add(reading.map(\.tab), "reading-list")
                 add(instagram.map(\.tab), "instagram")
                 add(xBookmarkTabs(), "x")
-                add(feedTabs(), FeedStore.sourceID)
+                add(keptTabs(), TodayStore.keptSourceID)
                 for source in state.importedSources {
                     let items = importedItems(source)
                     for item in items where previews[item.tab.url] == nil {
@@ -220,8 +221,8 @@ final class AppModel {
                 for item in items where previews[item.tab.url] == nil {
                     if let p = item.preview { previews[item.tab.url] = p }
                 }
-            } else if isFeeds {
-                tabs = feedTabs()
+            } else if isKept {
+                tabs = keptTabs()
             } else if isXBookmarks {
                 tabs = xBookmarkTabs()
             } else if let profile = currentChrome {

@@ -2,27 +2,12 @@ import AppKit
 import Foundation
 import UniformTypeIdentifiers
 
-/// Feeds as a source: OPML import (all or a subset), add by URL, fetching
-/// with the library jobs, export back to OPML. See Engine/Feeds.swift.
+/// Feeds: OPML import (all or a subset), add by URL, fetching with the
+/// library jobs, export back to OPML. Feed items are offered, not saved:
+/// they appear only in Today (AppModel+Today.swift). See Engine/Feeds.swift.
 extension AppModel {
-    var isFeeds: Bool { state.deviceID == FeedStore.sourceID }
+    /// Items held for all enabled feeds (Settings shows it).
     var feedCount: Int { state.feeds.filter(\.enabled).reduce(0) { $0 + FeedStore.entries($1.id).count } }
-
-    /// Every enabled feed's items as links, newest first. Feed text and
-    /// images fill the preview, so Sift need not fetch the page for a card.
-    func feedTabs() -> [SafariTab] {
-        var out: [SafariTab] = []
-        for feed in state.feeds where feed.enabled {
-            for e in FeedStore.entries(feed.id) {
-                out.append(SafariTab(url: e.url, title: e.title.isEmpty ? e.url : e.title, lastViewed: e.date, source: FeedStore.sourceID))
-                if previews[e.url] == nil, !e.summary.isEmpty || e.image != nil {
-                    previews[e.url] = Preview(title: e.title, text: e.summary, imageURL: e.image,
-                                              site: feed.title, fetched: Date())
-                }
-            }
-        }
-        return out.sorted { ($0.lastViewed ?? .distantPast) > ($1.lastViewed ?? .distantPast) }
-    }
 
     // MARK: Fetching
 
@@ -54,7 +39,8 @@ extension AppModel {
             }
             feedProgress.done += 1
         }
-        if added > 0 { reload() }
+        // New items can only reach Today; they never enter sources or themes.
+        if added > 0 { refreshToday() }
     }
 
     // MARK: Adding and removing
@@ -93,19 +79,19 @@ extension AppModel {
                         site: parsed.site, added: Date(), lastFetched: Date())
         state.feeds.append(feed)
         _ = FeedStore.merge(parsed.entries, into: feed.id)
-        reload()
+        refreshToday(force: true)
     }
 
     func removeFeed(_ feed: Feed) {
         state.feeds.removeAll { $0.id == feed.id }
         FeedStore.remove(feed.id)
-        reload()
+        refreshToday(force: true)
     }
 
     func setFeed(_ feed: Feed, enabled: Bool) {
         guard let i = state.feeds.firstIndex(where: { $0.id == feed.id }) else { return }
         state.feeds[i].enabled = enabled
-        reload()
+        refreshToday(force: true)
     }
 
     /// Writes the followed feeds as OPML, so they can move to any reader.

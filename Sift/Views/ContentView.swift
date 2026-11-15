@@ -1,6 +1,8 @@
 import SwiftUI
 
 enum SidebarItem: Hashable {
+    /// The digest of offered items (Engine/Today.swift).
+    case today
     case overview
     case unsorted
     case closeQueue
@@ -32,7 +34,9 @@ struct ContentView: View {
         } detail: {
             Group {
                 let item = selection ?? .overview
-                if !model.hasReadableSource {
+                if item == .today {
+                    TodayView()
+                } else if !model.hasReadableSource {
                     NoSourcesView()
                 } else if showsGraph(item) {
                     GraphView(selection: $selection)
@@ -147,8 +151,8 @@ struct ContentView: View {
                 if model.xConnected {
                     Text("X Bookmarks (\(model.xBookmarkIDs.count))").tag(AppModel.xBookmarksSourceID)
                 }
-                if !model.state.feeds.isEmpty {
-                    Text("Feeds (\(model.feedCount))").tag(FeedStore.sourceID)
+                if !model.state.kept.isEmpty {
+                    Text("Kept from Today (\(model.state.kept.count))").tag(TodayStore.keptSourceID)
                 }
                 if model.state.instagramExportPath != nil, model.instagramCount > 0 {
                     Text("Instagram Saved (\(model.instagramCount))").tag(InstagramReader.sourceID)
@@ -218,6 +222,18 @@ private struct Sidebar: View {
 
     var body: some View {
         List(selection: $selection) {
+            if !model.state.feeds.isEmpty {
+                // What your feeds offer, as a digest that ends. Not a source:
+                // nothing here is saved until you keep it.
+                Label {
+                    HStack {
+                        Text("Today").fontWeight(model.todayOpenCount > 0 ? .semibold : .regular)
+                        Spacer()
+                        count(model.todayOpenCount)
+                    }
+                } icon: { Image(systemName: "sun.max") }
+                    .tag(SidebarItem.today)
+            }
             Label { HStack { Text("Overview"); Spacer(); count(model.allSourcesCount) } } icon: { Image(systemName: "circle.hexagongrid") }
                 .tag(SidebarItem.overview)
             // The sources behind the overview, with counts. Click one to show
@@ -338,7 +354,7 @@ private struct Sidebar: View {
         if model.readingListCount > 0 { rows.append(.init(id: ReadingListReader.sourceID, name: "Reading List", symbol: "eyeglasses", count: model.readingListCount)) }
         if model.instagramCount > 0 { rows.append(.init(id: InstagramReader.sourceID, name: "Instagram Saved", symbol: "camera", count: model.instagramCount)) }
         if model.xConnected { rows.append(.init(id: AppModel.xBookmarksSourceID, name: "X Bookmarks", symbol: "bookmark", count: model.xBookmarkIDs.count)) }
-        if !model.state.feeds.isEmpty { rows.append(.init(id: FeedStore.sourceID, name: "Feeds", symbol: "dot.radiowaves.up.forward", count: model.feedCount)) }
+        if !model.state.kept.isEmpty { rows.append(.init(id: TodayStore.keptSourceID, name: "Kept from Today", symbol: "star", count: model.state.kept.count)) }
         for i in model.state.importedSources {
             rows.append(.init(id: LinkImporter.sourcePrefix + i.id, name: i.name, symbol: "tray.and.arrow.down", count: model.importCounts[i.id] ?? 0))
         }

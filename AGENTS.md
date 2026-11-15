@@ -336,7 +336,22 @@ The one exception is anonymous diagnostics (owner, 2026-11-15, below).
   for feeds older than an hour. Settings > Inputs > Feeds
   (`Views/FeedSettings.swift`): Import OPML with folder and per-feed
   checkboxes (all picked at first), Add Feed by address, Check Now, Export
-  OPML. Telemetry source kind `feed` (client, Worker whitelist, docs). Next
-  (planned): the daily digest and no-unread-pile expiry; Bluesky/Mastodon
-  issues; TikTok data export.
+  OPML. Telemetry source kind `feed` (client, Worker whitelist, docs).
+- Saved vs offered, Today (2026-11-15, owner; issues #27, #30). Saved
+  items (tabs, Reading List, Instagram, X bookmarks, imports, kept items)
+  are sources, themes, library. Offered items (feeds now; Bluesky,
+  Mastodon, X people later) are never sources or themes: they show only in
+  Today. `Engine/Today.swift`: `TodayBuilder` picks about 10 from the last
+  3 days at slots 07:00 and 17:00, local ranking (freshness, keeps per feed,
+  theme word overlap, the same normalized URL in several feeds), at most 2
+  per feed, one wildcard, a reason line per pick; no Claude call.
+  `state.today` (`TodayDigest`, picks carry their own title, summary,
+  image) and `state.kept` (`KeptItem`). `AppModel+Today.swift`: Keep moves
+  an item into the saved source `kept` ("Kept from Today"), marks it seen
+  and reloads; `refreshToday` runs with the library jobs and after a feed
+  check. `Views/TodayView.swift`: sidebar Today (open count), rows with no
+  icon buttons; K, the context menu or Keep above the page keeps. A
+  one-time `pruneOfferedFromArchive` removes 0.7.0 feed items from the
+  archive unless kept, sent or noted. Next: the phone's Today and Library
+  tabs (#30), YouTube subscriptions from Takeout as feeds, Bluesky (#23).
 

@@ -9,6 +9,17 @@ ships this file and shows it in Settings > About and in Sift > Version
 History. Headings are `## X.Y.Z - YYYY-MM-DD`; groups are `### Added`,
 `### Changed` and `### Fixed`.
 
+## 0.8.0 - 2026-11-15
+
+### Added
+
+- **Today.** What your feeds offer, as a digest of about ten items at 07:00 and 17:00, at the top of the sidebar. Each item says why it is there: in several of your feeds, fits one of your themes, from a feed you often keep, or one thing different. When you have seen them all, Today says so and waits for the next digest.
+- **Keep.** Press K, or Keep above the open page, and the item moves into Kept from Today and into your library, themes and search.
+
+### Changed
+
+- **Feed items are no longer saved links.** They show only in Today, never in your sources, themes or the unsorted count, and leave Today after three days unless you keep them. Feed items that 0.7.0 put in your archive are removed, except ones you sent or wrote a note on.
+
 ## 0.7.0 - 2026-11-15
 
 ### Added

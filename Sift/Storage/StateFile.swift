@@ -18,6 +18,10 @@ struct SiftState: Codable, Sendable {
     var importedSources: [LinkImporter.Source] = []
     /// Followed RSS, Atom and JSON feeds (Engine/Feeds.swift).
     var feeds: [Feed] = []
+    /// Offered items the user kept from Today (Engine/Today.swift).
+    var kept: [KeptItem] = []
+    /// The current Today digest.
+    var today: TodayDigest?
     /// Capture new links into the library in the background.
     var autoCapture = true
     /// Fetch YouTube transcripts with youtube-transcript-api when installed.
@@ -76,6 +80,8 @@ struct SiftState: Codable, Sendable {
         exportTargets = try c.decodeIfPresent([String: String].self, forKey: .exportTargets) ?? [:]
         importedSources = try c.decodeIfPresent([LinkImporter.Source].self, forKey: .importedSources) ?? []
         feeds = try c.decodeIfPresent([Feed].self, forKey: .feeds) ?? []
+        kept = try c.decodeIfPresent([KeptItem].self, forKey: .kept) ?? []
+        today = try c.decodeIfPresent(TodayDigest.self, forKey: .today)
         autoCapture = try c.decodeIfPresent(Bool.self, forKey: .autoCapture) ?? true
         youtubeTranscripts = try c.decodeIfPresent(Bool.self, forKey: .youtubeTranscripts) ?? true
         instagramImages = try c.decodeIfPresent(Bool.self, forKey: .instagramImages) ?? true

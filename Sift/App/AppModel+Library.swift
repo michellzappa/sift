@@ -102,7 +102,8 @@ extension AppModel {
     func startLibraryJobs() {
         // Seen marks from the other devices come in with each round.
         loadSeen()
-        // Feeds not fetched in the last hour.
+        // A new Today digest at 07:00 and 17:00; feeds not fetched in the last hour.
+        refreshToday()
         Task { await fetchFeeds() }
         checkDataProblems()
         // Demo mode: no capture, transcripts, images or summaries.

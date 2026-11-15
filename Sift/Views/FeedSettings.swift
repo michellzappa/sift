@@ -33,7 +33,7 @@ struct FeedSettings: View {
         } header: {
             Text("Feeds")
         } footer: {
-            Text("Blogs, newsletters and sites with an RSS, Atom or JSON feed. Sift checks each feed about once an hour, one site at a time, keeps 90 days of items in Application Support/Sift/feeds, and treats them like any other link: saved text, themes, seen and search. Export OPML takes your feeds to any other reader.")
+            Text("Blogs, newsletters and sites with an RSS, Atom or JSON feed. Sift checks each feed about once an hour, one site at a time. New items show only in Today, at 07:00 and 17:00; keep one and it moves into your library like any saved link. Items you do not keep leave Today after \(Int(TodayBuilder.windowDays)) days. Export OPML takes your feeds to any other reader.")
                 .foregroundStyle(.secondary)
         }
         .sheet(item: Binding(get: { candidates.map(CandidateList.init) }, set: { if $0 == nil { candidates = nil } })) { list in
