@@ -458,3 +458,12 @@ The one exception is anonymous diagnostics (owner, 2026-11-15, below).
   full-text hits (`searchLibrary`, 200 ms debounce). A link shows its list
   (theme, Archive or Overview) and opens in Safari. Demo mode leaves out
   network actions. A new sidebar place needs a row in `PaletteCatalog.places`.
+- Reader first (2026-11-15, owner: "reader mode before opening weblink,
+  like Reeder/NNW"). `Feeds/ArticleText.swift`: for summary-only items,
+  fetch the page once (HostGate, Safari user agent), `Readable.extract`
+  (Markdown), keep it in the feed file (`FeedStore.setContent`).
+  `AppModel.fullText(for:)` returns feed text, kept text or a fetch (not
+  YouTube); `fillTodayText` runs after each digest so today.json carries
+  articles. Mac pane: `FeedReader` always first (summary and a spinner while
+  fetching), Reader/Page switch. Phone: a tap always opens `ReaderView`.
+

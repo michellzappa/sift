@@ -9,6 +9,12 @@ ships this file and shows it in Settings > About and in Sift > Version
 History. Headings are `## X.Y.Z - YYYY-MM-DD`; groups are `### Added`,
 `### Changed` and `### Fixed`.
 
+## 1.3.1 - 2026-11-15
+
+### Changed
+
+- **Reader first, like Reeder and NetNewsWire.** An item from Today or a feed always opens in the reader, with a Reader and Page switch for the website. When a feed sends only a summary, Sift fetches the article once, keeps its text, and shows it there. Today's items get their full text as soon as the digest is built, so the iPhone has it too. On the iPhone, a tap always opens the reader; Open the original is at the end.
+
 ## 1.3.0 - 2026-11-15
 
 ### Added

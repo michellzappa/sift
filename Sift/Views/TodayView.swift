@@ -107,14 +107,12 @@ struct OfferedList<Header: View, Empty: View>: View {
                             HStack {
                                 Text(pick.reason.isEmpty ? pick.feedTitle : pick.reason).font(.callout).foregroundStyle(.secondary).lineLimit(1)
                                 Spacer()
-                                if pick.content != nil {
-                                    // The feed's own text first; the website on request.
-                                    Picker("", selection: $showPage) {
-                                        Text("Text").tag(false)
-                                        Text("Page").tag(true)
-                                    }
-                                    .pickerStyle(.segmented).labelsHidden().fixedSize()
+                                // The reader first; the website on request.
+                                Picker("", selection: $showPage) {
+                                    Text("Reader").tag(false)
+                                    Text("Page").tag(true)
                                 }
+                                .pickerStyle(.segmented).labelsHidden().fixedSize()
                                 if model.isKept(pick.url) {
                                     Label("Kept", systemImage: "star.fill").foregroundStyle(.yellow)
                                 } else {
@@ -125,8 +123,11 @@ struct OfferedList<Header: View, Empty: View>: View {
                             }
                             .padding(.horizontal, 12).padding(.vertical, 8)
                             .background(.bar)
-                            if let content = pick.content, !showPage {
-                                FeedReader(pick: pick, content: content)
+                            if !showPage {
+                                // The reader first, like Reeder: the feed's text, else the
+                                // article fetched once; the website on the Page switch.
+                                FeedReader(pick: pick)
+                                    .id(pick.url)
                                     .onAppear { model.setSeen([pick.url], true) }
                             } else {
                                 WebPane(tab: SafariTab(url: pick.url, title: pick.title, lastViewed: pick.date, source: TodayStore.keptSourceID)) {
@@ -284,8 +285,15 @@ private struct TodayRow: View {
 /// then each block (headings, quotes, lists, code, paragraphs). Links open
 /// in the browser.
 struct FeedReader: View {
+    @Environment(AppModel.self) private var model
     let pick: TodayPick
-    let content: String
+    @State private var content: String?
+    @State private var loading = false
+
+    init(pick: TodayPick) {
+        self.pick = pick
+        _content = State(initialValue: pick.content)
+    }
 
     var body: some View {
         ScrollView {
@@ -293,6 +301,15 @@ struct FeedReader: View {
                 Text(pick.title).font(.title2.weight(.semibold))
                 Text([pick.feedTitle, pick.date?.formatted(date: .abbreviated, time: .shortened)].compactMap { $0 }.joined(separator: " · "))
                     .font(.caption).foregroundStyle(.secondary)
+                if content == nil {
+                    if !pick.summary.isEmpty { Text(pick.summary).font(.body).lineSpacing(3) }
+                    if loading {
+                        HStack(spacing: 6) { ProgressView().controlSize(.small); Text("Getting the full article…").foregroundStyle(.secondary) }
+                    } else {
+                        Text("This feed sends only a summary, and Sift could not read the full article. Page shows the website.")
+                            .font(.callout).foregroundStyle(.secondary)
+                    }
+                }
                 ForEach(Array(blocks.enumerated()), id: \.offset) { _, block in
                     if block.hasPrefix("```") {
                         Text(block.replacingOccurrences(of: "```", with: "").trimmingCharacters(in: .newlines))
@@ -322,10 +339,17 @@ struct FeedReader: View {
             .frame(maxWidth: 680, alignment: .leading)
             .frame(maxWidth: .infinity)
         }
+        .task {
+            guard content == nil else { return }
+            loading = true
+            content = await model.fullText(for: pick)
+            loading = false
+        }
     }
 
     /// Blocks split on blank lines, keeping ``` code blocks whole.
     private var blocks: [String] {
+        guard let content else { return [] }
         var out: [String] = []
         var code: String?
         for part in content.components(separatedBy: "\n\n") {

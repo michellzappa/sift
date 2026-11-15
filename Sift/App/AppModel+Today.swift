@@ -47,6 +47,30 @@ extension AppModel {
             kept: state.kept, isSeen: { [seenMarks] in seenMarks[$0]?.seen ?? false })
         state.today = TodayDigest(slot: slot, built: Date(), picks: TodayBuilder.build(input))
         writeTodayForPhone()
+        Task { await fillTodayText() }
+    }
+
+    /// The full text of an offered item: the feed's own, else the article
+    /// fetched once and kept in the feed's file. Today's copy updates too.
+    func fullText(for pick: TodayPick) async -> String? {
+        if let c = pick.content, !c.isEmpty { return c }
+        if let c = FeedStore.entries(pick.feedID).first(where: { $0.url == pick.url })?.content { return c }
+        guard pick.url.range(of: #"youtube\.com|youtu\.be"#, options: .regularExpression) == nil,
+              let text = await ArticleText.fetch(pick.url) else { return nil }
+        FeedStore.setContent(text, url: pick.url, feedID: pick.feedID)
+        if let i = state.today?.picks.firstIndex(where: { $0.url == pick.url }) { state.today?.picks[i].content = text }
+        return text
+    }
+
+    /// After a digest: fetch the full text of picks that have only a summary,
+    /// one at a time, so the reader (and the phone) has the article.
+    func fillTodayText() async {
+        guard !Demo.isOn, let picks = state.today?.picks else { return }
+        var changed = false
+        for pick in picks where (pick.content ?? "").isEmpty {
+            if await fullText(for: pick) != nil { changed = true }
+        }
+        if changed { writeTodayForPhone() }
     }
 
     // MARK: The phone (prototypes/ios-deck): iCloud Drive/Sift

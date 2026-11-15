@@ -110,9 +110,10 @@ struct TodayView: View {
     private func open(_ pick: TodayPick) {
         store.setSeen([pick.item], true, mode: "today")
         store.record(pick.item, .open, mode: "today", position: 0)
-        // Video and items with the feed's full text open in the reader
-        // (player or text, then "Open the original"); the rest open the page.
-        if pick.item.video != nil || !(pick.content ?? "").isEmpty { reading = pick.item } else { browsing = pick.item }
+        // The reader first, like Reeder: the full text (or the player and
+        // summary), with "Open the original" at the end.
+        reading = pick.item
+        _ = browsing
     }
 
     private func keep(_ pick: TodayPick) {
