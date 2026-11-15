@@ -128,7 +128,7 @@ enum FeedParser {
             guard let link = i.url ?? i.external_url, let u = URL(string: link, relativeTo: base) else { return nil }
             let text = i.content_text ?? i.summary ?? i.content_html.map(PreviewFetcher.plain) ?? ""
             let full = i.content_html.map(Text.markdown) ?? i.content_text
-            return FeedEntry(url: u.absoluteString, title: i.title ?? "", date: Dates.parse(i.date_published),
+            return FeedEntry(url: u.absoluteString, title: Text.title(i.title ?? "", body: text), date: Dates.parse(i.date_published),
                              author: i.authors?.first?.name ?? i.author?.name, summary: Text.trim(text),
                              image: i.image ?? i.banner_image, content: Text.cap(full))
         }
@@ -178,6 +178,22 @@ enum FeedParser {
                 block.hasPrefix("> ") ? block.split(separator: "\n").map { $0.hasPrefix(">") ? String($0) : "> " + $0 }.joined(separator: "\n") : block
             }.joined(separator: "\n\n")
             return s.trimmingCharacters(in: .whitespacesAndNewlines)
+        }
+
+        /// A title for items that have none (Bluesky, Mastodon, many social
+        /// feeds): the first line of the text, up to about 90 characters.
+        static func title(_ title: String, body: String) -> String {
+            let t = title.trimmingCharacters(in: .whitespacesAndNewlines)
+            if !t.isEmpty, !t.hasPrefix("http") { return t }
+            return firstLine(PreviewFetcher.plain(body)) ?? t
+        }
+
+        static func firstLine(_ text: String) -> String? {
+            let line = text.split(whereSeparator: \.isNewline).map { $0.trimmingCharacters(in: .whitespaces) }.first { !$0.isEmpty } ?? ""
+            guard !line.isEmpty else { return nil }
+            if line.count <= 90 { return line }
+            let cut = line.prefix(90)
+            return String(cut[..<(cut.lastIndex(of: " ") ?? cut.endIndex)]) + "…"
         }
 
         static func trim(_ s: String) -> String {
@@ -331,7 +347,7 @@ private final class XMLFeed: NSObject, XMLParserDelegate {
                 alternates.append(enclosure ?? (item["guid"].flatMap { $0.hasPrefix("http") ? $0 : url.absoluteString + "#" + $0 }) ?? url.absoluteString)
                 entries.append(FeedEntry(
                     url: url.absoluteString,
-                    title: PreviewFetcher.plain(item["title"] ?? ""),
+                    title: FeedParser.Text.title(PreviewFetcher.plain(item["title"] ?? ""), body: body),
                     date: FeedParser.Dates.parse(item["pubdate"] ?? item["published"] ?? item["updated"] ?? item["dc:date"]),
                     author: item["dc:creator"] ?? item["author"] ?? item["name"],
                     summary: FeedParser.Text.trim(PreviewFetcher.plain(item["description"] ?? item["summary"] ?? body)),

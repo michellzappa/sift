@@ -304,7 +304,8 @@ struct FeedReader: View {
                     if !pick.summary.isEmpty { Text(pick.summary).font(.body).lineSpacing(3) }
                     if loading {
                         HStack(spacing: 6) { ProgressView().controlSize(.small); Text("Getting the full article…").foregroundStyle(.secondary) }
-                    } else {
+                    } else if pick.summary.isEmpty || pick.summary.hasSuffix("…") {
+                        // Only when the text is visibly cut: a short post is complete.
                         Text("This feed sends only a summary, and Sift could not read the full article. Page shows the website.")
                             .font(.callout).foregroundStyle(.secondary)
                     }

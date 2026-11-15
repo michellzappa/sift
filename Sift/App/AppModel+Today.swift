@@ -38,7 +38,10 @@ extension AppModel {
             return
         }
         let slot = TodayBuilder.currentSlot()
-        if !force, let digest = state.today, digest.slot >= slot, !digest.picks.isEmpty { return }
+        // A digest from before titles came from the post text (URLs as
+        // titles) is built again at once.
+        let stale = state.today?.picks.contains { $0.title.hasPrefix("http") } ?? false
+        if !force, !stale, let digest = state.today, digest.slot >= slot, !digest.picks.isEmpty { return }
         var entries: [String: [FeedEntry]] = [:]
         for feed in state.feeds where feed.enabled { entries[feed.id] = FeedStore.entries(feed.id) }
         let input = TodayBuilder.Input(
@@ -55,7 +58,10 @@ extension AppModel {
     func fullText(for pick: TodayPick) async -> String? {
         if let c = pick.content, !c.isEmpty { return c }
         if let c = FeedStore.entries(pick.feedID).first(where: { $0.url == pick.url })?.content { return c }
-        guard pick.url.range(of: #"youtube\.com|youtu\.be"#, options: .regularExpression) == nil,
+        // Not for videos, and not for social posts: their summary is the
+        // whole post, and bsky.app pages are an app, not an article.
+        guard pick.url.range(of: #"youtube\.com|youtu\.be|bsky\.app|/@[^/]+/\d+$"#, options: .regularExpression) == nil,
+              pick.summary.count >= 280 || pick.summary.isEmpty || pick.summary.hasSuffix("…"),
               let text = await ArticleText.fetch(pick.url) else { return nil }
         FeedStore.setContent(text, url: pick.url, feedID: pick.feedID)
         if let i = state.today?.picks.firstIndex(where: { $0.url == pick.url }) { state.today?.picks[i].content = text }

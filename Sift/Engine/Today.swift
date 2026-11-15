@@ -136,7 +136,7 @@ enum TodayBuilder {
                 }
 
                 candidates.append(Candidate(pick: TodayPick(
-                    url: e.url, title: e.title.isEmpty ? e.url : e.title, date: date, feedID: feed.id,
+                    url: e.url, title: FeedParser.Text.title(e.title, body: e.summary).isEmpty ? e.url : FeedParser.Text.title(e.title, body: e.summary), date: date, feedID: feed.id,
                     feedTitle: feed.title, summary: e.summary, image: e.image, reason: reason,
                     content: e.content), score: score))
             }

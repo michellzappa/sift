@@ -9,6 +9,17 @@ ships this file and shows it in Settings > About and in Sift > Version
 History. Headings are `## X.Y.Z - YYYY-MM-DD`; groups are `### Added`,
 `### Changed` and `### Fixed`.
 
+## 1.3.5 - 2026-11-15
+
+### Changed
+
+- **Unsorted links live in the Library box.** The count and the Sort button (Discover Themes Again is in its menu) moved from the bar above every list to the Library box at the foot of the sidebar. The bar shows only on the first run, before you have themes.
+
+### Fixed
+
+- Posts from Bluesky, Mastodon and other feeds without titles showed their address as the title. They now use the first line of the post.
+- The reader no longer says it could not read the full article for a short post that is complete, and no longer tries to fetch Bluesky pages.
+
 ## 1.3.4 - 2026-11-15
 
 ### Changed

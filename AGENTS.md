@@ -488,4 +488,11 @@ The one exception is anonymous diagnostics (owner, 2026-11-15, below).
   the pane in `.safeAreaInset(edge: .trailing)` with
   `containerRelativeFrame(.horizontal)` (`BrowserOverlay.width`), so the
   list narrows; no overlay, no shadow.
+- Unsorted in the Library box (2026-11-15, owner): `LibraryStatus` shows
+  "N not in a theme" with a Sort menu button (primary: Sort into Themes;
+  menu: Discover Themes Again). `UnsortedBanner` shows only before themes
+  exist. Untitled feed items take `FeedParser.Text.title` (first line of the
+  text, about 90 characters); a digest with URL titles rebuilds at once.
+  `fullText` skips YouTube, bsky.app and Mastodon status URLs, and short
+  summaries (under 280 characters, not ending in "…").
 

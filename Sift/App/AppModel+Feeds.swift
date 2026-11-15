@@ -257,7 +257,8 @@ extension AppModel {
         var out: [TodayPick] = []
         for f in feeds {
             for e in FeedStore.entries(f.id) {
-                out.append(TodayPick(url: e.url, title: e.title.isEmpty ? e.url : e.title, date: e.date, feedID: f.id,
+                let title = FeedParser.Text.title(e.title, body: e.summary)
+                out.append(TodayPick(url: e.url, title: title.isEmpty ? e.url : title, date: e.date, feedID: f.id,
                                      feedTitle: f.title, summary: e.summary, image: e.image, reason: "", content: e.content))
             }
         }

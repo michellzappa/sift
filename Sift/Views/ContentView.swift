@@ -560,7 +560,10 @@ private struct UnsortedBanner: View {
         let count = model.unsortedCount
         // Only a decision shows here. While Claude sorts or finds themes, the
         // progress is in the sidebar footer with the other jobs.
-        if count > 0, !model.isSorting, !model.isDiscovering {
+        // Only the first run shows here (no themes yet). Once themes exist,
+        // unsorted links are a Library matter: the Library box at the foot
+        // of the sidebar shows the count and Sort.
+        if count > 0, model.themes.isEmpty, !model.isSorting, !model.isDiscovering {
             HStack(spacing: 10) {
                 Image(systemName: "circle.dotted").foregroundStyle(.tint)
                 if model.themes.isEmpty {
@@ -573,14 +576,6 @@ private struct UnsortedBanner: View {
                     }
                     Button("Discover Themes") { Task { await model.discoverThemes() } }
                         .buttonStyle(.borderedProminent)
-                } else {
-                    Text("\(count) link\(count == 1 ? " is" : "s are") not in a theme yet. They are under Unsorted, not on the graph.")
-                    Spacer()
-                    Button("Discover Themes Again") { Task { await model.discoverThemes() } }
-                        .help("Rare: Claude reads every source together and may propose new themes. You review them first.")
-                    Button("Sort into Themes") { Task { await model.sortUnsorted() } }
-                        .buttonStyle(.borderedProminent)
-                        .help("Puts each link into one of the themes you have.")
                 }
             }
             .font(.callout)
@@ -645,6 +640,20 @@ private struct LibraryStatus: View {
                 DemoBadge()
                 Spacer()
                 Text("\(saved) of \(total)").font(.caption.monospacedDigit()).foregroundStyle(.secondary)
+            }
+            // Links in no theme: the decision lives here, with the library.
+            let unsorted = model.unsortedCount
+            if unsorted > 0, !model.themes.isEmpty, !model.isSorting, !model.isDiscovering {
+                HStack(spacing: 6) {
+                    Text("\(unsorted) not in a theme").font(.caption2).foregroundStyle(.secondary)
+                    Spacer()
+                    Menu("Sort") {
+                        Button("Sort into Themes") { Task { await model.sortUnsorted() } }
+                        Button("Discover Themes Again") { Task { await model.discoverThemes() } }
+                    } primaryAction: { Task { await model.sortUnsorted() } }
+                    .menuStyle(.button).controlSize(.mini).fixedSize()
+                    .help("Sort puts each link into one of your themes. Discover Themes Again (in the menu) is rare: Claude reads everything and may propose new themes.")
+                }
             }
             // Every running or paused job, from the one list (Activity.swift).
             ForEach(model.activities) { ActivityRow(activity: $0) }
