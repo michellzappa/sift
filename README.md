@@ -16,7 +16,7 @@ curiosity, and Sift makes it legible.
 And it stays yours. Sift turns what you already save, on the platforms you
 already use, into a knowledge base on your own Mac: the full text of pages,
 video and reel transcripts, your notes and themes, in plain Markdown, JSON
-and SQLite. No Sift server, no account. Your own Claude can search it
+and SQLite. No account, and your library never goes to a Sift server. Your own Claude can search it
 through the built-in MCP server, and you can open every file without Sift.
 
 <picture>
@@ -219,7 +219,14 @@ contribute; see [CONTRIBUTING.md](CONTRIBUTING.md).
 - **To each site**, once: a request for its page, for the preview and the
   library. X posts go to X's oEmbed endpoint, and to its embed data or API
   only if you turn those on.
-- **Nowhere else.** Sift has no account and no server. It reads Safari's
+- **To Sift's diagnostics**, once a week: an anonymous report with the app
+  and macOS version, which kinds of source and destination you use, which
+  switches are on, and rough sizes such as "100-999 links". No link, title,
+  theme name, note or install id. It is on by default; Settings > Privacy
+  turns it off and shows the exact report.
+  [Privacy contract](docs/telemetry.md) ·
+  [Community Pulse](https://sift-telemetry.envisioning.workers.dev/community)
+- **Nowhere else.** Sift has no account. It reads Safari's
   files and never writes to them. Add to Reading List asks Safari through its
   own scripting command, and macOS asks you to allow that once.
 

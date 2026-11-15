@@ -17,3 +17,6 @@ iphone-tabs.*
 
 # Python caches from scripts/demo
 __pycache__/
+
+# Wrangler cache (telemetry Worker)
+.wrangler/

@@ -1,0 +1,12 @@
+name = "sift-telemetry"
+main = "worker.js"
+compatibility_date = "2026-08-03"
+
+# Daily: expire raw batches and per-week breakdowns older than 180 days.
+[triggers]
+crons = ["17 3 * * *"]
+
+[[d1_databases]]
+binding = "DB"
+database_name = "sift-telemetry"
+database_id = "1457108d-3e8f-4c58-8d79-14843c84fafe"

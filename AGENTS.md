@@ -10,7 +10,9 @@ North star (owner, 2026-11-14): the user owns their data. Everything Sift
 learns stays on the Mac as plain files (Markdown library, JSON state, SQLite
 index), readable without Sift, and reachable by the user's own Claude through
 sift-mcp. New inputs are judged by how much of the content they keep (text,
-transcripts), not only the link. Never add a Sift server or account.
+transcripts), not only the link. Never add a Sift account, and never send
+library content (links, titles, text, theme names, notes) to any Sift server.
+The one exception is anonymous diagnostics (owner, 2026-11-15, below).
 
 ## Commands
 
@@ -249,3 +251,19 @@ transcripts), not only the link. Never add a Sift server or account.
   front matter and `links.summary`, which sift-mcp shows. Theme discovery
   and connections stay on Claude. Switches: `localFirstPass`,
   `localSorting`, `localSummaries` (on by default).
+
+- Anonymous diagnostics (2026-11-15, owner's call: on by default, own
+  Worker). Ported from Headroom. Client: `Sift/Telemetry/Telemetry.swift`
+  (`TelemetryCoordinator`, started in `AppModel.init`, checks 60 s after
+  launch and every 6 h, at most one batch per ISO week, a failed send is
+  kept in `telemetry/pending.json`). Worker and D1: `telemetry/`
+  (`sift-telemetry`, https://sift-telemetry.envisioning.workers.dev,
+  `/v1/batches`, `/v1/community`, `/community`). Contract:
+  `docs/telemetry.md`. No install id: a week-scoped HMAC of a local secret
+  (keychain `app.sift.telemetry` + `telemetry/install_secret`) dedupes, and
+  the Mac sends its own cohort word. Off in demo mode. Settings > Privacy
+  has the switch and shows the batch. A new field needs three changes in
+  step: `TelemetryBatch`, the Worker's whitelist, and docs/telemetry.md.
+  Never add a field that carries library content or an identifier.
+  `wrangler d1 execute --remote` needs `--yes`, and a migration goes in
+  before the Worker that reads it.

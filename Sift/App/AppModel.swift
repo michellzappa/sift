@@ -120,6 +120,7 @@ final class AppModel {
         settleOnboardingForExistingInstall()
         // Demo mode has no background jobs and no Chrome.
         if !Demo.isOn {
+            TelemetryCoordinator.shared.start(self)
             startLibraryWorker()
             startChromeWatcher()
         }

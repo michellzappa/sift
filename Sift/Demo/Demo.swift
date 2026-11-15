@@ -113,7 +113,7 @@ enum Demo {
         }
     }
 
-    /// The Settings tab to open first: inputs, library, outputs, intelligence, themes.
+    /// The Settings tab to open first: inputs, library, outputs, intelligence, themes, privacy.
     @MainActor
     static var settingsTab: String? {
         if case .settings(let tab) = startView { return tab }

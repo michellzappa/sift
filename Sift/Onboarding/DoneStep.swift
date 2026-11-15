@@ -29,6 +29,8 @@ struct DoneStep: OnboardingStep {
                     }
                     .padding(.leading, 36)
                 }
+                OnboardingNote(symbol: "hand.raised", title: "Anonymous usage counts",
+                               text: "Once a week Sift sends a small report with no links, titles or names in it, so we can see which Macs and features are in use. Turn it off in Settings > Privacy.")
                 Text("Help > Setup Guide opens this guide again.")
                     .foregroundStyle(.secondary)
             }

@@ -11,6 +11,7 @@ struct SettingsView: View {
             OutputSettings().tabItem { Label("Outputs", systemImage: "tray.and.arrow.up") }.tag("outputs")
             ClaudeSettings().tabItem { Label("Intelligence", systemImage: "sparkles") }.tag("intelligence")
             ThemeSettings().tabItem { Label("Themes", systemImage: "circle.hexagongrid") }.tag("themes")
+            PrivacySettings().tabItem { Label("Privacy", systemImage: "hand.raised") }.tag("privacy")
         }
         .frame(width: 620, height: 560)
     }
@@ -18,6 +19,47 @@ struct SettingsView: View {
 
 private func abbreviated(_ path: String) -> String {
     (path as NSString).abbreviatingWithTildeInPath
+}
+
+// MARK: - Privacy
+
+/// The anonymous diagnostics switch, with the exact batch it allows.
+private struct PrivacySettings: View {
+    @Environment(AppModel.self) private var model
+    @State private var on = Telemetry.enabled
+    @State private var showBatch = false
+
+    var body: some View {
+        Form {
+            Section {
+                Toggle("Share anonymous usage counts", isOn: $on)
+                    .disabled(Demo.isOn)
+                    .onChange(of: on) { _, value in Telemetry.setEnabled(value) }
+                HStack {
+                    Button("Show What Is Sent") { showBatch.toggle() }
+                    Link("Community Pulse", destination: Telemetry.communityURL)
+                    Link("Privacy Contract", destination: Telemetry.contractURL)
+                }
+                if showBatch {
+                    Text(batchJSON)
+                        .font(.caption.monospaced())
+                        .textSelection(.enabled)
+                        .frame(maxWidth: .infinity, alignment: .leading)
+                }
+            } footer: {
+                Text("Once a week, Sift sends one small report: the app and macOS version, which kinds of source and destination you use, which switches are on, and rough sizes such as \"100-999 links\". It never sends a link, title, theme name, note, account or file path. It sends no install id: the key that stops a Mac from counting twice changes every week. The totals are public on the Community Pulse page.")
+                    .foregroundStyle(.secondary)
+            }
+        }
+        .formStyle(.grouped)
+    }
+
+    private var batchJSON: String {
+        let encoder = JSONEncoder()
+        encoder.outputFormatting = [.prettyPrinted, .sortedKeys]
+        guard let data = try? encoder.encode(TelemetryCoordinator.shared.preview(model)) else { return "" }
+        return String(decoding: data, as: UTF8.self)
+    }
 }
 
 // MARK: - Inputs
