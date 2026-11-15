@@ -231,9 +231,11 @@ The one exception is anonymous diagnostics (owner, 2026-11-15, below).
   `AboutSettingsPane`, `UpdatesSection` through `UpdateChecker:
   UpdateChecking`) and the changelog (`Changelog`, `ChangelogView`). It is a
   URL package pinned to a commit in project.yml, so CI and the mini resolve
-  it without a sibling checkout; move the pin on purpose. The icon is the
-  HouseKit `sift` glyph; `scripts/build-app.sh` regenerates `AppIcon.icns`
-  from `../../housekit`.
+  it without a sibling checkout; move the pin on purpose. The icon is
+  Sift's own (owner, 2026-11-15: a card deck, not the HouseKit glyph):
+  `scripts/icon/make-icon.swift` writes `Sift/Resources/AppIcon.icns` and
+  the phone's `App/Assets.xcassets/AppIcon.appiconset/AppIcon.png` (full
+  bleed, no alpha). Both are committed; run the script after a change.
 - `*.csv` is ignored so exported tab lists (browsing data) never get committed.
 - X previews use oEmbed by default. An optional setting (`xSyndication`, off
   by default) asks X's syndication endpoint

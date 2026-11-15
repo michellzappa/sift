@@ -9,6 +9,12 @@ ships this file and shows it in Settings > About and in Sift > Version
 History. Headings are `## X.Y.Z - YYYY-MM-DD`; groups are `### Added`,
 `### Changed` and `### Fixed`.
 
+## 1.4.5 - 2026-11-15
+
+### Changed
+
+- **A new icon.** A stack of cards with the top one lifted: what Sift offers you, one card at a time. The iPhone app has the same icon.
+
 ## 1.4.4 - 2026-11-15
 
 ### Changed
