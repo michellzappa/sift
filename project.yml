@@ -52,6 +52,9 @@ targets:
       # The updater (Sift/App/Updates.swift runs it from Contents/Resources).
       - path: scripts/update-app.sh
         buildPhase: resources
+      # Version history (ChangelogView); also the GitHub release notes.
+      - path: CHANGELOG.md
+        buildPhase: resources
     settings:
       base:
         PRODUCT_BUNDLE_IDENTIFIER: app.sift.Sift

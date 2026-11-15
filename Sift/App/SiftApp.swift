@@ -30,6 +30,7 @@ struct SiftApp: App {
             }
             CommandGroup(after: .appInfo) {
                 Button("Check for Updates…") { Task { await UpdateChecker.shared.checkFromMenu() } }
+                VersionHistoryCommand()
             }
             CommandGroup(replacing: .help) {
                 SetupGuideCommand(model: model)
@@ -44,6 +45,14 @@ struct SiftApp: App {
         }
         .windowResizability(.contentSize)
         .defaultPosition(.center)
+        .commandsRemoved()
+
+        // Sift > Version History: the bundled CHANGELOG.md.
+        Window("Version History", id: VersionHistory.windowID) {
+            ChangelogView()
+                .frame(minWidth: 520, minHeight: 480)
+        }
+        .defaultSize(width: 620, height: 640)
         .commandsRemoved()
 
         Settings {
@@ -83,5 +92,13 @@ final class SiftAppDelegate: NSObject, NSApplicationDelegate {
             }
             NSApp.activate()
         }
+    }
+}
+
+/// Sift > Version History…, which needs `openWindow` from the environment.
+private struct VersionHistoryCommand: View {
+    @Environment(\.openWindow) private var openWindow
+    var body: some View {
+        Button("Version History…") { openWindow(id: VersionHistory.windowID) }
     }
 }

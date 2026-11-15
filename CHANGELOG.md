@@ -1,0 +1,105 @@
+# Changelog
+
+Every entry is a `v`-prefixed git tag. The version comes from
+`CFBundleShortVersionString` in `Sift/Resources/Info.plist`.
+
+Add a section here before you tag. The release workflow takes the GitHub
+release notes from this file and refuses a tag that has no section. Sift
+ships this file and shows it in Settings > About and in Sift > Version
+History. Headings are `## X.Y.Z - YYYY-MM-DD`; groups are `### Added`,
+`### Changed` and `### Fixed`.
+
+## 0.5.2 - 2026-11-15
+
+### Added
+
+- **Version history in the app.** Sift > Version History shows every release, and Settings > About has the same list.
+
+### Changed
+
+- **One place for progress.** The bottom of the sidebar shows everything Sift is doing, each with its name and count above its bar, and says when a job waits because a site refused. The bar above the list only asks you to decide something.
+- **Settings has a sidebar.** General, Inputs, Library, Outputs, Intelligence, Themes, Privacy and About, the same layout as Headroom. Updates moved to General.
+
+## 0.5.1 - 2026-11-15
+
+### Added
+
+- **Updates.** Sift checks GitHub for a new version once a day and shows "Update to X" in the toolbar. Sift > Check for Updates… checks now. An update downloads, checks the checksum, Apple's notarization and the developer signature, then Sift quits and opens on the new version.
+- **Transcripts.** A Transcripts list in the sidebar shows the videos and reels whose words Sift saved. Pick one and the transcript opens next to the list; the button above it switches to the video.
+
+### Changed
+
+- Rows no longer have a send button. Send is in the right-click menu and above the open page.
+
+### Fixed
+
+- Closing the page next to the list stops its video at once.
+
+## 0.5.0 - 2026-11-15
+
+### Added
+
+- **Anonymous usage counts.** Once a week Sift sends one small report: the app and macOS version, which kinds of source and destination you use, which switches are on, and rough sizes such as "100-999 links". It never sends a link, title, theme name, note, account or file path, and has no install id. It is on by default; Settings > Privacy turns it off and shows the exact report. The totals are public on the Community Pulse page.
+
+## 0.4.2 - 2026-11-15
+
+### Fixed
+
+- The Setup Guide no longer quits Sift when you click Continue, Back or Skip.
+- When Claude Code is not signed in, Sift says how to sign in (Terminal, `claude`, then `/login`) and has a button that opens Terminal.
+
+## 0.4.1 - 2026-11-14
+
+### Added
+
+- **Demo mode.** Launch with `-demo` to see Sift with made-up sample data, kept apart from your own.
+
+### Fixed
+
+- The graph frames itself to the window when it opens, when the window changes size and when you zoom back out of a theme.
+- Sift always opens its main window after launch.
+
+## 0.4.0 - 2026-11-14
+
+### Added
+
+- **Chrome.** A small Chrome extension sends your open tabs to Sift. Each profile is its own source, and Sift closes Chrome tabs itself. Brave, Edge, Arc, Vivaldi and Chromium use the same helper.
+- **YouTube details.** Imported videos show their real title, channel, length and description.
+- **YouTube audio.** When YouTube refuses captions, Sift can transcribe the audio on this Mac, then delete it. Videos over 90 minutes are skipped.
+- **Backups.** Sift keeps hourly backups of its own files. If a file cannot be read, Sift restores the newest good backup and tells you.
+
+### Changed
+
+- Links show as a list only. Picking a source or theme in the sidebar opens its list; Overview stays the graph.
+- The theme header is one block: name, summary, link count, where it sends, and its history.
+- Starlings is one destination per workspace, named by the workspace.
+- The Claude settings tab is now called Intelligence.
+
+### Fixed
+
+- Transcript jobs no longer stall. A refusal waits from 1 hour up to 24, even across relaunches.
+
+## 0.3.0 - 2026-11-14
+
+### Added
+
+- **Your library.** Sift saves the text of every link, YouTube transcripts, Instagram images and what reels say, on this Mac, with a Library page in Settings.
+- **Search** in every list, over titles, page text and transcripts, with saved searches in the sidebar.
+- **Claude can read your library** through sift-mcp, a small MCP server inside Sift.
+- **Send** replaces next actions: Starlings, an Obsidian folder, a Markdown file or the Reading List. A theme can have a default destination.
+- **Upkeep:** duplicates with Merge All, Broken Links, and a note on any link.
+- **Setup Guide** for a new Mac, from nothing to your own themes.
+- **On-device model** on macOS 26 with Apple Intelligence: clear cases sorted and short summaries written on this Mac.
+
+### Changed
+
+- Clusters on the graph put the newest links closest to the theme. A solid dot means Sift saved the text; a ring means it has only the title.
+
+## 0.2.0 - 2026-11-14
+
+### Added
+
+- First public release: Safari tabs from every device, the Reading List, Instagram Saved, X bookmarks and YouTube Takeout as sources.
+- Themes that Claude finds in your own links, a graph of them, and a list per theme.
+- Errands (orders, logins, carts) kept apart from what you read for interest.
+- Export to Obsidian, Markdown, CSV and JSON. Signed, notarized and attested downloads.

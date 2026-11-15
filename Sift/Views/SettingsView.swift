@@ -1,19 +1,74 @@
 import SwiftUI
 
+/// Settings: a sidebar of panes and a grouped form for each, the house
+/// layout from Headroom. General first, About last. A new pane is a case
+/// here and a view in `pane(for:)`.
+enum SettingsPane: String, CaseIterable, Identifiable {
+    case general, inputs, library, outputs, intelligence, themes, privacy, about
+
+    var id: String { rawValue }
+
+    var title: String {
+        switch self {
+        case .general: "General"
+        case .inputs: "Inputs"
+        case .library: "Library"
+        case .outputs: "Outputs"
+        case .intelligence: "Intelligence"
+        case .themes: "Themes"
+        case .privacy: "Privacy"
+        case .about: "About"
+        }
+    }
+
+    var symbol: String {
+        switch self {
+        case .general: "gearshape"
+        case .inputs: "tray.and.arrow.down"
+        case .library: "books.vertical"
+        case .outputs: "tray.and.arrow.up"
+        case .intelligence: "sparkles"
+        case .themes: "circle.hexagongrid"
+        case .privacy: "hand.raised"
+        case .about: "info.circle"
+        }
+    }
+}
+
 struct SettingsView: View {
-    /// Demo mode can open on a given tab (`-demoView settings:<tab>`).
-    @State private var tab = Demo.settingsTab ?? "inputs"
+    /// Demo mode can open on a given pane (`-demoView settings:<pane>`).
+    @State private var selection: SettingsPane? = Demo.settingsTab.flatMap(SettingsPane.init(rawValue:)) ?? .general
 
     var body: some View {
-        TabView(selection: $tab) {
-            InputSettings().tabItem { Label("Inputs", systemImage: "tray.and.arrow.down") }.tag("inputs")
-            LibrarySettings().tabItem { Label("Library", systemImage: "books.vertical") }.tag("library")
-            OutputSettings().tabItem { Label("Outputs", systemImage: "tray.and.arrow.up") }.tag("outputs")
-            ClaudeSettings().tabItem { Label("Intelligence", systemImage: "sparkles") }.tag("intelligence")
-            ThemeSettings().tabItem { Label("Themes", systemImage: "circle.hexagongrid") }.tag("themes")
-            PrivacySettings().tabItem { Label("Privacy", systemImage: "hand.raised") }.tag("privacy")
+        NavigationSplitView {
+            List(SettingsPane.allCases, selection: $selection) { pane in
+                Label(pane.title, systemImage: pane.symbol).tag(pane)
+            }
+            .listStyle(.sidebar)
+            .toolbar(removing: .sidebarToggle)
+            .navigationSplitViewColumnWidth(min: 200, ideal: 200, max: 200)
+        } detail: {
+            let pane = selection ?? .general
+            Self.pane(for: pane)
+                .navigationTitle(pane.title)
+                .id(pane)
         }
-        .frame(width: 620, height: 560)
+        .frame(width: 820, height: 600)
+        .formStyle(.grouped)
+    }
+
+    @ViewBuilder
+    static func pane(for pane: SettingsPane) -> some View {
+        switch pane {
+        case .general: GeneralSettings()
+        case .inputs: InputSettings()
+        case .library: LibrarySettings()
+        case .outputs: OutputSettings()
+        case .intelligence: ClaudeSettings()
+        case .themes: ThemeSettings()
+        case .privacy: PrivacySettings()
+        case .about: AboutSettings()
+        }
     }
 }
 
@@ -21,13 +76,12 @@ private func abbreviated(_ path: String) -> String {
     (path as NSString).abbreviatingWithTildeInPath
 }
 
-// MARK: - Privacy
+// MARK: - General
 
-/// The anonymous diagnostics switch, with the exact batch it allows.
-private struct PrivacySettings: View {
+/// Updates, the Setup Guide and version history.
+private struct GeneralSettings: View {
     @Environment(AppModel.self) private var model
-    @State private var on = Telemetry.enabled
-    @State private var showBatch = false
+    @Environment(\.openWindow) private var openWindow
     @State private var automatic = UpdateChecker.shared.automatic
     private var updates: UpdateChecker { .shared }
 
@@ -54,6 +108,62 @@ private struct PrivacySettings: View {
                 Text("Sift asks GitHub for the latest release. An update downloads, checks the checksum, Apple's notarization and the developer signature, then Sift quits and opens on the new version. Only the copy in Applications updates itself.")
                     .foregroundStyle(.secondary)
             }
+            Section {
+                HStack {
+                    Button("Open Setup Guide") {
+                        model.startSetupGuide()
+                        openWindow(id: Onboarding.windowID)
+                    }
+                    Button("Version History") { openWindow(id: VersionHistory.windowID) }
+                }
+            } footer: {
+                Text("The Setup Guide walks through sources, Claude and your first themes again. Version History lists what changed in every release.")
+                    .foregroundStyle(.secondary)
+            }
+        }
+        .formStyle(.grouped)
+    }
+}
+
+// MARK: - About
+
+/// Icon, name, version, who made it, links, then every release.
+private struct AboutSettings: View {
+    var body: some View {
+        VStack(spacing: 0) {
+            VStack(spacing: 6) {
+                Image(nsImage: NSApp.applicationIconImage)
+                    .resizable().interpolation(.high).scaledToFit()
+                    .frame(width: 64, height: 64)
+                Text("Sift").font(.headline)
+                Text("Version \(UpdateCheck.installedVersion) (\(Bundle.main.object(forInfoDictionaryKey: "CFBundleVersion") as? String ?? "?"))")
+                    .font(.caption).foregroundStyle(.secondary)
+                Text("Created by Michell Zappa").font(.caption).foregroundStyle(.secondary)
+                HStack(spacing: 14) {
+                    Link("Source on GitHub", destination: URL(string: "https://github.com/michellzappa/sift")!)
+                    Link("Community Pulse", destination: Telemetry.communityURL)
+                }
+                .font(.caption.weight(.medium))
+                .padding(.top, 4)
+            }
+            .frame(maxWidth: .infinity)
+            .padding(.vertical, 16)
+            Divider()
+            ChangelogView()
+        }
+    }
+}
+
+// MARK: - Privacy
+
+/// The anonymous diagnostics switch, with the exact batch it allows.
+private struct PrivacySettings: View {
+    @Environment(AppModel.self) private var model
+    @State private var on = Telemetry.enabled
+    @State private var showBatch = false
+
+    var body: some View {
+        Form {
             Section {
                 Toggle("Share anonymous usage counts", isOn: $on)
                     .disabled(Demo.isOn)
