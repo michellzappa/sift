@@ -120,7 +120,8 @@ def main():
             vid = youtube_id(url)
             local = SUPPORT / "Images" / image_name(url)
             web_image = p.get("imageURL") if str(p.get("imageURL") or "").startswith("http") else None
-            if vid and not web_image:
+            # Demo ids are made up: YouTube would answer with its grey placeholder.
+            if vid and not web_image and not DEMO:
                 web_image = f"https://i.ytimg.com/vi/{vid}/hqdefault.jpg"
             words = len(text.split()) + len(transcript.split())
             items.append({

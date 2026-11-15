@@ -12,6 +12,7 @@ struct DeckView: View {
     @State private var browsing: Item?
     @State private var reading: Item?
     @State private var position: String?
+    @State private var connecting = false
 
     var body: some View {
         NavigationStack {
@@ -42,6 +43,27 @@ struct DeckView: View {
                 if cards.isEmpty {
                     ContentUnavailableView("Nothing left here", systemImage: "checkmark.seal",
                                            description: Text("Every item in this deck has a decision. Pick another theme, or import a newer Deck folder."))
+                }
+            }
+            .safeAreaInset(edge: .top) {
+                if store.deck.demo {
+                    HStack(spacing: 10) {
+                        Image(systemName: "info.circle")
+                        Text("Sample data. Connect the Sift folder in iCloud Drive to see your own links.")
+                            .font(.footnote)
+                        Spacer(minLength: 0)
+                        Button("Connect") { connecting = true }
+                            .buttonStyle(.borderedProminent).controlSize(.small)
+                    }
+                    .padding(10)
+                    .background(.orange.opacity(0.15), in: RoundedRectangle(cornerRadius: 12))
+                    .padding(.horizontal, 12)
+                }
+            }
+            .fileImporter(isPresented: $connecting, allowedContentTypes: [.folder]) { result in
+                if case .success(let url) = result {
+                    store.connect(folder: url)
+                    deal()
                 }
             }
             .navigationTitle(theme ?? "Today")
