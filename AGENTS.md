@@ -414,4 +414,11 @@ The one exception is anonymous diagnostics (owner, 2026-11-15, below).
   web pane). Phone: `MarkdownBlock` in `ReaderView`; a tap on a card with
   content opens the reader. A one-time reset (`feeds.contentV1`) clears
   ETags so followed feeds send full items again.
+- Links into Sift (2026-11-15): the WindowGroup has
+  `.handlesExternalEvents(matching: ["*"])` and the content
+  `.handlesExternalEvents(preferring: ["*"], allowing: ["*"])`, so a
+  feed:// or sift:// link goes to the open window, never a new one. Follow
+  results use `AppModel.note` / `noteFollowed` (a fading capsule at the
+  window's foot, runs folded into "and N more"), not the modal
+  `exportMessage` alert.
 

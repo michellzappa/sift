@@ -11,10 +11,14 @@ struct SiftApp: App {
         WindowGroup("Sift") {
             ContentView()
                 .environment(model)
-                // feed://, feeds:// and sift://subscribe?url=… follow a feed.
+                // feed://, feeds:// and sift://subscribe?url=… follow a feed,
+                // in the window that is open: no new window per link.
                 .onOpenURL { model.subscribe(from: $0) }
+                .handlesExternalEvents(preferring: ["*"], allowing: ["*"])
                 .frame(minWidth: 900, minHeight: 560)
         }
+        // A link Sift opens goes to an existing window when there is one.
+        .handlesExternalEvents(matching: ["*"])
         .commands {
             CommandGroup(after: .newItem) {
                 Button("Follow…") { model.showAddFeed = true }

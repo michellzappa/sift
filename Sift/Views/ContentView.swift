@@ -62,6 +62,18 @@ struct ContentView: View {
             }
         }
         .toolbar { toolbar }
+        .overlay(alignment: .bottom) {
+            if let notice = model.notice {
+                Label(notice, systemImage: "dot.radiowaves.up.forward")
+                    .font(.callout)
+                    .padding(.horizontal, 14).padding(.vertical, 8)
+                    .background(.regularMaterial, in: Capsule())
+                    .shadow(color: .black.opacity(0.15), radius: 8, y: 2)
+                    .padding(.bottom, 18)
+                    .transition(.move(edge: .bottom).combined(with: .opacity))
+            }
+        }
+        .animation(.snappy, value: model.notice)
         .sheet(isPresented: Binding(get: { model.showAddFeed }, set: { model.showAddFeed = $0 })) { AddFeedSheet() }
         // With feeds, Today is the start view: it is the primary input.
         .onAppear { if selection == .overview, !model.state.feeds.isEmpty, !Demo.isOn { selection = .today } }

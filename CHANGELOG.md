@@ -9,6 +9,13 @@ ships this file and shows it in Settings > About and in Sift > Version
 History. Headings are `## X.Y.Z - YYYY-MM-DD`; groups are `### Added`,
 `### Changed` and `### Fixed`.
 
+## 1.2.1 - 2026-11-15
+
+### Fixed
+
+- A feed:// or sift:// link opened a new Sift window each time. It now goes to the window that is open.
+- Following no longer shows an alert to click. A short notice fades out on its own, and several follows in a row show as one ("Following Simon Willison and 3 more").
+
 ## 1.2.0 - 2026-11-15
 
 ### Added

@@ -116,6 +116,10 @@ final class AppModel {
     var isFetchingFeeds = false
     /// Opens the Add Feed sheet (toolbar, File menu, Settings).
     var showAddFeed = false
+    /// A notice that fades (AppModel+Feeds `note`), shown at the window's foot.
+    var notice: String?
+    @ObservationIgnored var noticeTask: Task<Void, Never>?
+    @ObservationIgnored var recentFollows: [String] = []
     var feedProgress: (done: Int, total: Int) = (0, 0)
 
     // MARK: Seen (AppModel+Seen.swift, Storage/Seen.swift)

@@ -93,15 +93,15 @@ extension AppModel {
         }
         Task {
             guard let found = await FeedProviders.resolve(target).first else {
-                exportMessage = "Sift found no feed at \(target)."
+                note("No feed found at \(target)")
                 return
             }
             if state.feeds.contains(where: { $0.url == found.url }) {
-                exportMessage = "You already follow \(found.parsed.title)."
+                note("Already following \(found.parsed.title)")
                 return
             }
             addFeed(found)
-            exportMessage = "Following \(found.parsed.title). Its new items show in Today."
+            noteFollowed(found.parsed.title)
         }
     }
 
@@ -122,6 +122,26 @@ extension AppModel {
     }
 
     // MARK: Following from anywhere
+
+    /// A short notice that fades, never a modal alert: following is quick
+    /// and often comes in runs (suggestions, dropped links, feed:// links).
+    func note(_ text: String) {
+        notice = text
+        noticeTask?.cancel()
+        noticeTask = Task { [weak self] in
+            try? await Task.sleep(for: .seconds(4))
+            guard !Task.isCancelled else { return }
+            self?.notice = nil
+            self?.recentFollows = []
+        }
+    }
+
+    /// "Following Simon Willison", then "Following Simon Willison and 2 more".
+    func noteFollowed(_ title: String) {
+        recentFollows.append(title)
+        let first = recentFollows[0]
+        note(recentFollows.count == 1 ? "Following \(first)" : "Following \(first) and \(recentFollows.count - 1) more")
+    }
 
     /// What "Follow Site" follows for a link: r/name for Reddit, owner/repo
     /// for GitHub, the page itself for YouTube (the provider reads the
@@ -153,15 +173,15 @@ extension AppModel {
         guard !Demo.isOn else { exportMessage = Demo.offMessage; return }
         Task {
             guard let found = await FeedProviders.resolve(input).first else {
-                exportMessage = "Sift found no feed for \(input)."
+                note("No feed found for \(input)")
                 return
             }
             if state.feeds.contains(where: { $0.url == found.url }) {
-                exportMessage = "You already follow \(found.parsed.title)."
+                note("Already following \(found.parsed.title)")
                 return
             }
             addFeed(found)
-            exportMessage = "Following \(found.label ?? found.parsed.title). Its new items show in Today."
+            noteFollowed(found.label ?? found.parsed.title)
         }
     }
 
