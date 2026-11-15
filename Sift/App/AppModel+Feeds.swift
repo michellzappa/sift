@@ -44,7 +44,7 @@ extension AppModel {
         await fetchMissingIcons()
         // New items can only reach Today; they never enter sources or themes.
         // A forced check rebuilds Today so picks carry the newest text.
-        if added > 0 || force { refreshToday(force: force) }
+        if added > 0 || force { refreshToday() }
     }
 
     // MARK: Adding and removing
@@ -86,7 +86,7 @@ extension AppModel {
         case "sift" where link.host() == "today":
             // sift://today opens Today and builds the digest again.
             navigationRequest = .today
-            refreshToday(force: true)
+            refreshToday()
             return
         case "sift":
             guard link.host() == "subscribe",
@@ -127,7 +127,7 @@ extension AppModel {
         state.feeds.append(feed)
         _ = FeedStore.merge(parsed.entries, into: feed.id)
         refreshFeedCounts()
-        refreshToday(force: true)
+        refreshToday()
     }
 
     // MARK: Following from anywhere
@@ -288,13 +288,13 @@ extension AppModel {
         state.feeds.removeAll { $0.id == feed.id }
         FeedStore.remove(feed.id)
         refreshFeedCounts()
-        refreshToday(force: true)
+        refreshToday()
     }
 
     func setFeed(_ feed: Feed, enabled: Bool) {
         guard let i = state.feeds.firstIndex(where: { $0.id == feed.id }) else { return }
         state.feeds[i].enabled = enabled
-        refreshToday(force: true)
+        refreshToday()
     }
 
     /// Writes the followed feeds as OPML, so they can move to any reader.

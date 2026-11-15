@@ -57,8 +57,12 @@ enum TodayBuilder {
     static let slotHours = [7, 17]
     /// Offered items older than this never reach Today.
     static let windowDays: Double = 3
+    /// Unseen items one feed may have in Today at a time. Seen items do not
+    /// count, so a feed's next item comes in as you read (owner, 2026-11-15:
+    /// Today updates, it does not stop at 10).
+    static let perFeed = 3
+    /// The ranked part before exploration and the wildcard come in.
     static let size = 10
-    static let perFeed = 2
 
     /// The latest slot at or before `now`.
     static func currentSlot(_ now: Date = Date()) -> Date {
@@ -193,8 +197,7 @@ enum TodayBuilder {
         candidates.sort { ($0.mentions > 1 ? $0.mentions : 0, $0.score) > ($1.mentions > 1 ? $1.mentions : 0, $1.score) }
         var picks = must
         var perFeedCount: [String: Int] = [:]
-        let fill = max(size - 2, picks.count)
-        for c in candidates where picks.count < fill {
+        for c in candidates {
             if c.priority == .best && !c.strong { continue }
             let cap = c.priority == .best ? 1 : perFeed
             guard perFeedCount[c.pick.feedID, default: 0] < cap else { continue }
@@ -220,6 +223,34 @@ enum TodayBuilder {
             picks.append(wild)
         }
         return picks
+    }
+
+    /// Picks from the last update that still belong: their feed is still
+    /// followed and in Today, and they are inside the window (Don't Miss
+    /// items: 14 days).
+    static func stillCurrent(_ picks: [TodayPick], feeds: [Feed], now: Date = Date()) -> [TodayPick] {
+        let byID = Dictionary(feeds.map { ($0.id, $0) }, uniquingKeysWith: { a, _ in a })
+        return picks.filter { p in
+            guard let feed = byID[p.feedID], feed.enabled, feed.priority != FeedPriority.off.rawValue else { return false }
+            let days = feed.priority == FeedPriority.must.rawValue ? mustWindowDays : windowDays
+            return (p.date ?? now) >= now.addingTimeInterval(-days * 86_400)
+        }
+    }
+
+    /// New picks on top (in rank order), then the old ones in their place.
+    /// At most one unseen wildcard at a time.
+    static func merge(old: [TodayPick], fresh: [TodayPick]) -> [TodayPick] {
+        let oldURLs = Set(old.map(\.url))
+        var hasWild = old.contains { $0.wildcard == true }
+        var added: [TodayPick] = []
+        for p in fresh where !oldURLs.contains(p.url) {
+            if p.wildcard == true {
+                if hasWild { continue }
+                hasWild = true
+            }
+            added.append(p)
+        }
+        return added + old
     }
 
     /// The keys an item counts under for Hot: its own address and, when its

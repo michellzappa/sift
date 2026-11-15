@@ -32,16 +32,14 @@ extension AppModel {
 
     /// Builds the digest when a new slot (07:00, 17:00) has started, or when
     /// `force` is set. Runs after a feed check and with the library jobs.
+    /// Today updates as feeds bring new items: picks already in Today keep
+    /// their place (seen ones too, until they age out of the window) and new
+    /// picks go on top, ranked. `force` builds it again from nothing.
     func refreshToday(force: Bool = false) {
         guard !state.feeds.isEmpty else {
             if state.today != nil { state.today = nil }
             return
         }
-        let slot = TodayBuilder.currentSlot()
-        // A digest from before titles came from the post text (URLs as
-        // titles) is built again at once.
-        let stale = state.today?.picks.contains { $0.title.hasPrefix("http") || $0.reason.hasPrefix("New from ") } ?? false
-        if !force, !stale, let digest = state.today, digest.slot >= slot, !digest.picks.isEmpty { return }
         var entries: [String: [FeedEntry]] = [:]
         for feed in state.feeds where feed.enabled { entries[feed.id] = FeedStore.entries(feed.id) }
         let events = FeedSignals.loadAll()
@@ -50,7 +48,13 @@ extension AppModel {
             themes: themes.map { ($0.name, $0.summary) },
             kept: state.kept, isSeen: { [seenMarks] in seenMarks[$0]?.seen ?? false },
             affinity: FeedSignals.affinity(events), evidence: FeedSignals.evidence(events))
-        state.today = TodayDigest(slot: slot, built: Date(), picks: TodayBuilder.build(input))
+        let fresh = TodayBuilder.build(input)
+        // Old digests (URL titles, "New from") are dropped, not merged.
+        let stale = state.today?.picks.contains { $0.title.hasPrefix("http") || $0.reason.hasPrefix("New from ") } ?? false
+        let old = (force || stale) ? [] : TodayBuilder.stillCurrent(state.today?.picks ?? [], feeds: state.feeds)
+        let merged = TodayBuilder.merge(old: old, fresh: fresh)
+        guard force || merged.map(\.url) != (state.today?.picks ?? []).map(\.url) else { return }
+        state.today = TodayDigest(slot: Date(), built: Date(), picks: merged)
         writeTodayForPhone()
         Task { await fillTodayText() }
     }

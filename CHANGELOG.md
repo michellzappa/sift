@@ -9,6 +9,12 @@ ships this file and shows it in Settings > About and in Sift > Version
 History. Headings are `## X.Y.Z - YYYY-MM-DD`; groups are `### Added`,
 `### Changed` and `### Fixed`.
 
+## 1.4.9 - 2026-11-15
+
+### Changed
+
+- **Today updates as your feeds post.** There is no longer a fixed 10 twice a day. New items that make the cut go on top as soon as a feed brings them, and items you have already seen stay where they are until they are three days old. Each feed has at most three unseen items in Today at a time, so a busy feed cannot fill it; the next one comes in as you read. The title says how many are new. Rebuild Today in the toolbar starts it again from nothing.
+
 ## 1.4.8 - 2026-11-15
 
 ### Changed

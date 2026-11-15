@@ -343,10 +343,17 @@ The one exception is anonymous diagnostics (owner, 2026-11-15, below).
   items (tabs, Reading List, Instagram, X bookmarks, imports, kept items)
   are sources, themes, library. Offered items (feeds now; Bluesky,
   Mastodon, X people later) are never sources or themes: they show only in
-  Today. `Engine/Today.swift`: `TodayBuilder` picks about 10 from the last
-  3 days at slots 07:00 and 17:00, local ranking (freshness, keeps per feed,
-  theme word overlap, the same normalized URL in several feeds), at most 2
-  per feed, one wildcard, a reason line per pick; no Claude call.
+  Today. `Engine/Today.swift`: `TodayBuilder` ranks items from the last 3
+  days, locally (freshness, keeps per feed, theme word overlap, the same
+  normalized URL in several feeds), at most 3 unseen per feed, one
+  wildcard, a reason line per pick; no Claude call. Rolling (owner,
+  2026-11-15: "can update, not show just 10"): no total cap and no 07:00 /
+  17:00 slots. `refreshToday` merges after each feed check, follow and
+  Today visit: picks already there keep their place (seen ones until they
+  leave the window, `stillCurrent`), new picks go on top in rank order
+  (`merge`, one unseen wildcard at a time). `force` (Rebuild Today, a
+  priority change) builds from nothing. `TodayDigest.slot` now holds the
+  build time.
   `state.today` (`TodayDigest`, picks carry their own title, summary,
   image) and `state.kept` (`KeptItem`). `AppModel+Today.swift`: Keep moves
   an item into the saved source `kept` ("Kept from Today"), marks it seen

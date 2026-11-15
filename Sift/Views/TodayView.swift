@@ -15,15 +15,15 @@ struct TodayView: View {
             Label("Nothing new right now", systemImage: "sun.max")
         } description: {
             Text(model.state.feeds.isEmpty
-                 ? "Follow feeds with Add Feed in the toolbar. Today shows what they offer, twice a day."
+                 ? "Follow feeds with Add Feed in the toolbar. Today shows the best of what they offer and updates as they post."
                  : "Your feeds have nothing new from the last \(Int(TodayBuilder.windowDays)) days that you have not seen.")
         })
         .navigationTitle("Today")
         .navigationSubtitle(subtitle)
         .toolbar {
             ToolbarItem {
-                Button { model.refreshToday(force: true) } label: { Label("New Digest", systemImage: "arrow.triangle.2.circlepath") }
-                    .help("Build Today again now from what your feeds offer.")
+                Button { model.refreshToday(force: true) } label: { Label("Rebuild Today", systemImage: "arrow.triangle.2.circlepath") }
+                    .help("Build Today again from nothing. It also updates by itself when feeds bring new items.")
             }
         }
         .onAppear { model.refreshToday() }
@@ -32,8 +32,7 @@ struct TodayView: View {
     /// The count lives in the subtitle, as in Mail; no banner over the list.
     private var subtitle: String {
         guard model.state.today != nil, !picks.isEmpty else { return "" }
-        let next = TodayBuilder.nextSlot().formatted(date: .omitted, time: .shortened)
-        return open.isEmpty ? "All seen · next at \(next)" : "\(open.count) new · next at \(next)"
+        return open.isEmpty ? "All seen" : "\(open.count) new"
     }
 }
 
