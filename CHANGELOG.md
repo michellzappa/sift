@@ -9,7 +9,7 @@ ships this file and shows it in Settings > About and in Sift > Version
 History. Headings are `## X.Y.Z - YYYY-MM-DD`; groups are `### Added`,
 `### Changed` and `### Fixed`.
 
-## 0.10.0 - 2026-11-15
+## 1.0.0 - 2026-11-15
 
 ### Added
 

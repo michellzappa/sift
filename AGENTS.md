@@ -383,4 +383,7 @@ The one exception is anonymous diagnostics (owner, 2026-11-15, below).
   feeds (`.feed`) open `FeedItemsView`, which shares `OfferedList` with
   Today; no unread counts (owner's no-pile rule). With feeds, the start
   view is Today. CONTRIBUTING.md has the provider checklist.
+- Version numbers (owner, 2026-11-15): odometer style. Each part of X.Y.Z
+  runs 0 to 9: after x.y.9 comes x.(y+1).0, after x.9.z comes (x+1).0.0.
+  Never a two-digit part (0.10.0 was re-cut as 1.0.0).
 
