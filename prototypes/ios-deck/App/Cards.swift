@@ -132,6 +132,7 @@ struct ReaderView: View {
     @Environment(Store.self) private var store
     @Environment(\.dismiss) private var dismiss
     let item: Item
+    @State private var browsing: BrowserLink?
 
     var body: some View {
         NavigationStack {
@@ -170,7 +171,9 @@ struct ReaderView: View {
                             MarkdownBlock(block: p)
                         }
                         if let url = URL(string: item.url) {
-                            Link(destination: url) { Label("Open the original", systemImage: "safari") }
+                            // Safari inside the app, never the Safari app: a page
+                            // opened there becomes a tab and comes back to Sift.
+                            Button { browsing = BrowserLink(url: url) } label: { Label("Open the original", systemImage: "safari") }
                                 .padding(.top, 10)
                         }
                     }
@@ -180,6 +183,9 @@ struct ReaderView: View {
             }
             .ignoresSafeArea(edges: .top)
             .toolbar { ToolbarItem(placement: .confirmationAction) { Button("Done") { dismiss() } } }
+            // Links in the text open inside the app too.
+            .environment(\.openURL, OpenURLAction { url in browsing = BrowserLink(url: url); return .handled })
+            .sheet(item: $browsing) { InAppBrowser(url: $0.url).ignoresSafeArea() }
         }
     }
 
@@ -275,5 +281,11 @@ struct MarkdownBlock: View {
     private func inline(_ s: String) -> AttributedString {
         (try? AttributedString(markdown: s, options: .init(interpretedSyntax: .inlineOnlyPreservingWhitespace))) ?? AttributedString(s)
     }
+}
+
+/// A link to show in Safari inside the app.
+struct BrowserLink: Identifiable {
+    let url: URL
+    var id: String { url.absoluteString }
 }
 

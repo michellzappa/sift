@@ -199,7 +199,8 @@ struct CommandPalette: View {
             openWindow(id: Onboarding.windowID)
         case .link(let url, let place):
             model.navigationRequest = place
-            TabActions.openInSafari(url)
+            // Sift's browser, not Safari: a Safari tab would come back as a link.
+            model.openInApp(url)
         }
     }
 }

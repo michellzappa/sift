@@ -61,6 +61,14 @@ struct SiftApp: App {
         .defaultPosition(.center)
         .commandsRemoved()
 
+        // Originals open here, not in Safari (BrowserWindow.swift).
+        Window("Sift Browser", id: BrowserWindow.id) {
+            BrowserWindowView()
+                .environment(model)
+        }
+        .defaultSize(width: 1000, height: 760)
+        .commandsRemoved()
+
         // Sift > Version History: the bundled CHANGELOG.md.
         Window("Version History", id: VersionHistory.windowID) {
             ChangelogView(onlineURL: VersionHistory.onlineURL)

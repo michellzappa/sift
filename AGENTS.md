@@ -466,4 +466,13 @@ The one exception is anonymous diagnostics (owner, 2026-11-15, below).
   YouTube); `fillTodayText` runs after each digest so today.json carries
   articles. Mac pane: `FeedReader` always first (summary and a spinner while
   fetching), Reader/Page switch. Phone: a tap always opens `ReaderView`.
+- Originals open in Sift (2026-11-15, owner: "open original shud open in
+  app, not safari (otherwise they become tabs and loop back into app)").
+  Mac: `Views/BrowserWindow.swift`, a single `Window` (id "browser") on
+  `model.browserURL`; `AppModel.openInApp(_:)` sets it, marks seen and bumps
+  `browserRequest`, which ContentView turns into `openWindow`. Used by the v
+  key, Go to links and links inside both readers (`OpenURLAction`). Phone:
+  `ReaderView` opens the original and text links in `InAppBrowser`
+  (SFSafariViewController). Only explicit "Open in Safari" items, the
+  browser window's Safari button and double-clicking a tab row open Safari.
 

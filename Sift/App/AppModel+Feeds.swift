@@ -252,6 +252,14 @@ extension AppModel {
 }
 
 extension AppModel {
+    /// Opens a link in Sift's browser window and counts it as seen.
+    func openInApp(_ link: String) {
+        guard let url = URL(string: link), url.scheme?.hasPrefix("http") == true else { return }
+        setSeen([link], true)
+        browserURL = url
+        browserRequest += 1
+    }
+
     /// Shift-J / Shift-K: the next or previous feed or theme, in sidebar
     /// order (Today, feeds in folders, feeds, Overview, themes).
     func stepSidebar(_ by: Int) {

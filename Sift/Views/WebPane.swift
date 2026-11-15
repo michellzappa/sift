@@ -93,6 +93,7 @@ struct WebPane: View {
                     .frame(maxWidth: 680, alignment: .leading)
                     .frame(maxWidth: .infinity)
                 }
+                .environment(\.openURL, OpenURLAction { url in model.openInApp(url.absoluteString); return .handled })
             } else if let post = model.xConnected ? model.xPost(for: tab.url) : nil {
                 // X posts render natively when the X API is connected.
                 Divider()
@@ -179,7 +180,7 @@ final class WebPage: NSObject, WKNavigationDelegate {
     }
 }
 
-private struct WebViewHost: NSViewRepresentable {
+struct WebViewHost: NSViewRepresentable {
     let webView: WKWebView
     func makeNSView(context: Context) -> WKWebView { webView }
     func updateNSView(_ view: WKWebView, context: Context) {}

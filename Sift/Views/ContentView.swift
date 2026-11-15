@@ -64,6 +64,8 @@ struct ContentView: View {
         .toolbar { toolbar }
         // Shortcuts and the command palette move the sidebar through the model.
         .onChange(of: selection, initial: true) { _, new in model.currentSidebar = new }
+        // An original asked for: show Sift's browser window.
+        .onChange(of: model.browserRequest) { _, _ in openWindow(id: BrowserWindow.id) }
         .onAppear { KeyRouter.shared.install(model) }
         .sheet(isPresented: Binding(get: { model.showShortcuts }, set: { model.showShortcuts = $0 })) { ShortcutsSheet() }
         .onChange(of: model.navigationRequest) { _, item in

@@ -161,9 +161,8 @@ struct OfferedList<Header: View, Empty: View>: View {
             if selected == nil { move(1) }
             withAnimation(.snappy) { showPane.toggle() }
         case .original:
-            guard let pick, let url = URL(string: pick.url) else { return false }
-            NSWorkspace.shared.open(url)
-            model.setSeen([pick.url], true)
+            guard let pick else { return false }
+            model.openInApp(pick.url)
         case .keep:
             guard let pick else { return false }
             if model.isKept(pick.url) { model.unkeep(pick.url) } else { model.keep(pick) }
@@ -339,6 +338,8 @@ struct FeedReader: View {
             .frame(maxWidth: 680, alignment: .leading)
             .frame(maxWidth: .infinity)
         }
+        // Links in the text open in Sift's browser, not Safari.
+        .environment(\.openURL, OpenURLAction { url in model.openInApp(url.absoluteString); return .handled })
         .task {
             guard content == nil else { return }
             loading = true

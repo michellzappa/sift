@@ -9,6 +9,12 @@ ships this file and shows it in Settings > About and in Sift > Version
 History. Headings are `## X.Y.Z - YYYY-MM-DD`; groups are `### Added`,
 `### Changed` and `### Fixed`.
 
+## 1.3.2 - 2026-11-15
+
+### Changed
+
+- **Originals open inside Sift, not in Safari.** A page opened in Safari becomes a tab, and tabs come back into Sift as links. On the Mac, v, a link chosen in Go to and links inside the reader open in a Sift browser window, with back, forward and an explicit Open in Safari button. On the iPhone, Open the original and links in the reader open in Safari inside the app. The menu item Open in Safari still opens Safari.
+
 ## 1.3.1 - 2026-11-15
 
 ### Changed

@@ -266,9 +266,8 @@ struct TabList: View {
             if selected == nil { step(1) }
             withAnimation(.snappy) { showInspector.toggle() }
         case .original:
-            guard let tab, let url = URL(string: tab.url) else { return false }
-            NSWorkspace.shared.open(url)
-            model.setSeen([tab.url], true)
+            guard let tab else { return false }
+            model.openInApp(tab.url)
         case .toggleSeen:
             guard let tab else { return false }
             model.setSeen([tab.url], !model.isSeen(tab.url))

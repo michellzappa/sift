@@ -125,6 +125,11 @@ final class AppModel {
     var showShortcuts = false
     /// The ⌘K command palette is open (Views/CommandPalette.swift).
     var showPalette = false
+    /// The page for Sift's browser window (Views/BrowserWindow.swift).
+    /// Originals open there, not in Safari, so they do not come back as tabs.
+    var browserURL: URL?
+    /// Bumped on each request, so the window opens again for the same URL.
+    var browserRequest = 0
     /// A notice that fades (AppModel+Feeds `note`), shown at the window's foot.
     var notice: String?
     @ObservationIgnored var noticeTask: Task<Void, Never>?
