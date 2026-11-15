@@ -428,4 +428,16 @@ The one exception is anonymous diagnostics (owner, 2026-11-15, below).
   `FeedParser.parse` gives items that share one link (podcasts: the show
   page) their enclosure URL, else link#guid. The one-time ETag reset key is
   `feeds.contentV2`.
-
+- Command palette (2026-11-15): ⌘K, View > Go to…. `Views/CommandPalette.swift`
+  (the panel, an overlay on ContentView while `AppModel.showPalette`) and
+  `App/CommandPalette+Items.swift` (`PaletteCatalog` makes the items,
+  `PaletteRanking` is the fuzzy match, `PaletteRecents` keeps the last 8
+  places in UserDefaults `palette.recent`, `SettingsRoute` holds the one
+  `SettingsNavigation` that SettingsView uses). Items: every sidebar place
+  (go through `model.navigationRequest`), the Settings panes
+  (`SettingsRoute.panes` must match `SettingsView.panes`), actions, "Follow
+  <text>" when a non-catch-all provider or the web provider `matches`, and
+  from 2 characters links by title (tabs + archive), Today picks and
+  full-text hits (`searchLibrary`, 200 ms debounce). A link shows its list
+  (theme, Archive or Overview) and opens in Safari. Demo mode leaves out
+  network actions. A new sidebar place needs a row in `PaletteCatalog.places`.

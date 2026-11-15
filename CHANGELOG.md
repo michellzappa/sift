@@ -9,6 +9,12 @@ ships this file and shows it in Settings > About and in Sift > Version
 History. Headings are `## X.Y.Z - YYYY-MM-DD`; groups are `### Added`,
 `### Changed` and `### Fixed`.
 
+## Unreleased
+
+### Added
+
+- **Go to (⌘K).** One search field for the whole app: themes, feeds, sources and lists, Settings panes, actions such as Reload or Export, and your links by title or by their text. Type a handle or address to follow it. Arrow keys move, Return opens, Esc closes. An empty field shows the places you opened last.
+
 ## 1.2.2 - 2026-11-15
 
 ### Fixed

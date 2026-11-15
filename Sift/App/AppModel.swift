@@ -119,6 +119,8 @@ final class AppModel {
     /// Ask the main window to show a sidebar item (keyboard shortcuts, the
     /// command palette). ContentView applies it and sets it back to nil.
     var navigationRequest: SidebarItem?
+    /// The ⌘K command palette is open (Views/CommandPalette.swift).
+    var showPalette = false
     /// A notice that fades (AppModel+Feeds `note`), shown at the window's foot.
     var notice: String?
     @ObservationIgnored var noticeTask: Task<Void, Never>?
