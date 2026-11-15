@@ -247,6 +247,17 @@ enum ClaudeCodeRunner {
         return candidates.first { FileManager.default.isExecutableFile(atPath: $0.path(percentEncoded: false)) }
     }
 
+    /// Shown when Claude Code has no stored login or its login expired.
+    static let loginMessage = "Claude Code is not signed in on this Mac. Open Terminal, type claude and press Return, then type /login and follow the steps in your browser. Then try again in Sift. You can also use an Anthropic API key, in Settings > Intelligence."
+
+    /// True when Claude Code's error text says it needs a login
+    /// ("Not logged in · Please run /login", an expired or revoked token).
+    static func needsLogin(_ text: String) -> Bool {
+        let t = text.lowercased()
+        return t.contains("not logged in") || t.contains("/login") || t.contains("invalid api key")
+            || t.contains("oauth token") || t.contains("authentication_error")
+    }
+
     /// Returns the structured output as JSON data.
     static func run(system: String, user: String, schema: [String: Any]) async throws -> Data {
         guard let exe = executable else {
@@ -270,7 +281,7 @@ enum ClaudeCodeRunner {
         }
         if json["is_error"] as? Bool == true {
             let message = json["result"] as? String ?? "unknown error"
-            throw Sorter.Failure(message: "Claude Code: \(message)")
+            throw Sorter.Failure(message: Self.needsLogin(message) ? Self.loginMessage : "Claude Code: \(message)")
         }
         guard let structured = json["structured_output"],
               let data = try? JSONSerialization.data(withJSONObject: structured)
@@ -303,6 +314,10 @@ enum ClaudeCodeRunner {
                     continuation.resume(returning: data)
                 } else {
                     let message = String(decoding: err.fileHandleForReading.readDataToEndOfFile(), as: UTF8.self)
+                    if Self.needsLogin(message) {
+                        continuation.resume(throwing: Sorter.Failure(message: Self.loginMessage))
+                        return
+                    }
                     continuation.resume(throwing: Sorter.Failure(message: "Claude Code exited with \(p.terminationStatus). \(message.prefix(300))"))
                 }
             }

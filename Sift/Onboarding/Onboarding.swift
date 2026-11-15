@@ -247,23 +247,32 @@ struct OnboardingView: View {
         }
     }
 
+    /// Moves to step `i`. The value is computed before the write:
+    /// `model.onboarding?.index = index + 1` starts the write to
+    /// `onboarding` first, then `index` reads it, and Swift aborts on the
+    /// overlapping access (the 0.4.1 Continue crash).
+    private func go(_ i: Int) {
+        let target = i
+        model.onboarding?.index = target
+    }
+
     private var footer: some View {
         let step = steps[safe: index]
         let isLast = index >= steps.count - 1
         let blocked = step?.status(model).kind == .blocked
         return HStack {
-            Button("Back") { model.onboarding?.index = index - 1 }
+            Button("Back") { go(index - 1) }
                 .disabled(index == 0)
             Spacer()
             if step?.isOptional == true, !isLast {
-                Button("Skip") { model.onboarding?.index = index + 1 }
+                Button("Skip") { go(index + 1) }
             }
             Button(isLast ? "Done" : "Continue") {
                 if isLast {
                     model.finishOnboarding()
                     dismissWindow(id: Onboarding.windowID)
                 } else {
-                    model.onboarding?.index = index + 1
+                    go(index + 1)
                 }
             }
             .keyboardShortcut(.defaultAction)

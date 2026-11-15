@@ -101,8 +101,17 @@ struct ContentView: View {
         } message: {
             Text(model.sendError ?? "")
         }
-        .alert("Sorting stopped", isPresented: .init(get: { model.sortError != nil }, set: { if !$0 { model.sortError = nil } })) {
-            Button("OK") { model.sortError = nil }
+        .alert(model.sortError == ClaudeCodeRunner.loginMessage ? "Sign in to Claude Code" : "Sorting stopped",
+               isPresented: .init(get: { model.sortError != nil }, set: { if !$0 { model.sortError = nil } })) {
+            if model.sortError == ClaudeCodeRunner.loginMessage {
+                Button("Open Terminal") {
+                    model.sortError = nil
+                    NSWorkspace.shared.open(URL(filePath: "/System/Applications/Utilities/Terminal.app"))
+                }
+                Button("Cancel", role: .cancel) { model.sortError = nil }
+            } else {
+                Button("OK") { model.sortError = nil }
+            }
         } message: {
             Text(model.sortError ?? "")
         }
