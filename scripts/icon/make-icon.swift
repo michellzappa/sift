@@ -32,7 +32,10 @@ func drawIcon(_ c: CGContext, in plate: CGRect) {
     let w = 0.64, h = 0.46, rise = 0.07, shrink = 0.86
     let steps = [0.0, 1.0, 2.0]
     let top = h + rise * 2                         // stack height
-    let y0 = (1 - top) / 2                         // front card's foot
+    // Centred, then raised a little (owner): the front card's shadow makes
+    // the measured centre look low.
+    let lift = 0.025
+    let y0 = (1 - top) / 2 + lift                  // front card's foot
     func card(_ step: Double) -> CGRect {
         let k = pow(shrink, step)
         let cw = w * k, ch = h * k
