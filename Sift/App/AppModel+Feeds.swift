@@ -251,6 +251,21 @@ extension AppModel {
     }
 }
 
+extension AppModel {
+    /// Shift-J / Shift-K: the next or previous feed or theme, in sidebar
+    /// order (Today, feeds in folders, feeds, Overview, themes).
+    func stepSidebar(_ by: Int) {
+        var order: [SidebarItem] = state.feeds.isEmpty ? [] : [.today]
+        for folder in feedFolders { order += feeds(inFolder: folder).map { .feed($0.id) } }
+        order += feeds(inFolder: "").map { .feed($0.id) }
+        order.append(.overview)
+        order += projects.map { .project($0.name) }
+        guard !order.isEmpty else { return }
+        let i = currentSidebar.flatMap { order.firstIndex(of: $0) }.map { min(max($0 + by, 0), order.count - 1) } ?? 0
+        navigationRequest = order[i]
+    }
+}
+
 /// A feed from an OPML file, before the user picks it.
 struct OPMLCandidate: Identifiable, Hashable, Sendable {
     var id: String { url }

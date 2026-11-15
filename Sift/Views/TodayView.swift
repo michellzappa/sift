@@ -1,7 +1,7 @@
 import SwiftUI
 
 /// Today: what your feeds offer, as a short digest that ends. A row opens the
-/// page next to the list and counts as seen. K (or the context menu, or Keep
+/// page next to the list and counts as seen. S (or the context menu, or Keep
 /// above the page) keeps an item: it moves into "Kept from Today" and from
 /// there into the library. Nothing here is saved until you keep it.
 struct TodayView: View {
@@ -85,6 +85,7 @@ struct OfferedList<Header: View, Empty: View>: View {
     @State private var selected: String?
     @State private var showPane = false
     @State private var showPage = false
+    @State private var keyOwner = UUID()
     @FocusState private var focused: Bool
 
     var body: some View {
@@ -119,8 +120,7 @@ struct OfferedList<Header: View, Empty: View>: View {
                                 } else {
                                     Button("Keep") { model.keep(pick) }
                                         .buttonStyle(.borderedProminent)
-                                        .keyboardShortcut("k", modifiers: [])
-                                        .help("Keep it: it moves into Kept from Today and into your library. (K)")
+                                        .help("Keep it: it moves into Kept from Today and into your library. (S)")
                                 }
                             }
                             .padding(.horizontal, 12).padding(.vertical, 8)
@@ -142,6 +142,47 @@ struct OfferedList<Header: View, Empty: View>: View {
                 }
             }
         }
+    }
+
+    /// Google Reader keys for offered items (KeyMap.swift); s keeps.
+    private func handleKey(_ action: KeyAction, _ proxy: ScrollViewProxy) -> Bool {
+        let pick = picks.first { $0.url == selected }
+        func move(_ by: Int) {
+            guard !picks.isEmpty else { return }
+            let i = picks.firstIndex { $0.url == selected }.map { min(max($0 + by, 0), picks.count - 1) } ?? 0
+            selected = picks[i].url
+            proxy.scrollTo(picks[i].url)
+        }
+        switch action {
+        case .next: move(1)
+        case .previous: move(-1)
+        case .open:
+            if selected == nil { move(1) }
+            withAnimation(.snappy) { showPane.toggle() }
+        case .original:
+            guard let pick, let url = URL(string: pick.url) else { return false }
+            NSWorkspace.shared.open(url)
+            model.setSeen([pick.url], true)
+        case .keep:
+            guard let pick else { return false }
+            if model.isKept(pick.url) { model.unkeep(pick.url) } else { model.keep(pick) }
+        case .toggleSeen:
+            guard let pick else { return false }
+            model.setSeen([pick.url], !model.isSeen(pick.url))
+        case .markAllSeen:
+            model.setSeen(picks.map(\.url), true)
+            model.note("Marked \(picks.count) as seen")
+        case .copyLink:
+            guard let pick else { return false }
+            model.copy(pick.url)
+            model.note("Link copied")
+        case .follow:
+            guard let pick, let input = AppModel.followInput(forLink: pick.url) else { return false }
+            model.followQuick(input)
+        default:
+            return false
+        }
+        return true
     }
 
     private var list: some View {
@@ -173,17 +214,16 @@ struct OfferedList<Header: View, Empty: View>: View {
                 showPage = false
                 withAnimation(.snappy) { showPane = true }
             }
-            .onKeyPress("k") {
-                guard let url = selected, let pick = picks.first(where: { $0.url == url }) else { return .ignored }
-                model.keep(pick)
-                return .handled
-            }
             .onKeyPress(.space) {
                 guard selected != nil else { return .ignored }
                 withAnimation(.snappy) { showPane.toggle() }
                 return .handled
             }
-            .onAppear { focused = true; _ = proxy }
+            .onAppear {
+                focused = true
+                KeyRouter.shared.register(keyOwner) { handleKey($0, proxy) }
+            }
+            .onDisappear { KeyRouter.shared.unregister(keyOwner) }
         }
     }
 }

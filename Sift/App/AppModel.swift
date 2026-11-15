@@ -119,6 +119,10 @@ final class AppModel {
     /// Ask the main window to show a sidebar item (keyboard shortcuts, the
     /// command palette). ContentView applies it and sets it back to nil.
     var navigationRequest: SidebarItem?
+    /// The sidebar item on screen (ContentView keeps it current), for J/K.
+    @ObservationIgnored var currentSidebar: SidebarItem?
+    /// The keyboard shortcuts sheet (?).
+    var showShortcuts = false
     /// A notice that fades (AppModel+Feeds `note`), shown at the window's foot.
     var notice: String?
     @ObservationIgnored var noticeTask: Task<Void, Never>?

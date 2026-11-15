@@ -42,6 +42,8 @@ struct SiftApp: App {
                 VersionHistoryCommand()
             }
             CommandGroup(replacing: .help) {
+                Button("Keyboard Shortcuts") { model.showShortcuts = true }
+                    .keyboardShortcut("/", modifiers: .command)
                 SetupGuideCommand(model: model)
             }
         }

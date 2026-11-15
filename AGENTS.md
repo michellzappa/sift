@@ -428,4 +428,20 @@ The one exception is anonymous diagnostics (owner, 2026-11-15, below).
   `FeedParser.parse` gives items that share one link (podcasts: the show
   page) their enclosure URL, else link#guid. The one-time ETag reset key is
   `feeds.contentV2`.
+- Keyboard (2026-11-15, owner: "extensive keyboard shortcuts, google reader
+  style"). `App/KeyMap.swift` is the one list (`KeyMap.bindings`: keys,
+  action, title, group); `App/KeyRouter.swift` reads keys with a local
+  NSEvent monitor in the main window only (not Settings, Setup Guide,
+  Version History, sheets), never while a text field has focus or with ⌘ ⌃
+  ⌥. "g" starts a two-key sequence (1.5 s). Lists take list keys through
+  `KeyRouter.register(token, handler)` / `unregister(token)` (TabList,
+  OfferedList); global keys go to the model (`navigationRequest`,
+  `stepSidebar`, `showShortcuts`, `showAddFeed`). Keys: j/k n/p next and
+  previous, o or Return opens the page, v the original in the browser, s
+  keep (Today and feeds), m seen or unseen, Shift-A all seen, c copy, f
+  follow the site, e send to the theme's destination, g t/a/u/k/r/x/d go
+  to Today/Overview/Unsorted/Kept/Archive/Transcripts/Duplicates, Shift-J/K
+  next or previous feed or theme, r refresh, / search, a Follow…, ? the
+  shortcuts sheet (`Views/ShortcutsSheet.swift`, also Help > Keyboard
+  Shortcuts ⌘/). A new shortcut is one `KeyBinding` plus its case.
 

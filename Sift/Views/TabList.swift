@@ -11,6 +11,8 @@ struct TabList: View {
     @State private var showInspector = false
     @State private var showShortcutGuide = false
     @State private var siteFilter: String?
+    /// This list's token for the keyboard shortcuts (KeyRouter).
+    @State private var keyOwner = UUID()
     /// Only unseen links, like an unread filter in mail.
     @AppStorage("list.unseenOnly") private var unseenOnly = false
     /// A saved search's links, loaded from the search index.
@@ -148,6 +150,8 @@ struct TabList: View {
             }
         }
         .toolbar { listToolbar }
+        .onAppear { KeyRouter.shared.register(keyOwner, handleKey) }
+        .onDisappear { KeyRouter.shared.unregister(keyOwner) }
         .sheet(isPresented: $showShortcutGuide) { ShortcutGuide() }
     }
 
@@ -250,6 +254,46 @@ struct TabList: View {
         }
         .padding(12)
         .background(.bar)
+    }
+
+    /// Google Reader keys for saved links (KeyMap.swift).
+    private func handleKey(_ action: KeyAction) -> Bool {
+        let tab = rows.first { $0.id == selected }
+        switch action {
+        case .next: step(1)
+        case .previous: step(-1)
+        case .open:
+            if selected == nil { step(1) }
+            withAnimation(.snappy) { showInspector.toggle() }
+        case .original:
+            guard let tab, let url = URL(string: tab.url) else { return false }
+            NSWorkspace.shared.open(url)
+            model.setSeen([tab.url], true)
+        case .toggleSeen:
+            guard let tab else { return false }
+            model.setSeen([tab.url], !model.isSeen(tab.url))
+        case .markAllSeen:
+            model.setSeen(rows.map(\.url), true)
+            model.note("Marked \(rows.count) as seen")
+        case .copyLink:
+            guard let tab else { return false }
+            model.copy(tab.url)
+            model.note("Link copied")
+        case .follow:
+            guard let tab, let input = AppModel.followInput(forLink: tab.url) else { return false }
+            model.followQuick(input)
+        case .send:
+            guard let tab else { return false }
+            guard let d = model.defaultDestination(for: tab) else {
+                model.note("This theme has no destination. Choose one in the theme header.")
+                return true
+            }
+            Task { await model.send(tab, to: d) }
+            model.note("Sent to \(d.name)")
+        default:
+            return false
+        }
+        return true
     }
 
     private func step(_ by: Int) {
