@@ -85,6 +85,21 @@ extension AppModel {
         return (TodayBuilder.priority(feed, postsPerDay: rate), feed.priority == nil)
     }
 
+    /// What Today knows about each feed, for "How Today Works" and the feed
+    /// list header: the same numbers `TodayBuilder.build` uses.
+    func standings(_ feeds: [Feed]? = nil) -> [FeedStanding] {
+        let events = FeedSignals.loadAll()
+        let affinity = FeedSignals.affinity(events)
+        let evidence = FeedSignals.evidence(events)
+        let keeps = Dictionary(grouping: state.kept.compactMap(\.feedID), by: { $0 }).mapValues(\.count)
+        return (feeds ?? state.feeds).map { feed in
+            let rate = TodayBuilder.postsPerDay(FeedStore.entries(feed.id))
+            return FeedStanding(feed: feed, priority: TodayBuilder.priority(feed, postsPerDay: rate), auto: feed.priority == nil,
+                                postsPerDay: rate, affinity: affinity[feed.id] ?? 0, signals: evidence[feed.id] ?? 0,
+                                keeps: keeps[feed.id] ?? 0)
+        }
+    }
+
     /// Sets a feed's priority; nil returns it to Auto. Today is built again.
     func setPriority(_ feed: Feed, _ value: FeedPriority?) {
         guard let i = state.feeds.firstIndex(where: { $0.id == feed.id }) else { return }

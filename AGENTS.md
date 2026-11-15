@@ -568,3 +568,13 @@ The one exception is anonymous diagnostics (owner, 2026-11-15, below).
   runs from `loadSeen` (launch, library rounds, app active) and handles
   each id once (`state.phoneRequests`). The Mac is the only fetcher. Phone:
   `prototypes/ios-deck/App/FeedsSync.swift`, Lists > Feeds.
+- How Today Works (2026-11-15, owner: the ranking must be clear and
+  visible). `Views/HowTodayWorks.swift`: the rules in plain words and each
+  feed's live standing (`AppModel.standings`: priority and whether Auto
+  chose it, posts a day, what Sift learned from signals) with a priority
+  menu. Opened from Today's toolbar (?), Help > How Today Works and the
+  bar above a single feed's list (`FeedStandingBar`). The text states
+  `TodayBuilder.build`'s numbers: change both together.
+- Install and icons: `build-app.sh` unregisters the build copy in
+  build/DerivedData from LaunchServices; a registered build copy kept the
+  old icon in the Dock.

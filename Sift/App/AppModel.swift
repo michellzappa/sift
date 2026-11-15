@@ -128,6 +128,8 @@ final class AppModel {
     @ObservationIgnored var currentSidebar: SidebarItem?
     /// The keyboard shortcuts sheet (?).
     var showShortcuts = false
+    /// The "How Today Works" sheet (Views/HowTodayWorks.swift).
+    var showHowToday = false
     /// The ⌘K command palette is open (Views/CommandPalette.swift).
     var showPalette = false
     /// The page for Sift's browser window (Views/BrowserWindow.swift).

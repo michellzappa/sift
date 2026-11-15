@@ -25,6 +25,10 @@ struct TodayView: View {
                 Button { model.refreshToday(force: true) } label: { Label("Rebuild Today", systemImage: "arrow.triangle.2.circlepath") }
                     .help("Build Today again from nothing. It also updates by itself when feeds bring new items.")
             }
+            ToolbarItem {
+                Button { model.showHowToday = true } label: { Label("How Today Works", systemImage: "questionmark.circle") }
+                    .help("How Today picks and orders items, and what it learned about each feed")
+            }
         }
         .onAppear { model.refreshToday() }
     }
@@ -46,8 +50,11 @@ struct FeedItemsView: View {
     var body: some View {
         let picks = model.items(of: feeds)
         OfferedList(picks: picks, header: HStack {
-            Text(feeds.count == 1 ? (feeds[0].site ?? feeds[0].url) : "\(feeds.count) feeds")
-                .font(.callout).foregroundStyle(.secondary).lineLimit(1)
+            if feeds.count == 1 {
+                FeedStandingBar(feed: feeds[0])
+            } else {
+                Text("\(feeds.count) feeds").font(.callout).foregroundStyle(.secondary).lineLimit(1)
+            }
             Spacer()
         }.padding(.horizontal, 14).padding(.vertical, 8),
         empty: ContentUnavailableView("Nothing here yet", systemImage: "dot.radiowaves.up.forward",

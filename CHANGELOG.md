@@ -9,6 +9,15 @@ ships this file and shows it in Settings > About and in Sift > Version
 History. Headings are `## X.Y.Z - YYYY-MM-DD`; groups are `### Added`,
 `### Changed` and `### Fixed`.
 
+## 1.5.2 - 2026-11-15
+
+### Added
+- How Today Works (Today toolbar, Help menu): how Today picks and orders items, in plain words, and for each feed its place in Today, how often it posts and what Sift learned from your reading.
+- Above a feed's list: its place in Today, with a menu to change it, and what Sift learned about it.
+
+### Fixed
+- The Dock could show the old icon after an install.
+
 ## 1.5.1 - 2026-11-15
 
 ### Added

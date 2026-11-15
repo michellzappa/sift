@@ -47,6 +47,7 @@ struct SiftApp: App {
             CommandGroup(replacing: .help) {
                 Button("Keyboard Shortcuts") { model.showShortcuts = true }
                     .keyboardShortcut("/", modifiers: .command)
+                Button("How Today Works") { model.showHowToday = true }
                 SetupGuideCommand(model: model)
             }
         }

@@ -68,6 +68,7 @@ struct ContentView: View {
         .onChange(of: model.browserRequest) { _, _ in openWindow(id: BrowserWindow.id) }
         .onAppear { KeyRouter.shared.install(model) }
         .sheet(isPresented: Binding(get: { model.showShortcuts }, set: { model.showShortcuts = $0 })) { ShortcutsSheet() }
+        .sheet(isPresented: Binding(get: { model.showHowToday }, set: { model.showHowToday = $0 })) { HowTodayWorks() }
         .onChange(of: model.navigationRequest) { _, item in
             guard let item else { return }
             selection = item

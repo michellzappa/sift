@@ -33,4 +33,10 @@ if pgrep -xq Sift; then osascript -e 'tell application "Sift" to quit' >/dev/nul
 rm -rf "$target"
 /usr/bin/ditto "$app" "$target"
 codesign --verify --deep --strict "$target"
+# Only the installed copy may carry the app's icon and id for macOS: a
+# registered build copy kept the old icon in the Dock (2026-11-15).
+lsregister=/System/Library/Frameworks/CoreServices.framework/Frameworks/LaunchServices.framework/Support/lsregister
+"$lsregister" -u "$app" >/dev/null 2>&1 || true
+touch "$target"
+"$lsregister" -f "$target" >/dev/null 2>&1 || true
 printf '%s (build %s)\n' "$target" "$build"
