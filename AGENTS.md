@@ -475,4 +475,12 @@ The one exception is anonymous diagnostics (owner, 2026-11-15, below).
   `ReaderView` opens the original and text links in `InAppBrowser`
   (SFSafariViewController). Only explicit "Open in Safari" items, the
   browser window's Safari button and double-clicking a tab row open Safari.
+- Feed folders and totals (2026-11-15, owner). Folders are
+  `Feed.category`; `moveFeed(_:to:)`, `renameFolder`, `deleteFolder` (feeds
+  stay) in AppModel+Feeds. Sidebar: a feed's context menu has Move to Folder
+  (existing, New Folder… alert, No Folder); feed rows are `.draggable(feed.id)`
+  and folder rows drop targets; folder menu Rename…/Delete Folder. Totals:
+  `feedItemCounts` (stored, refreshed by `refreshFeedCounts` on launch, after
+  a check, follow and unfollow), folder total = sum. They count items held,
+  not unread items.
 

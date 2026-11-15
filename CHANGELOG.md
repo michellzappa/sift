@@ -9,6 +9,13 @@ ships this file and shows it in Settings > About and in Sift > Version
 History. Headings are `## X.Y.Z - YYYY-MM-DD`; groups are `### Added`,
 `### Changed` and `### Fixed`.
 
+## 1.3.3 - 2026-11-15
+
+### Added
+
+- **Folders for feeds.** Right-click a feed and choose Move to Folder: an existing folder, a new one, or no folder. You can also drag a feed onto a folder. Right-click a folder to rename or delete it; its feeds stay.
+- **Totals in the sidebar.** Each feed shows how many items it holds, and each folder the sum of its feeds.
+
 ## 1.3.2 - 2026-11-15
 
 ### Changed

@@ -39,6 +39,7 @@ extension AppModel {
             }
             feedProgress.done += 1
         }
+        refreshFeedCounts()
         // New items can only reach Today; they never enter sources or themes.
         // A forced check rebuilds Today so picks carry the newest text.
         if added > 0 || force { refreshToday(force: force) }
@@ -118,6 +119,7 @@ extension AppModel {
                         site: parsed.site, category: category, provider: provider, added: Date(), lastFetched: Date())
         state.feeds.append(feed)
         _ = FeedStore.merge(parsed.entries, into: feed.id)
+        refreshFeedCounts()
         refreshToday(force: true)
     }
 
@@ -209,6 +211,38 @@ extension AppModel {
         return rules.first { host.hasSuffix($0.0) }?.1
     }
 
+    /// Reads each feed's item count once, for the sidebar totals.
+    func refreshFeedCounts() {
+        var counts: [String: Int] = [:]
+        for f in state.feeds { counts[f.id] = FeedStore.entries(f.id).count }
+        if counts != feedItemCounts { feedItemCounts = counts }
+    }
+
+    /// The total for a folder: the items of its feeds.
+    func feedCount(folder: String) -> Int {
+        feeds(inFolder: folder).reduce(0) { $0 + (feedItemCounts[$1.id] ?? 0) }
+    }
+
+    // MARK: Folders
+
+    /// Moves a feed into a folder; nil or "" means no folder.
+    func moveFeed(_ id: String, to folder: String?) {
+        guard let i = state.feeds.firstIndex(where: { $0.id == id }) else { return }
+        let name = folder?.trimmingCharacters(in: .whitespacesAndNewlines)
+        state.feeds[i].category = (name?.isEmpty ?? true) ? nil : name
+    }
+
+    func renameFolder(_ old: String, to new: String) {
+        let name = new.trimmingCharacters(in: .whitespacesAndNewlines)
+        guard !name.isEmpty else { return }
+        for i in state.feeds.indices where state.feeds[i].category == old { state.feeds[i].category = name }
+    }
+
+    /// Removes the folder; its feeds stay, without a folder.
+    func deleteFolder(_ name: String) {
+        for i in state.feeds.indices where state.feeds[i].category == name { state.feeds[i].category = nil }
+    }
+
     /// The feeds in a folder ("" = no folder), by title.
     func feeds(inFolder folder: String) -> [Feed] {
         state.feeds.filter { ($0.category ?? "") == folder }
@@ -233,6 +267,7 @@ extension AppModel {
     func removeFeed(_ feed: Feed) {
         state.feeds.removeAll { $0.id == feed.id }
         FeedStore.remove(feed.id)
+        refreshFeedCounts()
         refreshToday(force: true)
     }
 

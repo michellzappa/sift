@@ -255,6 +255,10 @@ private struct Sidebar: View {
     // Each section folds; the choice is remembered.
     @AppStorage("sidebar.themes") private var showThemes = true
     @AppStorage("sidebar.feeds") private var showFeeds = true
+    // Folder names typed in the New Folder and Rename alerts.
+    @State private var folderDraft = ""
+    @State private var newFolderFor: String?
+    @State private var renamingFolder: String?
     @AppStorage("sidebar.library") private var showLibrary = true
     @AppStorage("sidebar.actions") private var showActions = true
     @AppStorage("sidebar.sites") private var showSites = true
@@ -282,7 +286,20 @@ private struct Sidebar: View {
                     DisclosureGroup {
                         ForEach(model.feeds(inFolder: folder)) { feedRow($0) }
                     } label: {
-                        Label(folder, systemImage: "folder").tag(SidebarItem.feedFolder(folder))
+                        Label {
+                            HStack { Text(folder); Spacer(); count(model.feedCount(folder: folder)) }
+                        } icon: { Image(systemName: "folder") }
+                        .tag(SidebarItem.feedFolder(folder))
+                        // Drop a feed here to move it into this folder.
+                        .dropDestination(for: String.self) { ids, _ in
+                            let feeds = ids.filter { id in model.state.feeds.contains { $0.id == id } }
+                            for id in feeds { model.moveFeed(id, to: folder) }
+                            return !feeds.isEmpty
+                        }
+                        .contextMenu {
+                            Button("Rename…") { folderDraft = folder; renamingFolder = folder }
+                            Button("Delete Folder") { model.deleteFolder(folder) }
+                        }
                     }
                 }
                 ForEach(model.feeds(inFolder: "")) { feedRow($0) }
@@ -296,6 +313,16 @@ private struct Sidebar: View {
             .dropDestination(for: URL.self) { urls, _ in
                 for url in urls { if let input = AppModel.followInput(forLink: url.absoluteString) { model.followQuick(input) } }
                 return !urls.isEmpty
+            }
+            .alert("New Folder", isPresented: Binding(get: { newFolderFor != nil }, set: { if !$0 { newFolderFor = nil } })) {
+                TextField("Name", text: $folderDraft)
+                Button("Create") { if let id = newFolderFor { model.moveFeed(id, to: folderDraft) }; newFolderFor = nil }
+                Button("Cancel", role: .cancel) { newFolderFor = nil }
+            } message: { Text("The feed moves into the new folder.") }
+            .alert("Rename Folder", isPresented: Binding(get: { renamingFolder != nil }, set: { if !$0 { renamingFolder = nil } })) {
+                TextField("Name", text: $folderDraft)
+                Button("Rename") { if let old = renamingFolder { model.renameFolder(old, to: folderDraft) }; renamingFolder = nil }
+                Button("Cancel", role: .cancel) { renamingFolder = nil }
             }
             // What you saved: the graph, its sources and the upkeep lists.
             Section("Library", isExpanded: $showLibrary) {
@@ -429,14 +456,28 @@ private struct Sidebar: View {
 
     private func feedRow(_ feed: Feed) -> some View {
         Label {
-            Text(feed.title).lineLimit(1).foregroundStyle(feed.enabled ? .primary : .tertiary)
+            HStack {
+                Text(feed.title).lineLimit(1).foregroundStyle(feed.enabled ? .primary : .tertiary)
+                Spacer()
+                count(model.feedItemCounts[feed.id] ?? 0)
+            }
         } icon: {
             Image(systemName: FeedProviders.provider(id: feed.provider)?.symbol ?? "dot.radiowaves.up.forward")
                 .foregroundStyle(feed.lastError == nil ? Color.secondary : Color.orange)
         }
         .tag(SidebarItem.feed(feed.id))
         .help(feed.lastError ?? feed.url)
+        // Drag a feed onto a folder to move it there.
+        .draggable(feed.id)
         .contextMenu {
+            Menu("Move to Folder") {
+                ForEach(model.feedFolders.filter { $0 != feed.category }, id: \.self) { folder in
+                    Button(folder) { model.moveFeed(feed.id, to: folder) }
+                }
+                if !model.feedFolders.isEmpty { Divider() }
+                Button("New Folder…") { folderDraft = ""; newFolderFor = feed.id }
+                if feed.category != nil { Button("No Folder") { model.moveFeed(feed.id, to: nil) } }
+            }
             Button(feed.enabled ? "Pause" : "Resume") { model.setFeed(feed, enabled: !feed.enabled) }
             Button("Copy Feed Address") { model.copy(feed.url) }
             Divider()
