@@ -6,11 +6,12 @@
     python3 prototypes/ios-deck/export-deck.py --synth    # + synthesis cards via `claude -p`
 
 Reads, never writes: Application Support/Sift/{search.sqlite,state.json,
-previews.json,Library/*.md}. Writes deck.json to iCloud Drive/Sift/ so the
-phone can open it from Files (and a copy next to this script, gitignored).
+previews.json,Library/*.md,Images/}. Writes a Deck folder to iCloud Drive/Sift/
+(deck.json + images/, resized Instagram images) so the phone can import it
+from Files, and a deck.json next to this script (gitignored).
 The output is personal browsing data: never commit it.
 """
-import json, math, os, re, sqlite3, subprocess, sys
+import hashlib, json, math, os, re, shutil, sqlite3, subprocess, sys
 from pathlib import Path
 
 DEMO = "--demo" in sys.argv
@@ -19,7 +20,9 @@ SUPPORT = Path.home() / "Library/Application Support" / ("Sift-Demo" if DEMO els
 ICLOUD = Path.home() / "Library/Mobile Documents/com~apple~CloudDocs/Sift"
 PER_THEME = 40          # items per theme in the export
 NEIGHBOURS = 6
-FULL_TEXT = 8000        # characters of full text per item
+FULL_TEXT = 20000       # characters of full text per item
+UNSORTED_VIDEOS = 60    # unsorted videos with a transcript or summary
+UNSORTED = "Videos, not sorted yet"
 
 def front_matter(path):
     try:
@@ -51,6 +54,29 @@ def passage(text):
             return p[:420] + ("…" if len(p) > 420 else "")
     return ""
 
+def key_lines(text, n=3):
+    """Three sentences from different parts of the text, each 60-220 characters."""
+    sentences = [x.strip() for x in re.split(r"(?<=[.!?])\s+", " ".join(text.split())) if 60 <= len(x.strip()) <= 220]
+    sentences = [x for x in sentences if not x.lower().startswith(("http", "subscribe", "like this video", "follow"))]
+    if not sentences:
+        # Captions often have no punctuation: take three 24-word windows.
+        words = text.split()
+        if len(words) < 60:
+            return []
+        step = len(words) // n
+        return [" ".join(words[i * step:i * step + 24]) + "…" for i in range(n)]
+    if len(sentences) <= n:
+        return sentences
+    step = len(sentences) / n
+    return [sentences[int(i * step)] for i in range(n)]
+
+def youtube_id(url):
+    m = re.search(r"(?:v=|youtu\.be/|/shorts/|/embed/)([\w-]{11})", url)
+    return m.group(1) if m else None
+
+def image_name(url):
+    return hashlib.sha1(url.encode()).hexdigest()[:16] + ".jpg"
+
 def hue(index, count):
     n = max(count, 1)
     stride = max(1, round(n * 0.382))
@@ -69,6 +95,11 @@ def main():
     by_theme = {}
     for r in rows:
         by_theme.setdefault(r[2], []).append(r)
+    # Videos are mostly unsorted. Bring the ones with words in as one thread.
+    loose = db.execute("select url, title, ?, source, kind, saved, file, also, summary from links where (theme is null or theme = '') and kind = 'video' and file is not null and file != ''", (UNSORTED,)).fetchall()
+    if loose:
+        by_theme[UNSORTED] = loose
+        themes = themes + [UNSORTED]
 
     items, chosen = [], set()
     for t in themes:
@@ -80,9 +111,18 @@ def main():
             score = 4 * bool(transcript) + 2 * bool(r[8]) + bool(len(text) > 400)
             loaded.append((score, r, meta, text, transcript))
         loaded.sort(key=lambda x: (-x[0], x[1][5] or ""), reverse=False)
-        for _, r, meta, text, transcript in loaded[:PER_THEME]:
+        limit = UNSORTED_VIDEOS if t == UNSORTED else PER_THEME
+        if t == UNSORTED:
+            loaded = [x for x in loaded if x[0] >= 2]
+        for _, r, meta, text, transcript in loaded[:limit]:
             url, title, theme, source, kind, saved, file, also, summary = r
             p = previews.get(url, {})
+            vid = youtube_id(url)
+            local = SUPPORT / "Images" / image_name(url)
+            web_image = p.get("imageURL") if str(p.get("imageURL") or "").startswith("http") else None
+            if vid and not web_image:
+                web_image = f"https://i.ytimg.com/vi/{vid}/hqdefault.jpg"
+            words = len(text.split()) + len(transcript.split())
             items.append({
                 "id": url, "url": url, "title": title or p.get("title") or url,
                 "theme": theme, "kind": kind or "page", "site": meta.get("site") or p.get("site") or "",
@@ -93,7 +133,12 @@ def main():
                 "transcript": transcript[:1200],
                 "text": (transcript if transcript and len(text) < 400 else text)[:FULL_TEXT],
                 # Only web images: a file URL is a Mac path the phone cannot read.
-                "image": p.get("imageURL") if str(p.get("imageURL") or "").startswith("http") else None,
+                "image": web_image,
+                "imageFile": image_name(url) if local.exists() else None,
+                "video": {"provider": "youtube", "id": vid} if vid else None,
+                "published": meta.get("published"),
+                "words": words or None,
+                "keyLines": key_lines(transcript or text),
                 "also": json.loads(also) if also and also.startswith("[") else [],
                 "neighbours": [],
             })
@@ -139,8 +184,24 @@ def main():
                 synthesis.append({"theme": t["name"], "text": out, "items": [p["id"] for p in pick]})
                 print("synthesis:", t["name"], file=sys.stderr)
 
-    deck = {"schema": 1, "demo": DEMO, "themes": deck_themes, "items": items, "synthesis": synthesis}
+    deck = {"schema": 2, "demo": DEMO, "themes": deck_themes, "items": items, "synthesis": synthesis}
     data = json.dumps(deck, ensure_ascii=False)
+    if not DEMO:
+        # The Deck folder: deck.json + images/, resized to 900 px with sips.
+        folder = ICLOUD / "Deck"
+        (folder / "images").mkdir(parents=True, exist_ok=True)
+        copied = 0
+        for it in items:
+            name = it.get("imageFile")
+            if not name:
+                continue
+            dest = folder / "images" / name
+            if not dest.exists():
+                subprocess.run(["sips", "-Z", "900", "-s", "formatOptions", "70", str(SUPPORT / "Images" / name), "--out", str(dest)],
+                               capture_output=True)
+            copied += dest.exists()
+        (folder / "deck.json").write_text(data)
+        print(f"{copied} images in {folder}", file=sys.stderr)
     # Demo output is made-up sample data: it ships in the app as the deck
     # it opens with. Real output stays out of git.
     here = Path(__file__).parent / ("App/sample-deck.json" if DEMO else "deck.json")

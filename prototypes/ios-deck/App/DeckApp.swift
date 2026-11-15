@@ -40,12 +40,12 @@ struct LogView: View {
                 Section {
                     LabeledContent("Items", value: "\(store.deck.items.count) in \(store.deck.themes.count) themes")
                     LabeledContent("Synthesis cards", value: "\(store.deck.synthesis.count)")
-                    Button("Import deck.json…") { importing = true }
+                    Button("Import Deck folder…") { importing = true }
                     if let error = store.error { Text(error).font(.caption).foregroundStyle(.red) }
                 } header: {
                     Text(store.deck.demo ? "Deck: sample data" : "Deck: your library")
                 } footer: {
-                    Text("On the Mac, run prototypes/ios-deck/export-deck.py. It writes deck.json to iCloud Drive/Sift; pick it here.")
+                    Text("On the Mac, run prototypes/ios-deck/export-deck.py. It writes a Deck folder (deck.json and images) to iCloud Drive/Sift. Pick the Deck folder here.")
                 }
                 Section {
                     ShareLink(item: Store.logURL) { Label("Share log.jsonl", systemImage: "square.and.arrow.up") }
@@ -68,7 +68,7 @@ struct LogView: View {
                 }
             }
             .navigationTitle("Log")
-            .fileImporter(isPresented: $importing, allowedContentTypes: [.json]) { result in
+            .fileImporter(isPresented: $importing, allowedContentTypes: [.folder, .json]) { result in
                 if case .success(let url) = result { store.importDeck(from: url) }
             }
         }

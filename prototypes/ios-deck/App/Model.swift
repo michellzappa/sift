@@ -38,6 +38,25 @@ struct Item: Codable, Sendable, Identifiable, Hashable {
     var image: String?
     var also: [String]
     var neighbours: [String]
+    // Schema 2: optional, so a schema 1 deck still decodes.
+    var imageFile: String?
+    var video: Video?
+    var published: String?
+    var words: Int?
+    var keyLines: [String]?
+
+    struct Video: Codable, Sendable, Hashable {
+        var provider: String
+        var id: String
+    }
+
+    /// "8 min read" from the word count, or the video length.
+    var readTime: String? {
+        if let length { return length }
+        guard let words, words > 150 else { return nil }
+        return "\(max(1, words / 230)) min read"
+    }
+    var year: String? { published.map { String($0.prefix(4)) } }
 
     var isVideo: Bool { kind == "video" || site.contains("youtube") }
     var symbol: String {
@@ -122,6 +141,15 @@ final class Store {
 
     private static var documents: URL { FileManager.default.urls(for: .documentDirectory, in: .userDomainMask)[0] }
     static var deckURL: URL { documents.appending(path: "deck.json") }
+    /// Images that came with an imported Deck folder.
+    static var imagesURL: URL { documents.appending(path: "images", directoryHint: .isDirectory) }
+
+    /// A local image for the item, if the Deck folder had one.
+    func localImage(_ item: Item) -> URL? {
+        guard let name = item.imageFile else { return nil }
+        let url = Self.imagesURL.appending(path: name)
+        return FileManager.default.fileExists(atPath: url.path(percentEncoded: false)) ? url : nil
+    }
     static var logURL: URL { documents.appending(path: "log.jsonl") }
 
     init() {
@@ -153,12 +181,23 @@ final class Store {
         return text.split(separator: "\n").compactMap { try? decoder.decode(LogEntry.self, from: Data($0.utf8)) }
     }
 
-    /// Copies a deck.json the user picked in Files (from iCloud Drive/Sift).
+    /// Copies what the user picked in Files: the Deck folder (deck.json and
+    /// images/) or a deck.json alone.
     func importDeck(from url: URL) {
         let scoped = url.startAccessingSecurityScopedResource()
         defer { if scoped { url.stopAccessingSecurityScopedResource() } }
         do {
-            let data = try Data(contentsOf: url)
+            let fm = FileManager.default
+            var jsonURL = url
+            if url.hasDirectoryPath {
+                jsonURL = url.appending(path: "deck.json")
+                let images = url.appending(path: "images", directoryHint: .isDirectory)
+                if fm.fileExists(atPath: images.path(percentEncoded: false)) {
+                    try? fm.removeItem(at: Self.imagesURL)
+                    try fm.copyItem(at: images, to: Self.imagesURL)
+                }
+            }
+            let data = try Data(contentsOf: jsonURL)
             let d = try JSONDecoder().decode(Deck.self, from: data)
             try data.write(to: Self.deckURL, options: .atomic)
             deck = d
