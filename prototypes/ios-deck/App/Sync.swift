@@ -9,6 +9,28 @@ struct SeenMark: Codable, Sendable, Equatable {
     var at: Date
 }
 
+/// Reads a file in iCloud Drive through NSFileCoordinator, which makes iCloud
+/// download it first if only a placeholder is on the phone.
+func coordinatedData(_ url: URL) -> Data? {
+    var result: Data?
+    var error: NSError?
+    NSFileCoordinator(filePresenter: nil).coordinate(readingItemAt: url, options: [], error: &error) { real in
+        result = try? Data(contentsOf: real)
+    }
+    return result
+}
+
+/// Copies a file out of iCloud Drive the same way.
+func coordinatedCopy(_ from: URL, to: URL) -> Bool {
+    var ok = false
+    var error: NSError?
+    NSFileCoordinator(filePresenter: nil).coordinate(readingItemAt: from, options: [], error: &error) { real in
+        try? FileManager.default.removeItem(at: to)
+        ok = (try? FileManager.default.copyItem(at: real, to: to)) != nil
+    }
+    return ok
+}
+
 extension Store {
     private static let bookmarkKey = "siftFolderBookmark"
     private static let deviceKey = "seenDeviceID"
@@ -112,16 +134,17 @@ extension Store {
             }
             // The Deck folder replaces the imported deck when it is newer.
             let deckURL = folder.appending(path: "Deck/deck.json")
-            if let date = (try? deckURL.resourceValues(forKeys: [.contentModificationDateKey]))?.contentModificationDate,
-               date > (UserDefaults.standard.object(forKey: "deckDate") as? Date ?? .distantPast) {
-                importDeck(from: folder.appending(path: "Deck", directoryHint: .isDirectory))
-                UserDefaults.standard.set(date, forKey: "deckDate")
+            let date = (try? deckURL.resourceValues(forKeys: [.contentModificationDateKey]))?.contentModificationDate ?? .distantFuture
+            if deck.demo || date > (UserDefaults.standard.object(forKey: "deckDate") as? Date ?? .distantPast) {
+                // Only a deck that really loaded counts as done.
+                if importDeck(from: folder.appending(path: "Deck", directoryHint: .isDirectory)) {
+                    UserDefaults.standard.set(date, forKey: "deckDate")
+                }
             }
             var merged = ownSeen
             let dir = folder.appending(path: "seen", directoryHint: .isDirectory)
             for file in (try? fm.contentsOfDirectory(at: dir, includingPropertiesForKeys: nil)) ?? [] where file.pathExtension == "json" {
-                try? fm.startDownloadingUbiquitousItem(at: file)
-                guard let data = try? Data(contentsOf: file),
+                guard let data = coordinatedData(file),
                       let marks = try? decoder.decode([String: SeenMark].self, from: data) else { continue }
                 for (url, mark) in marks where (merged[url]?.at ?? .distantPast) < mark.at { merged[url] = mark }
             }

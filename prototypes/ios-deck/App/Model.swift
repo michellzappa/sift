@@ -202,7 +202,8 @@ final class Store {
 
     /// Copies what the user picked in Files: the Deck folder (deck.json and
     /// images/) or a deck.json alone.
-    func importDeck(from url: URL) {
+    @discardableResult
+    func importDeck(from url: URL) -> Bool {
         let scoped = url.startAccessingSecurityScopedResource()
         defer { if scoped { url.stopAccessingSecurityScopedResource() } }
         do {
@@ -210,19 +211,29 @@ final class Store {
             var jsonURL = url
             if url.hasDirectoryPath {
                 jsonURL = url.appending(path: "deck.json")
-                let images = url.appending(path: "images", directoryHint: .isDirectory)
-                if fm.fileExists(atPath: images.path(percentEncoded: false)) {
-                    try? fm.removeItem(at: Self.imagesURL)
-                    try fm.copyItem(at: images, to: Self.imagesURL)
-                }
             }
-            let data = try Data(contentsOf: jsonURL)
+            guard let data = coordinatedData(jsonURL) else {
+                error = "deck.json is still downloading from iCloud. Sift Deck tries again when it next opens."
+                return false
+            }
             let d = try JSONDecoder().decode(Deck.self, from: data)
             try data.write(to: Self.deckURL, options: .atomic)
+            // Images one by one, each downloaded from iCloud if needed.
+            if url.hasDirectoryPath {
+                let images = url.appending(path: "images", directoryHint: .isDirectory)
+                try? fm.createDirectory(at: Self.imagesURL, withIntermediateDirectories: true)
+                for name in Set(d.items.compactMap(\.imageFile)) {
+                    let to = Self.imagesURL.appending(path: name)
+                    if fm.fileExists(atPath: to.path(percentEncoded: false)) { continue }
+                    _ = coordinatedCopy(images.appending(path: name), to: to)
+                }
+            }
             deck = d
             error = nil
+            return true
         } catch {
             self.error = "That file is not a deck.json from export-deck.py. \(error.localizedDescription)"
+            return false
         }
     }
 
