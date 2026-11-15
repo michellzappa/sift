@@ -354,4 +354,16 @@ The one exception is anonymous diagnostics (owner, 2026-11-15, below).
   one-time `pruneOfferedFromArchive` removes 0.7.0 feed items from the
   archive unless kept, sent or noted. Next: the phone's Today and Library
   tabs (#30), YouTube subscriptions from Takeout as feeds, Bluesky (#23).
+- Today on the phone (2026-11-15, owner: "two tabs"). The Mac writes
+  `iCloud Drive/Sift/Deck/today.json` (`writeTodayForPhone`: slot, next,
+  picks, kept URLs) whenever the digest or kept list changes. The phone
+  writes its keeps to `kept/iphone-<id>.json` (`[KeptItem]`, ISO 8601);
+  `mergeDeviceKept` (run from `loadSeen`) adds new ones to `state.kept`
+  and marks them seen. Prototype tabs: Today (swipe = seen, double-tap =
+  keep, tap = open; video opens the reader with the player), Library (Deck
+  or Deeper), Lists, Log.
+- Subscribe links (2026-11-15): Info.plist registers `feed`, `feeds` and
+  `sift`; `SiftApp` `.onOpenURL` calls `AppModel.subscribe(from:)`, which
+  maps feed://, feed:https:// and sift://subscribe?url= to an address, runs
+  `FeedFetcher.discover` and follows the feed.
 

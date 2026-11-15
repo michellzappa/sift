@@ -7,19 +7,43 @@ import UniformTypeIdentifiers
 @main
 struct DeckApp: App {
     @State private var store = Store()
+    @State private var tab = "today"
     @Environment(\.scenePhase) private var phase
 
     var body: some Scene {
         WindowGroup {
-            TabView {
-                DeckView().tabItem { Label("Deck", systemImage: "rectangle.stack") }
-                StreamView().tabItem { Label("Stream", systemImage: "arrow.down.to.line") }
-                ListsView().tabItem { Label("Lists", systemImage: "tray.full") }
-                LogView().tabItem { Label("Log", systemImage: "list.bullet.rectangle") }
+            // Today: what your feeds offer, a digest that ends. Library: what
+            // you saved, unseen first, as a deck or deeper by theme.
+            TabView(selection: $tab) {
+                TodayView(goToLibrary: { tab = "library" })
+                    .tabItem { Label("Today", systemImage: "sun.max") }.tag("today")
+                LibraryView()
+                    .tabItem { Label("Library", systemImage: "books.vertical") }.tag("library")
+                ListsView().tabItem { Label("Lists", systemImage: "tray.full") }.tag("lists")
+                LogView().tabItem { Label("Log", systemImage: "list.bullet.rectangle") }.tag("log")
             }
             .environment(store)
             // Seen marks from the Mac, and a newer Deck, whenever the app comes back.
             .onChange(of: phase) { _, p in if p == .active { store.sync() } }
+        }
+    }
+}
+
+/// Library: your saved items. Deck is seven unseen cards that end; Deeper
+/// goes down one theme at a time.
+struct LibraryView: View {
+    @State private var mode = "deck"
+
+    var body: some View {
+        VStack(spacing: 0) {
+            Picker("Mode", selection: $mode) {
+                Text("Deck").tag("deck")
+                Text("Deeper").tag("deeper")
+            }
+            .pickerStyle(.segmented)
+            .padding(.horizontal, 16)
+            .padding(.vertical, 6)
+            if mode == "deck" { DeckView() } else { StreamView() }
         }
     }
 }

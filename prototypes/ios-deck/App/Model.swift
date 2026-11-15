@@ -154,6 +154,10 @@ final class Store {
     @ObservationIgnored var saveTask: Task<Void, Never>?
     /// The iCloud Drive/Sift folder, once the user picked it.
     var connectedFolder: String?
+    /// Today from the Mac (Deck/today.json).
+    var today: TodayFile?
+    /// What this phone kept from Today; written to kept/iphone-<id>.json.
+    var keptHere: [KeptItem] = []
 
     private static var documents: URL { FileManager.default.urls(for: .documentDirectory, in: .userDomainMask)[0] }
     static var deckURL: URL { documents.appending(path: "deck.json") }
@@ -173,6 +177,8 @@ final class Store {
         log = Store.loadLog()
         ownSeen = Store.loadOwnSeen()
         seenMarks = ownSeen
+        keptHere = Store.loadKeptHere()
+        today = Store.loadToday()
         sync()
     }
 

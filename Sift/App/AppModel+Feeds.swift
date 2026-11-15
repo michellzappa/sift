@@ -71,6 +71,39 @@ extension AppModel {
         Task { await fetchFeeds() }
     }
 
+    /// Follows a feed from a link: feed://host/path, feed:https://…,
+    /// feeds://…, or sift://subscribe?url=<site or feed>. Sift finds the feed
+    /// (the address itself, the page's feed link, or common paths) and says
+    /// what it did.
+    func subscribe(from link: URL) {
+        guard !Demo.isOn else { exportMessage = Demo.offMessage; return }
+        var target = link.absoluteString
+        switch link.scheme?.lowercased() {
+        case "sift":
+            guard link.host() == "subscribe",
+                  let u = URLComponents(url: link, resolvingAgainstBaseURL: false)?.queryItems?.first(where: { $0.name == "url" })?.value
+            else { return }
+            target = u
+        case "feed", "feeds":
+            let rest = target.drop(while: { $0 != ":" }).dropFirst()
+            target = rest.hasPrefix("//") ? "https:" + rest : String(rest)
+        default:
+            return
+        }
+        Task {
+            guard let found = await FeedFetcher.discover(target) else {
+                exportMessage = "Sift found no feed at \(target)."
+                return
+            }
+            if state.feeds.contains(where: { $0.url == found.url }) {
+                exportMessage = "You already follow \(found.parsed.title)."
+                return
+            }
+            addFeed(url: found.url, parsed: found.parsed)
+            exportMessage = "Following \(found.parsed.title). Its new items show in Today."
+        }
+    }
+
     /// Adds one feed found from a site or feed address.
     func addFeed(url: String, parsed: FeedParser.Parsed) {
         guard !state.feeds.contains(where: { $0.url == url }) else { return }

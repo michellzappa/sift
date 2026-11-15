@@ -9,6 +9,13 @@ ships this file and shows it in Settings > About and in Sift > Version
 History. Headings are `## X.Y.Z - YYYY-MM-DD`; groups are `### Added`,
 `### Changed` and `### Fixed`.
 
+## 0.9.0 - 2026-11-15
+
+### Added
+
+- **Today on your iPhone.** Sift writes each Today digest to iCloud Drive/Sift, and the iPhone app (in testing) shows it as cards: swipe on to pass, double-tap to keep, tap to open. Items kept on the phone arrive in Kept from Today on your Mac.
+- **Subscribe links.** feed:// links, and sift://subscribe?url= with a site or feed address, open Sift and follow the feed.
+
 ## 0.8.0 - 2026-11-15
 
 ### Added

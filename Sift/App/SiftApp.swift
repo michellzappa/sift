@@ -11,6 +11,8 @@ struct SiftApp: App {
         WindowGroup("Sift") {
             ContentView()
                 .environment(model)
+                // feed://, feeds:// and sift://subscribe?url=… follow a feed.
+                .onOpenURL { model.subscribe(from: $0) }
                 .frame(minWidth: 900, minHeight: 560)
         }
         .commands {

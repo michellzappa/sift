@@ -31,6 +31,8 @@ extension AppModel {
         for (url, mark) in mine where (all[url]?.at ?? .distantPast) < mark.at { all[url] = mark }
         ownSeen = mine
         if all != seenMarks { seenMarks = all }
+        // Kept items from the phone travel the same way.
+        mergeDeviceKept()
     }
 
     private func scheduleSeenSave() {

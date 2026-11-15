@@ -57,6 +57,50 @@ extension Store {
         return (try? coder.1.decode([String: SeenMark].self, from: data)) ?? [:]
     }
 
+    // MARK: Today and kept
+
+    private static var keptURL: URL {
+        FileManager.default.urls(for: .documentDirectory, in: .userDomainMask)[0].appending(path: "kept-here.json")
+    }
+    private static var todayURL: URL {
+        FileManager.default.urls(for: .documentDirectory, in: .userDomainMask)[0].appending(path: "today.json")
+    }
+
+    static func loadKeptHere() -> [KeptItem] {
+        guard let data = try? Data(contentsOf: keptURL) else { return [] }
+        return (try? coder.1.decode([KeptItem].self, from: data)) ?? []
+    }
+
+    static func loadToday() -> TodayFile? {
+        guard let data = try? Data(contentsOf: todayURL) else { return nil }
+        return try? coder.1.decode(TodayFile.self, from: data)
+    }
+
+    func isKept(_ url: String) -> Bool {
+        keptHere.contains { $0.url == url } || (today?.kept.contains(url) ?? false)
+    }
+
+    /// Keeps an offered item. The Mac picks it up from kept/iphone-<id>.json
+    /// and moves it into its library.
+    func keep(_ pick: TodayPick) {
+        guard !isKept(pick.url) else { return }
+        keptHere.append(KeptItem(url: pick.url, title: pick.title, date: pick.date, kept: Date(), feedID: pick.feedID,
+                                 feedTitle: pick.feedTitle, summary: pick.summary, image: pick.image))
+        record(pick.item, .keep, mode: "today", position: 0)
+        setSeen([pick.item], true, mode: "today")
+        saveKept()
+    }
+
+    private func saveKept() {
+        guard let data = try? Self.coder.0.encode(keptHere) else { return }
+        try? data.write(to: Self.keptURL, options: .atomic)
+        withFolder { folder in
+            let dir = folder.appending(path: "kept", directoryHint: .isDirectory)
+            try? FileManager.default.createDirectory(at: dir, withIntermediateDirectories: true)
+            try? data.write(to: dir.appending(path: Self.deviceFile), options: .atomic)
+        }
+    }
+
     // MARK: Seen
 
     func isSeen(_ url: String) -> Bool { seenMarks[url]?.seen ?? false }
@@ -149,6 +193,17 @@ extension Store {
                 for (url, mark) in marks where (merged[url]?.at ?? .distantPast) < mark.at { merged[url] = mark }
             }
             seenMarks = merged
+            // Today from the Mac.
+            if let data = coordinatedData(folder.appending(path: "Deck/today.json")),
+               let file = try? decoder.decode(TodayFile.self, from: data) {
+                today = file
+                try? data.write(to: Self.todayURL, options: .atomic)
+            }
+            if !keptHere.isEmpty, let data = try? Self.coder.0.encode(keptHere) {
+                let dir = folder.appending(path: "kept", directoryHint: .isDirectory)
+                try? fm.createDirectory(at: dir, withIntermediateDirectories: true)
+                try? data.write(to: dir.appending(path: Self.deviceFile), options: .atomic)
+            }
             if let data = try? Self.coder.0.encode(ownSeen), !ownSeen.isEmpty {
                 try? fm.createDirectory(at: dir, withIntermediateDirectories: true)
                 try? data.write(to: dir.appending(path: Self.deviceFile), options: .atomic)
