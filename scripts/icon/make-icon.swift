@@ -24,24 +24,37 @@ func drawIcon(_ c: CGContext, in plate: CGRect) {
     c.saveGState()
     c.drawLinearGradient(g, start: CGPoint(x: 0, y: plate.maxY), end: CGPoint(x: 0, y: plate.minY), options: [])
     c.restoreGState()
-    // The stack: every card has the front card's size, steps up by the
-    // same `rise` and fades by the same amount, so only the top edges show
-    // (owner: equidistant and equal in size). `inset` narrows them if set.
-    let front = (x: 0.18, y: 0.19, w: 0.64, h: 0.46)
-    let rise = 0.075, inset = 0.0
-    for (step, alpha) in [(2.0, 0.28), (1.0, 0.64)] {
-        let r = R(front.x + inset * step, front.y + rise * step, front.w - 2 * inset * step, front.h)
-        c.setFillColor(rgb(255, 255, 255, alpha)); c.addPath(round(r, 0.062 * s)); c.fillPath()
+    // The stack (owner: equidistant, shrinking as they fade). Each card
+    // behind is `shrink` times the one in front (width and height, centred
+    // on the same vertical axis), its top edge `rise` higher, and fainter by
+    // the same step. The whole stack, from the front card's foot to the back
+    // card's top edge, is centred in the plate.
+    let w = 0.64, h = 0.46, rise = 0.07, shrink = 0.86
+    let steps = [0.0, 1.0, 2.0]
+    let top = h + rise * 2                         // stack height
+    let y0 = (1 - top) / 2                         // front card's foot
+    func card(_ step: Double) -> CGRect {
+        let k = pow(shrink, step)
+        let cw = w * k, ch = h * k
+        let cardTop = y0 + h + rise * step
+        return R((1 - cw) / 2, cardTop - ch, cw, ch)
     }
-    // The top card.
-    let card = R(front.x, front.y, front.w, front.h)
+    for (step, alpha) in zip(steps.reversed(), [0.28, 0.64]) where step > 0 {
+        let k = pow(shrink, step)
+        c.setFillColor(rgb(255, 255, 255, alpha)); c.addPath(round(card(step), 0.062 * s * k)); c.fillPath()
+    }
+    // The front card and what is on it, placed relative to the card.
+    let front = card(0)
     c.saveGState()
     c.setShadow(offset: CGSize(width: 0, height: -0.012 * s), blur: 0.04 * s, color: rgb(0, 0, 0, 0.5))
-    c.setFillColor(rgb(250, 250, 250)); c.addPath(round(card, 0.062 * s)); c.fillPath()
+    c.setFillColor(rgb(250, 250, 250)); c.addPath(round(front, 0.062 * s)); c.fillPath()
     c.restoreGState()
-    c.setFillColor(rgb(255, 149, 0)); c.addPath(round(R(0.24, 0.415, 0.52, 0.18), 0.03 * s)); c.fillPath()
-    c.setFillColor(rgb(40, 40, 48, 0.85)); c.addPath(round(R(0.24, 0.325, 0.42, 0.042), 0.021 * s)); c.fillPath()
-    c.setFillColor(rgb(40, 40, 48, 0.35)); c.addPath(round(R(0.24, 0.245, 0.29, 0.042), 0.021 * s)); c.fillPath()
+    func on(_ x: Double, _ y: Double, _ cw: Double, _ ch: Double) -> CGRect {
+        CGRect(x: front.minX + x * s, y: front.minY + y * s, width: cw * s, height: ch * s)
+    }
+    c.setFillColor(rgb(255, 149, 0)); c.addPath(round(on(0.06, 0.225, 0.52, 0.18), 0.03 * s)); c.fillPath()
+    c.setFillColor(rgb(40, 40, 48, 0.85)); c.addPath(round(on(0.06, 0.135, 0.42, 0.042), 0.021 * s)); c.fillPath()
+    c.setFillColor(rgb(40, 40, 48, 0.35)); c.addPath(round(on(0.06, 0.055, 0.29, 0.042), 0.021 * s)); c.fillPath()
 }
 
 func bitmap(_ px: Int, alpha: Bool, draw: (CGContext, CGFloat) -> Void) -> NSBitmapImageRep {
