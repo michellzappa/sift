@@ -136,7 +136,7 @@ private struct TodayCard: View {
 
     var body: some View {
         let kept = store.isKept(pick.url)
-        CardView(item: pick.item, tall: true)
+        CardView(item: pick.item, tall: true, lede: true)
             .contentShape(Rectangle())
             .onTapGesture(count: 2, perform: keep)
             .onTapGesture(perform: open)

@@ -44,7 +44,22 @@ struct CardView: View {
     var compact = false
     /// Full-height page in the vertical deck: a taller picture.
     var tall = false
+    /// Today cards: open with the article's own first paragraphs (from the
+    /// full text), filling the card, instead of the short summary.
+    var lede = false
     @State private var og: OpenGraph.Preview?
+
+    /// Long enough to be worth a lede: more text than the summary shows.
+    private var showLede: Bool { lede && item.text.count > max(item.summary.count + 80, 300) }
+
+    /// The first blocks of the text, skipping a first paragraph that only
+    /// repeats the title.
+    private var ledeBlocks: [String] {
+        let blocks = item.text.components(separatedBy: "\n\n")
+            .map { $0.trimmingCharacters(in: .whitespacesAndNewlines) }
+            .filter { !$0.isEmpty && !$0.hasPrefix("```") && $0 != item.title }
+        return Array(blocks.prefix(8))
+    }
 
     var body: some View {
         let color = store.color(item.theme)
@@ -52,7 +67,7 @@ struct CardView: View {
         let summary = item.summary.isEmpty ? (og?.description ?? "") : item.summary
         VStack(alignment: .leading, spacing: 0) {
             if picture || item.video != nil {
-                ItemImage(item: item, height: compact ? 120 : (tall ? 330 : 210), fallback: og?.image)
+                ItemImage(item: item, height: compact ? 120 : (showLede ? 200 : (tall ? 330 : 210)), fallback: og?.image)
                     .overlay {
                         if item.video != nil {
                             Image(systemName: "play.circle.fill")
@@ -87,10 +102,21 @@ struct CardView: View {
                 Text([item.author, item.site, item.year].compactMap { $0?.isEmpty == false ? $0 : nil }.joined(separator: " · "))
                     .font(.caption).foregroundStyle(.secondary).lineLimit(1)
 
-                if !summary.isEmpty {
+                if showLede {
+                    // The article's opening, as far as the card goes, fading out.
+                    VStack(alignment: .leading, spacing: 8) {
+                        ForEach(Array(ledeBlocks.enumerated()), id: \.offset) { _, block in
+                            MarkdownBlock(block: block).font(.callout)
+                        }
+                    }
+                    .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .topLeading)
+                    .clipped()
+                    .mask(LinearGradient(stops: [.init(color: .black, location: 0), .init(color: .black, location: 0.8),
+                                                 .init(color: .clear, location: 1)], startPoint: .top, endPoint: .bottom))
+                } else if !summary.isEmpty {
                     Text(summary).font(.callout).lineLimit(compact ? 3 : (picture ? 4 : 6))
                 }
-                if !compact {
+                if !compact, !showLede {
                     let lines = item.keyLines ?? []
                     if !lines.isEmpty {
                         VStack(alignment: .leading, spacing: 6) {
@@ -109,8 +135,8 @@ struct CardView: View {
                             .lineLimit(picture ? 4 : 8)
                     }
                 }
-                Spacer(minLength: 0)
-                Text(item.video != nil ? "Tap to watch" : "Tap to open").font(.caption2).foregroundStyle(.tertiary)
+                if !showLede { Spacer(minLength: 0) }
+                Text(item.video != nil ? "Tap to watch" : (showLede ? "Tap to read on" : "Tap to open")).font(.caption2).foregroundStyle(.tertiary)
             }
             .padding(16)
         }

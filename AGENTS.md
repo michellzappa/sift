@@ -503,4 +503,9 @@ The one exception is anonymous diagnostics (owner, 2026-11-15, below).
   feed (`feedIconTried`), the site's apple-touch-icon.png else favicon.ico,
   saved as PNG in feeds/icons; `FeedIconView` shows it desaturated (rows
   without a picture, sidebar). No third-party icon service.
+- Phone Today cards (2026-11-15, owner: "cards … sparse"): `CardView(lede:
+  true)` from TodayCard shows the first blocks of the full text (Markdown,
+  up to 8, faded at the bottom) instead of the summary when the text is
+  longer than the summary; the picture shrinks to 200 pt then. Library deck
+  cards are unchanged.
 
