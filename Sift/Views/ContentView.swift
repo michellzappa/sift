@@ -231,28 +231,29 @@ private struct Sidebar: View {
     // Each section folds; the choice is remembered.
     @AppStorage("sidebar.themes") private var showThemes = true
     @AppStorage("sidebar.feeds") private var showFeeds = true
+    @AppStorage("sidebar.library") private var showLibrary = true
     @AppStorage("sidebar.actions") private var showActions = true
     @AppStorage("sidebar.sites") private var showSites = true
     @AppStorage("sidebar.outside") private var showOutside = true
 
     var body: some View {
         List(selection: $selection) {
-            if !model.state.feeds.isEmpty {
-                // What your feeds offer, as a digest that ends. Not a source:
-                // nothing here is saved until you keep it.
-                Label {
-                    HStack {
-                        Text("Today").fontWeight(model.todayOpenCount > 0 ? .semibold : .regular)
-                        Spacer()
-                        count(model.todayOpenCount)
-                    }
-                } icon: { Image(systemName: "sun.max") }
-                    .tag(SidebarItem.today)
-            }
-            // Followed feeds, like a reader: folders, then feeds without one.
-            // No unread counts. Always shown, so following is one click away;
-            // a link dropped here is followed.
+            // Feeds: Today, then followed feeds like a reader (folders, then
+            // feeds without one). No unread counts. Always shown, so following
+            // is one click away; a link dropped here is followed.
             Section("Feeds", isExpanded: $showFeeds) {
+                if !model.state.feeds.isEmpty {
+                    // What your feeds offer, as a digest that ends. Not a source:
+                    // nothing here is saved until you keep it.
+                    Label {
+                        HStack {
+                            Text("Today").fontWeight(model.todayOpenCount > 0 ? .semibold : .regular)
+                            Spacer()
+                            count(model.todayOpenCount)
+                        }
+                    } icon: { Image(systemName: "sun.max") }
+                        .tag(SidebarItem.today)
+                }
                 ForEach(model.feedFolders, id: \.self) { folder in
                     DisclosureGroup {
                         ForEach(model.feeds(inFolder: folder)) { feedRow($0) }
@@ -272,51 +273,54 @@ private struct Sidebar: View {
                 for url in urls { if let input = AppModel.followInput(forLink: url.absoluteString) { model.followQuick(input) } }
                 return !urls.isEmpty
             }
-            Label { HStack { Text("Overview"); Spacer(); count(model.allSourcesCount) } } icon: { Image(systemName: "circle.hexagongrid") }
-                .tag(SidebarItem.overview)
-            // The sources behind the overview, with counts. Click one to show
-            // only that source; All Sources shows everything.
-            ForEach(sourceRows, id: \.id) { row in
-                HStack(spacing: 8) {
-                    Image(systemName: row.symbol).frame(width: 16).foregroundStyle(.secondary)
-                    HStack(spacing: 5) {
-                        Text(row.name)
-                        if let detail = row.detail { Text(detail).foregroundStyle(.tertiary) }
+            // What you saved: the graph, its sources and the upkeep lists.
+            Section("Library", isExpanded: $showLibrary) {
+                Label { HStack { Text("Overview"); Spacer(); count(model.allSourcesCount) } } icon: { Image(systemName: "circle.hexagongrid") }
+                    .tag(SidebarItem.overview)
+                // The sources behind the overview, with counts. Click one to show
+                // only that source; All Sources shows everything.
+                ForEach(sourceRows, id: \.id) { row in
+                    HStack(spacing: 8) {
+                        Image(systemName: row.symbol).frame(width: 16).foregroundStyle(.secondary)
+                        HStack(spacing: 5) {
+                            Text(row.name)
+                            if let detail = row.detail { Text(detail).foregroundStyle(.tertiary) }
+                        }
+                        .lineLimit(1)
+                        Spacer()
+                        count(row.count)
                     }
-                    .lineLimit(1)
-                    Spacer()
-                    count(row.count)
+                    .font(.callout)
+                    .padding(.leading, 18)
+                    .tag(SidebarItem.source(row.id))
                 }
-                .font(.callout)
-                .padding(.leading, 18)
-                .tag(SidebarItem.source(row.id))
-            }
-            Label { HStack { Text("Unsorted"); Spacer(); count(model.unsortedCount) } } icon: { Image(systemName: "tray") }
-                .tag(SidebarItem.unsorted)
-            Label { HStack { Text("Archive"); Spacer(); count(model.archivedTabs.count) } } icon: { Image(systemName: "archivebox") }
-                .tag(SidebarItem.archive)
-                .help("Links that left their source. Sift keeps their theme, use and action.")
-            let dupes = model.duplicateTabs.count
-            if dupes > 0 {
-                Label { HStack { Text("Duplicates"); Spacer(); count(dupes) } } icon: { Image(systemName: "square.on.square") }
-                    .tag(SidebarItem.duplicates)
-                    .help("The same page saved more than once, from different sources or with tracking parameters.")
-            }
-            let transcripts = model.transcriptTabs.count
-            if transcripts > 0 {
-                Label { HStack { Text("Transcripts"); Spacer(); count(transcripts) } } icon: { Image(systemName: "captions.bubble") }
-                    .tag(SidebarItem.transcripts)
-                    .help("Videos and reels whose words Sift saved. Select one to read its transcript.")
-            }
-            let broken = model.brokenTabs.count
-            if broken > 0 {
-                Label { HStack { Text("Broken Links"); Spacer(); count(broken) } } icon: { Image(systemName: "link.badge.plus") }
-                    .tag(SidebarItem.broken)
-                    .help("Pages that are gone: not found, or the site no longer exists. Sift keeps what it saved.")
-            }
-            if !model.isSavedList {
-                Label { HStack { Text("To Close"); Spacer(); count(model.state.closeQueue.count) } } icon: { Image(systemName: "xmark.square") }
-                    .tag(SidebarItem.closeQueue)
+                Label { HStack { Text("Unsorted"); Spacer(); count(model.unsortedCount) } } icon: { Image(systemName: "tray") }
+                    .tag(SidebarItem.unsorted)
+                Label { HStack { Text("Archive"); Spacer(); count(model.archivedTabs.count) } } icon: { Image(systemName: "archivebox") }
+                    .tag(SidebarItem.archive)
+                    .help("Links that left their source. Sift keeps their theme, use and action.")
+                let dupes = model.duplicateTabs.count
+                if dupes > 0 {
+                    Label { HStack { Text("Duplicates"); Spacer(); count(dupes) } } icon: { Image(systemName: "square.on.square") }
+                        .tag(SidebarItem.duplicates)
+                        .help("The same page saved more than once, from different sources or with tracking parameters.")
+                }
+                let transcripts = model.transcriptTabs.count
+                if transcripts > 0 {
+                    Label { HStack { Text("Transcripts"); Spacer(); count(transcripts) } } icon: { Image(systemName: "captions.bubble") }
+                        .tag(SidebarItem.transcripts)
+                        .help("Videos and reels whose words Sift saved. Select one to read its transcript.")
+                }
+                let broken = model.brokenTabs.count
+                if broken > 0 {
+                    Label { HStack { Text("Broken Links"); Spacer(); count(broken) } } icon: { Image(systemName: "link.badge.plus") }
+                        .tag(SidebarItem.broken)
+                        .help("Pages that are gone: not found, or the site no longer exists. Sift keeps what it saved.")
+                }
+                if !model.isSavedList {
+                    Label { HStack { Text("To Close"); Spacer(); count(model.state.closeQueue.count) } } icon: { Image(systemName: "xmark.square") }
+                        .tag(SidebarItem.closeQueue)
+                }
             }
 
             if !model.state.savedSearches.isEmpty {

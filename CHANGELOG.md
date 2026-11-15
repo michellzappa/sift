@@ -9,6 +9,12 @@ ships this file and shows it in Settings > About and in Sift > Version
 History. Headings are `## X.Y.Z - YYYY-MM-DD`; groups are `### Added`,
 `### Changed` and `### Fixed`.
 
+## 1.1.1 - 2026-11-15
+
+### Changed
+
+- **The sidebar has two chapters.** Feeds holds Today, your folders and feeds, and Follow. Library holds the Overview graph, your sources, Unsorted, Archive, Transcripts and the other upkeep lists. Each folds.
+
 ## 1.1.0 - 2026-11-15
 
 ### Added

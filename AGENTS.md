@@ -398,4 +398,9 @@ The one exception is anonymous diagnostics (owner, 2026-11-15, below).
   points: Follow sheet, File > Follow… (Shift-Command-N), toolbar +, the
   sidebar Feeds section (always shown, Follow row, drop a link), "Follow
   <site>" in every row's context menu, the button above the open page.
+- Sidebar chapters (2026-11-15, owner): "Feeds" (Today, folders, feeds,
+  Follow row; drop target) and "Library" (Overview, sources, Unsorted,
+  Archive, Transcripts, Duplicates, Broken Links, To Close), then Saved
+  searches, Themes, Sent to, Sites. Each section folds (`sidebar.*` in
+  AppStorage).
 
