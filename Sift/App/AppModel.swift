@@ -157,11 +157,13 @@ final class AppModel {
         refreshFeedCounts()
         // 1.2 keeps each item's full text. Feeds fetched before would answer
         // 304 (unchanged) and never send it: fetch them all again once.
-        if !UserDefaults.standard.bool(forKey: "feeds.contentV3") {
+        // 1.4.3 keeps the newest 20 items at any age: fetch again once so
+        // quiet blogs get their older posts.
+        if !UserDefaults.standard.bool(forKey: "feeds.contentV4") {
             for i in state.feeds.indices {
                 state.feeds[i].etag = nil; state.feeds[i].lastModified = nil; state.feeds[i].lastFetched = nil
             }
-            UserDefaults.standard.set(true, forKey: "feeds.contentV3")
+            UserDefaults.standard.set(true, forKey: "feeds.contentV4")
         }
         reload()
         settleOnboardingForExistingInstall()

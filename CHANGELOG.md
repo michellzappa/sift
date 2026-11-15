@@ -9,6 +9,12 @@ ships this file and shows it in Settings > About and in Sift > Version
 History. Headings are `## X.Y.Z - YYYY-MM-DD`; groups are `### Added`,
 `### Changed` and `### Fixed`.
 
+## 1.4.3 - 2026-11-15
+
+### Changed
+
+- **Quiet blogs keep their posts.** Sift keeps the newest 20 items of every feed at any age, plus everything from the last 90 days. A blog that posts a few times a year now shows its back posts, not only the latest. Today still offers only recent items.
+
 ## 1.4.2 - 2026-11-15
 
 ### Changed

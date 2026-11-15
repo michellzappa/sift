@@ -46,9 +46,11 @@ struct FeedEntry: Codable, Hashable, Sendable {
 
 enum FeedStore {
     static let sourceID = "feeds"
-    /// Items kept per feed, and for how long.
+    /// Items kept per feed, and for how long. The newest `keepNewest` stay
+    /// at any age, so a blog that posts twice a year still shows its posts.
     static let keepPerFeed = 150
     static let keepDays: Double = 90
+    static let keepNewest = 20
 
     static var folder: URL {
         let dir = StateFile.url.deletingLastPathComponent().appending(path: "feeds", directoryHint: .isDirectory)
@@ -74,8 +76,10 @@ enum FeedStore {
         }
         let cutoff = Date().addingTimeInterval(-keepDays * 86_400)
         let kept = byURL.values
-            .filter { ($0.date ?? .now) >= cutoff }
             .sorted { ($0.date ?? .distantPast) > ($1.date ?? .distantPast) }
+            .enumerated()
+            .filter { $0.offset < keepNewest || ($0.element.date ?? .now) >= cutoff }
+            .map(\.element)
             .prefix(keepPerFeed)
         let e = JSONEncoder(); e.dateEncodingStrategy = .iso8601; e.outputFormatting = [.sortedKeys]
         if let data = try? e.encode(Array(kept)) { try? data.write(to: file(id), options: .atomic) }

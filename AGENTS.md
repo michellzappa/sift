@@ -327,7 +327,7 @@ The one exception is anonymous diagnostics (owner, 2026-11-15, below).
   input, the mainstream input is what people save on Instagram, TikTok and
   X). `Engine/Feeds.swift`: `Feed` (in `state.feeds`), `FeedEntry`,
   `FeedStore` (items per feed in `Application Support/Sift/feeds/<id>.json`,
-  90 days, 150 per feed), `FeedParser` (RSS 2.0, RDF, Atom, JSON Feed, OPML
+  90 days or the newest 20 at any age, 150 per feed), `FeedParser` (RSS 2.0, RDF, Atom, JSON Feed, OPML
   in and out; XMLParser, no dependencies), `FeedFetcher` (conditional GET
   with ETag/Last-Modified, paced by `HostGate`, an hour's pause on 429/503;
   `discover` reads `<link rel="alternate">`, then common paths).
@@ -427,7 +427,7 @@ The one exception is anonymous diagnostics (owner, 2026-11-15, below).
   link first (other `channelId` fields can be recommended channels).
   `FeedParser.parse` gives items that share one link (podcasts: the show
   page) their enclosure URL, else link#guid. The one-time ETag reset key is
-  `feeds.contentV2`.
+  `feeds.contentV4` (1.4.3).
 - Keyboard (2026-11-15, owner: "extensive keyboard shortcuts, google reader
   style"). `App/KeyMap.swift` is the one list (`KeyMap.bindings`: keys,
   action, title, group); `App/KeyRouter.swift` reads keys with a local
