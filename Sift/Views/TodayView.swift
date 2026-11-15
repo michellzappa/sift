@@ -130,7 +130,7 @@ struct OfferedList<Header: View, Empty: View>: View {
                                 // article fetched once; the website on the Page switch.
                                 FeedReader(pick: pick)
                                     .id(pick.url)
-                                    .onAppear { model.setSeen([pick.url], true) }
+                                    .onAppear { model.setSeen([pick.url], true); model.signal(pick, "open") }
                             } else {
                                 WebPane(tab: SafariTab(url: pick.url, title: pick.title, lastViewed: pick.date, source: TodayStore.keptSourceID)) {
                                     withAnimation(.snappy) { showPane = false }

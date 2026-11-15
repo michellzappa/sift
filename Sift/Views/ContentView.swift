@@ -482,6 +482,21 @@ private struct Sidebar: View {
                 Button("New Folder…") { folderDraft = ""; newFolderFor = feed.id }
                 if feed.category != nil { Button("No Folder") { model.moveFeed(feed.id, to: nil) } }
             }
+            // How the feed takes part in Today. Auto: Best Only for busy feeds.
+            Menu("In Today") {
+                let p = model.priority(of: feed)
+                Button { model.setPriority(feed, nil) } label: {
+                    Text("Auto (\(TodayBuilder.priority(Feed(id: feed.id, url: feed.url, title: feed.title, added: feed.added), postsPerDay: TodayBuilder.postsPerDay(FeedStore.entries(feed.id))).label))")
+                    if p.auto { Image(systemName: "checkmark") }
+                }
+                Divider()
+                ForEach(FeedPriority.allCases, id: \.self) { value in
+                    Button { model.setPriority(feed, value) } label: {
+                        Text(value.label)
+                        if !p.auto && p.value == value { Image(systemName: "checkmark") }
+                    }
+                }
+            }
             Button(feed.enabled ? "Pause" : "Resume") { model.setFeed(feed, enabled: !feed.enabled) }
             Button("Copy Feed Address") { model.copy(feed.url) }
             Divider()

@@ -44,10 +44,12 @@ extension AppModel {
         if !force, !stale, let digest = state.today, digest.slot >= slot, !digest.picks.isEmpty { return }
         var entries: [String: [FeedEntry]] = [:]
         for feed in state.feeds where feed.enabled { entries[feed.id] = FeedStore.entries(feed.id) }
+        let events = FeedSignals.loadAll()
         let input = TodayBuilder.Input(
             feeds: state.feeds, entries: entries,
             themes: themes.map { ($0.name, $0.summary) },
-            kept: state.kept, isSeen: { [seenMarks] in seenMarks[$0]?.seen ?? false })
+            kept: state.kept, isSeen: { [seenMarks] in seenMarks[$0]?.seen ?? false },
+            affinity: FeedSignals.affinity(events), evidence: FeedSignals.evidence(events))
         state.today = TodayDigest(slot: slot, built: Date(), picks: TodayBuilder.build(input))
         writeTodayForPhone()
         Task { await fillTodayText() }
@@ -66,6 +68,42 @@ extension AppModel {
         FeedStore.setContent(text, url: pick.url, feedID: pick.feedID)
         if let i = state.today?.picks.firstIndex(where: { $0.url == pick.url }) { state.today?.picks[i].content = text }
         return text
+    }
+
+    /// Records what the user did with an offered item, for the ranking.
+    func signal(_ pick: TodayPick, _ kind: String, seconds: Double? = nil) {
+        FeedSignals.record(SignalEvent(id: UUID().uuidString, feedID: pick.feedID, url: pick.url, kind: kind, seconds: seconds, at: Date()))
+    }
+
+    /// A feed's priority, and whether it is the user's choice or Auto.
+    func priority(of feed: Feed) -> (value: FeedPriority, auto: Bool) {
+        let rate = TodayBuilder.postsPerDay(FeedStore.entries(feed.id))
+        return (TodayBuilder.priority(feed, postsPerDay: rate), feed.priority == nil)
+    }
+
+    /// Sets a feed's priority; nil returns it to Auto. Today is built again.
+    func setPriority(_ feed: Feed, _ value: FeedPriority?) {
+        guard let i = state.feeds.firstIndex(where: { $0.id == feed.id }) else { return }
+        state.feeds[i].priority = value?.rawValue
+        refreshToday(force: true)
+    }
+
+    /// YouTube Shorts among today's picks, for the phone's vertical cards:
+    /// youtube.com/shorts/<id> answers 200 for a Short and redirects for a
+    /// normal video. One request each, paced, redirects not followed.
+    func markShorts() async {
+        guard !Demo.isOn, let picks = state.today?.picks else { return }
+        var changed = false
+        for pick in picks where pick.vertical == nil {
+            guard let r = pick.url.range(of: #"(?:v=|youtu\.be/|/shorts/)([\w-]{11})"#, options: .regularExpression) else { continue }
+            let id = String(pick.url[r].suffix(11))
+            let short = pick.url.contains("/shorts/") ? true : await ShortsCheck.isShort(id)
+            if let i = state.today?.picks.firstIndex(where: { $0.url == pick.url }) {
+                state.today?.picks[i].vertical = short
+                changed = true
+            }
+        }
+        if changed { writeTodayForPhone() }
     }
 
     /// After a feed check: today's picks take the newest text and title of
@@ -94,6 +132,7 @@ extension AppModel {
             if await fullText(for: pick) != nil { changed = true }
         }
         if changed { writeTodayForPhone() }
+        await markShorts()
     }
 
     // MARK: The phone (prototypes/ios-deck): iCloud Drive/Sift
@@ -147,6 +186,7 @@ extension AppModel {
         guard !isKept(pick.url) else { return }
         state.kept.append(KeptItem(url: pick.url, title: pick.title, date: pick.date, kept: Date(),
                                    feedID: pick.feedID, feedTitle: pick.feedTitle, summary: pick.summary, image: pick.image))
+        signal(pick, "keep")
         setSeen([pick.url], true)
         writeTodayForPhone()
         reload()
@@ -171,3 +211,23 @@ extension AppModel {
         reload()
     }
 }
+
+/// Asks YouTube whether a video is a Short without following the redirect.
+enum ShortsCheck {
+    private final class NoRedirect: NSObject, URLSessionTaskDelegate {
+        func urlSession(_ session: URLSession, task: URLSessionTask, willPerformHTTPRedirection response: HTTPURLResponse,
+                        newRequest request: URLRequest) async -> URLRequest? { nil }
+    }
+
+    static func isShort(_ id: String) async -> Bool {
+        guard await HostGate.shared.admit("youtube.com"), let url = URL(string: "https://www.youtube.com/shorts/\(id)") else { return false }
+        var req = URLRequest(url: url, timeoutInterval: 15)
+        req.httpMethod = "HEAD"
+        req.setValue("Mozilla/5.0 (Macintosh; Intel Mac OS X 15_0) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/18.0 Safari/605.1.15", forHTTPHeaderField: "User-Agent")
+        req.setValue("SOCS=CAI; CONSENT=YES+cb", forHTTPHeaderField: "Cookie")
+        req.httpShouldHandleCookies = false
+        guard let (_, response) = try? await URLSession.shared.data(for: req, delegate: NoRedirect()) else { return false }
+        return (response as? HTTPURLResponse)?.statusCode == 200
+    }
+}
+

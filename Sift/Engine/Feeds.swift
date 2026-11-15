@@ -19,6 +19,8 @@ struct Feed: Codable, Hashable, Sendable, Identifiable {
     /// The provider that found it (`FeedProvider.id`): "reddit", "youtube".
     /// Nil for feeds from OPML or before 0.10.
     var provider: String?
+    /// How it takes part in Today (`FeedPriority` raw value); nil = Auto.
+    var priority: String? = nil
     var enabled = true
     var added: Date
     var lastFetched: Date?
