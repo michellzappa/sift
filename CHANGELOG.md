@@ -9,6 +9,13 @@ ships this file and shows it in Settings > About and in Sift > Version
 History. Headings are `## X.Y.Z - YYYY-MM-DD`; groups are `### Added`,
 `### Changed` and `### Fixed`.
 
+## 1.2.2 - 2026-11-15
+
+### Fixed
+
+- Following a YouTube channel by its @handle failed in the EU, where YouTube first shows a consent page, and could pick a recommended channel's id from the page. Sift now reads the channel's own feed link.
+- A podcast whose episodes all link to the show's page showed as one item. Each episode now keeps its own audio address. Sift fetches every feed once more so the fix takes effect.
+
 ## 1.2.1 - 2026-11-15
 
 ### Fixed

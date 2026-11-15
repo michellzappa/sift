@@ -137,11 +137,11 @@ final class AppModel {
         if state.today == nil { pruneOfferedFromArchive() }
         // 1.2 keeps each item's full text. Feeds fetched before would answer
         // 304 (unchanged) and never send it: fetch them all again once.
-        if !UserDefaults.standard.bool(forKey: "feeds.contentV1") {
+        if !UserDefaults.standard.bool(forKey: "feeds.contentV2") {
             for i in state.feeds.indices {
                 state.feeds[i].etag = nil; state.feeds[i].lastModified = nil; state.feeds[i].lastFetched = nil
             }
-            UserDefaults.standard.set(true, forKey: "feeds.contentV1")
+            UserDefaults.standard.set(true, forKey: "feeds.contentV2")
         }
         reload()
         settleOnboardingForExistingInstall()

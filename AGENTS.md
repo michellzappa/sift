@@ -421,4 +421,11 @@ The one exception is anonymous diagnostics (owner, 2026-11-15, below).
   results use `AppModel.note` / `noteFollowed` (a fading capsule at the
   window's foot, runs folded into "and N more"), not the modal
   `exportMessage` alert.
+- Feed fixes (2026-11-15): YouTube handle pages are fetched with a Safari
+  user agent and the consent cookie (`SOCS=CAI; CONSENT=YES+cb`, cookies
+  off for the request) and read the page's `feeds/videos.xml?channel_id=`
+  link first (other `channelId` fields can be recommended channels).
+  `FeedParser.parse` gives items that share one link (podcasts: the show
+  page) their enclosure URL, else link#guid. The one-time ETag reset key is
+  `feeds.contentV2`.
 

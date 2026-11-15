@@ -101,8 +101,15 @@ enum FeedParser {
         parser.delegate = delegate
         parser.shouldProcessNamespaces = false
         guard parser.parse() || !delegate.entries.isEmpty, delegate.isFeed else { return nil }
+        // Items that share one link (a podcast's show page) each take their
+        // own address, so they stay separate items.
+        var entries = delegate.entries
+        let shared = Dictionary(grouping: entries.indices, by: { entries[$0].url }).filter { $0.value.count > 1 }
+        for (_, indices) in shared {
+            for i in indices where i < delegate.alternates.count { entries[i].url = delegate.alternates[i] }
+        }
         return Parsed(title: delegate.feedTitle.trimmingCharacters(in: .whitespacesAndNewlines),
-                      site: delegate.feedLink, entries: delegate.entries)
+                      site: delegate.feedLink, entries: entries)
     }
 
     private static func json(_ data: Data, base: URL) -> Parsed? {
@@ -270,6 +277,9 @@ private final class XMLFeed: NSObject, XMLParserDelegate {
     private var item: [String: String] = [:]
     private var image: String?
     private var link: String?
+    private var enclosure: String?
+    /// The guid or enclosure per entry URL, to separate items that share a link.
+    var alternates: [String] = []
     private var depthTitleSet = false
 
     init(base: URL) { self.base = base }
@@ -280,7 +290,7 @@ private final class XMLFeed: NSObject, XMLParserDelegate {
         switch n {
         case "rss", "feed", "rdf:rdf", "channel": isFeed = true
         case "item", "entry":
-            inItem = true; item = [:]; image = nil; link = nil
+            inItem = true; item = [:]; image = nil; link = nil; enclosure = nil
         case "link":
             // Atom: <link rel="alternate" href="…"/>
             if let href = a["href"] {
@@ -290,6 +300,7 @@ private final class XMLFeed: NSObject, XMLParserDelegate {
                 }
             }
         case "media:thumbnail", "media:content", "enclosure":
+            if inItem, n == "enclosure", enclosure == nil, let u = a["url"], !(a["type"] ?? "").hasPrefix("image") { enclosure = u }
             if inItem, image == nil, let u = a["url"] {
                 let type = a["type"] ?? a["medium"] ?? ""
                 if n == "media:thumbnail" || type.hasPrefix("image") || type == "image" { image = u }
@@ -314,6 +325,10 @@ private final class XMLFeed: NSObject, XMLParserDelegate {
                 guard let url = URL(string: raw, relativeTo: base), url.scheme?.hasPrefix("http") == true else { return }
                 let body = item["content:encoded"] ?? item["content"] ?? item["description"] ?? item["summary"] ?? ""
                 let firstImage = image ?? Self.firstImage(in: body)
+                // Podcasts often give every episode the show's page as its link.
+                // Remember each item's own address (audio file, else guid) to
+                // tell them apart after parsing.
+                alternates.append(enclosure ?? (item["guid"].flatMap { $0.hasPrefix("http") ? $0 : url.absoluteString + "#" + $0 }) ?? url.absoluteString)
                 entries.append(FeedEntry(
                     url: url.absoluteString,
                     title: PreviewFetcher.plain(item["title"] ?? ""),
