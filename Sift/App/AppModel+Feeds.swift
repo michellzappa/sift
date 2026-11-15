@@ -64,7 +64,7 @@ extension AppModel {
         let followed = Set(state.feeds.map(\.url))
         let new = candidates.filter { !followed.contains($0.url) }.map {
             Feed(id: UUID().uuidString.prefix(8).lowercased(), url: $0.url, title: $0.title, site: $0.site,
-                 category: $0.category, added: Date())
+                 category: $0.category, provider: Self.providerID(forFeed: $0.url), added: Date())
         }
         guard !new.isEmpty else { return }
         state.feeds += new
@@ -72,9 +72,9 @@ extension AppModel {
     }
 
     /// Follows a feed from a link: feed://host/path, feed:https://…,
-    /// feeds://…, or sift://subscribe?url=<site or feed>. Sift finds the feed
-    /// (the address itself, the page's feed link, or common paths) and says
-    /// what it did.
+    /// feeds://…, or sift://subscribe?url=<anything the Add sheet takes:
+    /// r/swift, @name.bsky.social, a site>. The matching provider finds the
+    /// feed; Sift says what it did.
     func subscribe(from link: URL) {
         guard !Demo.isOn else { exportMessage = Demo.offMessage; return }
         var target = link.absoluteString
@@ -91,7 +91,7 @@ extension AppModel {
             return
         }
         Task {
-            guard let found = await FeedFetcher.discover(target) else {
+            guard let found = await FeedProviders.resolve(target).first else {
                 exportMessage = "Sift found no feed at \(target)."
                 return
             }
@@ -99,20 +99,56 @@ extension AppModel {
                 exportMessage = "You already follow \(found.parsed.title)."
                 return
             }
-            addFeed(url: found.url, parsed: found.parsed)
+            addFeed(found)
             exportMessage = "Following \(found.parsed.title). Its new items show in Today."
         }
     }
 
+    /// Adds one feed a provider found (FeedProviders.resolve).
+    func addFeed(_ found: FeedProviders.Found, category: String? = nil) {
+        addFeed(url: found.url, parsed: found.parsed, provider: found.provider, title: found.label, category: category)
+    }
+
     /// Adds one feed found from a site or feed address.
-    func addFeed(url: String, parsed: FeedParser.Parsed) {
+    func addFeed(url: String, parsed: FeedParser.Parsed, provider: String? = nil, title: String? = nil, category: String? = nil) {
         guard !state.feeds.contains(where: { $0.url == url }) else { return }
-        let feed = Feed(id: UUID().uuidString.prefix(8).lowercased(), url: url,
-                        title: parsed.title.isEmpty ? (URL(string: url)?.host() ?? url) : parsed.title,
-                        site: parsed.site, added: Date(), lastFetched: Date())
+        let name = !parsed.title.isEmpty ? parsed.title : (title ?? URL(string: url)?.host() ?? url)
+        let feed = Feed(id: UUID().uuidString.prefix(8).lowercased(), url: url, title: name,
+                        site: parsed.site, category: category, provider: provider, added: Date(), lastFetched: Date())
         state.feeds.append(feed)
         _ = FeedStore.merge(parsed.entries, into: feed.id)
         refreshToday(force: true)
+    }
+
+    /// A provider for a feed address from OPML, by its host, for the icon.
+    static func providerID(forFeed url: String) -> String? {
+        guard let host = URL(string: url)?.host()?.lowercased() else { return nil }
+        let rules: [(String, String)] = [("reddit.com", "reddit"), ("youtube.com", "youtube"), ("substack.com", "substack"),
+                                         ("bsky.app", "bluesky"), ("medium.com", "medium"), ("tumblr.com", "tumblr"),
+                                         ("github.com", "github"), ("arxiv.org", "arxiv"), ("hnrss.org", "hackernews"),
+                                         ("ycombinator.com", "hackernews"), ("news.google.com", "news")]
+        return rules.first { host.hasSuffix($0.0) }?.1
+    }
+
+    /// The feeds in a folder ("" = no folder), by title.
+    func feeds(inFolder folder: String) -> [Feed] {
+        state.feeds.filter { ($0.category ?? "") == folder }
+            .sorted { $0.title.localizedCaseInsensitiveCompare($1.title) == .orderedAscending }
+    }
+
+    var feedFolders: [String] { Array(Set(state.feeds.compactMap(\.category))).sorted() }
+
+    /// Recent items of some feeds as Today-style picks (no reason line),
+    /// newest first, for the sidebar's feed and folder lists.
+    func items(of feeds: [Feed], limit: Int = 300) -> [TodayPick] {
+        var out: [TodayPick] = []
+        for f in feeds {
+            for e in FeedStore.entries(f.id) {
+                out.append(TodayPick(url: e.url, title: e.title.isEmpty ? e.url : e.title, date: e.date, feedID: f.id,
+                                     feedTitle: f.title, summary: e.summary, image: e.image, reason: ""))
+            }
+        }
+        return Array(out.sorted { ($0.date ?? .distantPast) > ($1.date ?? .distantPast) }.prefix(limit))
     }
 
     func removeFeed(_ feed: Feed) {

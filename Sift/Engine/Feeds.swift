@@ -16,6 +16,9 @@ struct Feed: Codable, Hashable, Sendable, Identifiable {
     var site: String?
     /// The folder it had in the OPML file, if any.
     var category: String?
+    /// The provider that found it (`FeedProvider.id`): "reddit", "youtube".
+    /// Nil for feeds from OPML or before 0.10.
+    var provider: String?
     var enabled = true
     var added: Date
     var lastFetched: Date?

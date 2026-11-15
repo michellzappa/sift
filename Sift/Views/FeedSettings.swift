@@ -5,7 +5,6 @@ import SwiftUI
 struct FeedSettings: View {
     @Environment(AppModel.self) private var model
     @State private var candidates: [OPMLCandidate]?
-    @State private var adding = false
     @State private var showList = false
 
     var body: some View {
@@ -16,7 +15,7 @@ struct FeedSettings: View {
             }
             HStack {
                 Button("Import OPML…") { candidates = model.readOPML() }
-                Button("Add Feed…") { adding = true }
+                Button("Add Feed…") { model.showAddFeed = true }
                 if !model.state.feeds.isEmpty {
                     Button("Check Now") { Task { await model.fetchFeeds(force: true) } }
                         .disabled(model.isFetchingFeeds || Demo.isOn)
@@ -42,7 +41,6 @@ struct FeedSettings: View {
                 candidates = nil
             } cancel: { candidates = nil }
         }
-        .sheet(isPresented: $adding) { AddFeedSheet() }
     }
 
     private struct CandidateList: Identifiable {
@@ -152,60 +150,5 @@ struct OPMLImportSheet: View {
             .padding()
         }
         .frame(width: 560, height: 560)
-    }
-}
-
-/// A site or feed address; Sift finds the feed and shows its latest items.
-private struct AddFeedSheet: View {
-    @Environment(AppModel.self) private var model
-    @Environment(\.dismiss) private var dismiss
-    @State private var address = ""
-    @State private var finding = false
-    @State private var found: (url: String, parsed: FeedParser.Parsed)?
-    @State private var failed = false
-
-    var body: some View {
-        VStack(alignment: .leading, spacing: 14) {
-            Text("Add a Feed").font(.headline)
-            TextField("Site or feed address, for example example.com", text: $address)
-                .textFieldStyle(.roundedBorder)
-                .onSubmit(find)
-            if finding { ProgressView().controlSize(.small) }
-            if failed {
-                Text("Sift found no feed there. Try the site's home page, or the feed address itself.")
-                    .font(.callout).foregroundStyle(.orange)
-            }
-            if let found {
-                VStack(alignment: .leading, spacing: 4) {
-                    Text(found.parsed.title).font(.body.weight(.semibold))
-                    Text(found.url).font(.caption).foregroundStyle(.secondary).textSelection(.enabled)
-                    ForEach(found.parsed.entries.prefix(3), id: \.url) { e in
-                        Text("· \(e.title)").font(.callout).lineLimit(1)
-                    }
-                }
-            }
-            HStack {
-                Spacer()
-                Button("Cancel") { dismiss() }.keyboardShortcut(.cancelAction)
-                if let found {
-                    Button("Follow") { model.addFeed(url: found.url, parsed: found.parsed); dismiss() }
-                        .keyboardShortcut(.defaultAction)
-                } else {
-                    Button("Find Feed", action: find).keyboardShortcut(.defaultAction)
-                        .disabled(address.trimmingCharacters(in: .whitespaces).isEmpty || finding || Demo.isOn)
-                }
-            }
-        }
-        .padding(20)
-        .frame(width: 460)
-    }
-
-    private func find() {
-        finding = true; failed = false; found = nil
-        Task {
-            let result = await FeedFetcher.discover(address)
-            finding = false
-            if let result { found = result } else { failed = true }
-        }
     }
 }

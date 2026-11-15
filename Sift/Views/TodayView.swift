@@ -6,61 +6,18 @@ import SwiftUI
 /// there into the library. Nothing here is saved until you keep it.
 struct TodayView: View {
     @Environment(AppModel.self) private var model
-    @State private var selected: String?
-    @State private var showPane = false
-    @FocusState private var focused: Bool
 
     private var picks: [TodayPick] { model.todayPicks }
     private var open: [TodayPick] { picks.filter { !model.isSeen($0.url) && !model.isKept($0.url) } }
 
     var body: some View {
-        VStack(spacing: 0) {
-            header
-            Divider()
-            if picks.isEmpty {
-                ContentUnavailableView {
-                    Label("Nothing new right now", systemImage: "sun.max")
-                } description: {
-                    Text(model.state.feeds.isEmpty
-                         ? "Follow feeds in Settings > Inputs > Feeds. Today shows what they offer, twice a day."
-                         : "Your feeds have nothing new from the last \(Int(TodayBuilder.windowDays)) days that you have not seen.")
-                }
-            } else {
-                list
-            }
-        }
-        .overlay(alignment: .trailing) {
-            if showPane, let pick = picks.first(where: { $0.url == selected }) {
-                GeometryReader { geo in
-                    HStack(spacing: 0) {
-                        Spacer(minLength: 0)
-                        VStack(spacing: 0) {
-                            HStack {
-                                Text(pick.reason).font(.callout).foregroundStyle(.secondary).lineLimit(1)
-                                Spacer()
-                                if model.isKept(pick.url) {
-                                    Label("Kept", systemImage: "star.fill").foregroundStyle(.yellow)
-                                } else {
-                                    Button("Keep") { model.keep(pick) }
-                                        .buttonStyle(.borderedProminent)
-                                        .keyboardShortcut("k", modifiers: [])
-                                        .help("Keep it: it moves into Kept from Today and into your library. (K)")
-                                }
-                            }
-                            .padding(.horizontal, 12).padding(.vertical, 8)
-                            .background(.bar)
-                            WebPane(tab: SafariTab(url: pick.url, title: pick.title, lastViewed: pick.date, source: TodayStore.keptSourceID)) {
-                                withAnimation(.snappy) { showPane = false }
-                            }
-                        }
-                        .frame(width: BrowserOverlay.width(for: geo.size.width))
-                        .background(.background)
-                        .overlay(alignment: .leading) { Divider() }
-                        .shadow(color: .black.opacity(0.12), radius: 12, x: -2)
-                    }
-                }
-            }
-        }
+        OfferedList(picks: picks, header: header, empty: ContentUnavailableView {
+            Label("Nothing new right now", systemImage: "sun.max")
+        } description: {
+            Text(model.state.feeds.isEmpty
+                 ? "Follow feeds with Add Feed in the toolbar. Today shows what they offer, twice a day."
+                 : "Your feeds have nothing new from the last \(Int(TodayBuilder.windowDays)) days that you have not seen.")
+        })
         .navigationTitle("Today")
         .navigationSubtitle(subtitle)
         .toolbar {
@@ -88,6 +45,89 @@ struct TodayView: View {
             Spacer()
         }
         .padding(.horizontal, 14).padding(.vertical, 8)
+    }
+}
+
+/// One feed or one folder, like a reader: its recent items, newest first.
+/// No unread counts: opening counts as seen, Keep saves.
+struct FeedItemsView: View {
+    @Environment(AppModel.self) private var model
+    let title: String
+    let feeds: [Feed]
+
+    var body: some View {
+        let picks = model.items(of: feeds)
+        OfferedList(picks: picks, header: HStack {
+            Text(feeds.count == 1 ? (feeds[0].site ?? feeds[0].url) : "\(feeds.count) feeds")
+                .font(.callout).foregroundStyle(.secondary).lineLimit(1)
+            Spacer()
+        }.padding(.horizontal, 14).padding(.vertical, 8),
+        empty: ContentUnavailableView("Nothing here yet", systemImage: "dot.radiowaves.up.forward",
+                                      description: Text(feeds.first?.lastError ?? "Sift checks feeds about once an hour.")))
+        .navigationTitle(title)
+        .navigationSubtitle("\(picks.count) items")
+        .toolbar {
+            ToolbarItem {
+                Button { Task { await model.fetchFeeds(force: true) } } label: { Label("Check Now", systemImage: "arrow.clockwise") }
+                    .disabled(model.isFetchingFeeds)
+            }
+        }
+    }
+}
+
+/// A list of offered items with the page beside it. Shared by Today and the
+/// feed and folder lists.
+struct OfferedList<Header: View, Empty: View>: View {
+    @Environment(AppModel.self) private var model
+    let picks: [TodayPick]
+    let header: Header
+    let empty: Empty
+    @State private var selected: String?
+    @State private var showPane = false
+    @FocusState private var focused: Bool
+
+    var body: some View {
+        VStack(spacing: 0) {
+            header
+            Divider()
+            if picks.isEmpty {
+                empty
+            } else {
+                list
+            }
+        }
+        .overlay(alignment: .trailing) {
+            if showPane, let pick = picks.first(where: { $0.url == selected }) {
+                GeometryReader { geo in
+                    HStack(spacing: 0) {
+                        Spacer(minLength: 0)
+                        VStack(spacing: 0) {
+                            HStack {
+                                Text(pick.reason.isEmpty ? pick.feedTitle : pick.reason).font(.callout).foregroundStyle(.secondary).lineLimit(1)
+                                Spacer()
+                                if model.isKept(pick.url) {
+                                    Label("Kept", systemImage: "star.fill").foregroundStyle(.yellow)
+                                } else {
+                                    Button("Keep") { model.keep(pick) }
+                                        .buttonStyle(.borderedProminent)
+                                        .keyboardShortcut("k", modifiers: [])
+                                        .help("Keep it: it moves into Kept from Today and into your library. (K)")
+                                }
+                            }
+                            .padding(.horizontal, 12).padding(.vertical, 8)
+                            .background(.bar)
+                            WebPane(tab: SafariTab(url: pick.url, title: pick.title, lastViewed: pick.date, source: TodayStore.keptSourceID)) {
+                                withAnimation(.snappy) { showPane = false }
+                            }
+                        }
+                        .frame(width: BrowserOverlay.width(for: geo.size.width))
+                        .background(.background)
+                        .overlay(alignment: .leading) { Divider() }
+                        .shadow(color: .black.opacity(0.12), radius: 12, x: -2)
+                    }
+                }
+            }
+        }
     }
 
     private var list: some View {
@@ -173,9 +213,11 @@ private struct TodayRow: View {
                 if !pick.summary.isEmpty {
                     Text(pick.summary).font(.callout).foregroundStyle(.secondary).lineLimit(2)
                 }
-                Text(pick.reason)
-                    .font(.caption.weight(.medium))
-                    .foregroundStyle(pick.wildcard ? Color.purple : Color.orange)
+                if !pick.reason.isEmpty {
+                    Text(pick.reason)
+                        .font(.caption.weight(.medium))
+                        .foregroundStyle(pick.wildcard ? Color.purple : Color.orange)
+                }
             }
         }
         .padding(.vertical, 6)

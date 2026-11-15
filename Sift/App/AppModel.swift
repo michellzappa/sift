@@ -114,6 +114,8 @@ final class AppModel {
 
     // MARK: Feeds (AppModel+Feeds.swift, Engine/Feeds.swift)
     var isFetchingFeeds = false
+    /// Opens the Add Feed sheet (toolbar, File menu, Settings).
+    var showAddFeed = false
     var feedProgress: (done: Int, total: Int) = (0, 0)
 
     // MARK: Seen (AppModel+Seen.swift, Storage/Seen.swift)

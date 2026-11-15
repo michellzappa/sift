@@ -51,6 +51,24 @@ Open an issue first for anything bigger than an exporter or a fix, so we can
 agree on the shape before you spend time on it. Sift aims to stay small: it
 is the step between saving a link and filing it, not a notes app.
 
+## Adding a feed provider
+
+A provider turns what someone types (a handle, an address, a name) into
+feed addresses: `r/swift` becomes `reddit.com/r/swift/.rss`.
+
+1. Create `Sift/Feeds/Providers/<Name>Provider.swift` with a struct that
+   conforms to `FeedProvider` (`id`, `name`, `symbol`, `examples`,
+   `matches(_:)`, `candidates(for:)`).
+2. Add one instance to `FeedProviders.all` in `Sift/Feeds/FeedProvider.swift`,
+   before `WebProvider`, which is always last.
+
+`matches` must not touch the network: it decides, as the person types,
+which provider shows in the Add sheet. `candidates` may ask the network
+(YouTube reads the channel id from the page; Podcast asks Apple's
+directory) and returns addresses best first; Sift fetches and checks each
+one. Test the address forms with `curl` before you add them: a provider
+that returns addresses that are not feeds only produces "no feed found".
+
 ## Adding a send destination
 
 1. Create `Sift/Send/<Name>Sender.swift` with a struct that conforms to

@@ -9,6 +9,17 @@ ships this file and shows it in Settings > About and in Sift > Version
 History. Headings are `## X.Y.Z - YYYY-MM-DD`; groups are `### Added`,
 `### Changed` and `### Fixed`.
 
+## 0.10.0 - 2026-11-15
+
+### Added
+
+- **Follow anything with a feed.** Follow (the + in the toolbar, or Shift-Command-N) takes a site, a Substack, a subreddit (r/name), a Bluesky account (@name.bsky.social), a Mastodon account or hashtag (@user@instance, #tag@instance), a YouTube channel or playlist, a podcast (podcast: name), a GitHub repository's releases (owner/repo), Medium, Tumblr, Hacker News (hn, or hn: words), a news search (news: words) or an arXiv category (arxiv cs.AI). Sift shows which kind it recognised as you type, and a list to pick from when there are several.
+- **Feeds in the sidebar.** Your folders and feeds, like a reader: each opens its recent items, without unread counts. Pause, unfollow or copy a feed from its menu.
+
+### Changed
+
+- **Feeds are the primary input.** With feeds, Sift opens on Today, and Feeds is first in Settings > Inputs.
+
 ## 0.9.0 - 2026-11-15
 
 ### Added

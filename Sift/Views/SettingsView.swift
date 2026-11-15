@@ -113,6 +113,9 @@ private struct InputSettings: View {
     var body: some View {
         @Bindable var model = model
         Form {
+            // Feeds first: the primary input.
+            FeedSettings()
+
             Section {
                 StatusRow(icon: "safari", name: "Safari tabs", status: model.tabsStatus, warning: model.loadError != nil) {
                     Button("Open Full Disk Access") { AppModel.openFullDiskAccessSettings() }
@@ -135,8 +138,6 @@ private struct InputSettings: View {
             }
 
             ChromeSettings()
-
-            FeedSettings()
 
             Section {
                 StatusRow(icon: "camera", name: "Instagram Saved", status: model.instagramStatus,

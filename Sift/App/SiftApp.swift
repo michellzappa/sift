@@ -17,6 +17,8 @@ struct SiftApp: App {
         }
         .commands {
             CommandGroup(after: .newItem) {
+                Button("Follow…") { model.showAddFeed = true }
+                    .keyboardShortcut("n", modifiers: [.command, .shift])
                 Button("Reload Tabs") { model.reload() }
                     .keyboardShortcut("r")
                 Button("Import Links File…") { model.importLinksFile() }

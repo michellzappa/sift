@@ -3,6 +3,9 @@ import SwiftUI
 enum SidebarItem: Hashable {
     /// The digest of offered items (Engine/Today.swift).
     case today
+    /// One followed feed, by id; one feed folder, by name.
+    case feed(String)
+    case feedFolder(String)
     case overview
     case unsorted
     case closeQueue
@@ -36,6 +39,10 @@ struct ContentView: View {
                 let item = selection ?? .overview
                 if item == .today {
                     TodayView()
+                } else if case .feed(let id) = item, let feed = model.state.feeds.first(where: { $0.id == id }) {
+                    FeedItemsView(title: feed.title, feeds: [feed]).id(item)
+                } else if case .feedFolder(let name) = item {
+                    FeedItemsView(title: name, feeds: model.feeds(inFolder: name)).id(item)
                 } else if !model.hasReadableSource {
                     NoSourcesView()
                 } else if showsGraph(item) {
@@ -55,6 +62,9 @@ struct ContentView: View {
             }
         }
         .toolbar { toolbar }
+        .sheet(isPresented: Binding(get: { model.showAddFeed }, set: { model.showAddFeed = $0 })) { AddFeedSheet() }
+        // With feeds, Today is the start view: it is the primary input.
+        .onAppear { if selection == .overview, !model.state.feeds.isEmpty, !Demo.isOn { selection = .today } }
         // First run, or steps added since the user last saw the guide.
         .task {
             guard model.onboarding == nil, let pending = model.pendingOnboarding() else { return }
@@ -196,6 +206,10 @@ struct ContentView: View {
             .help("Export your themes and links: Obsidian, Markdown, CSV or JSON.")
         }
         ToolbarItem(placement: .primaryAction) {
+            Button { model.showAddFeed = true } label: { Label("Follow", systemImage: "plus") }
+                .help("Follow a site, a subreddit, a Bluesky or Mastodon account, a YouTube channel, a podcast…")
+        }
+        ToolbarItem(placement: .primaryAction) {
             Button { model.reload() } label: { Label("Reload", systemImage: "arrow.clockwise") }
         }
         // Shows once a newer release exists (UpdateChecker, daily).
@@ -216,6 +230,7 @@ private struct Sidebar: View {
     @Binding var selection: SidebarItem?
     // Each section folds; the choice is remembered.
     @AppStorage("sidebar.themes") private var showThemes = true
+    @AppStorage("sidebar.feeds") private var showFeeds = true
     @AppStorage("sidebar.actions") private var showActions = true
     @AppStorage("sidebar.sites") private var showSites = true
     @AppStorage("sidebar.outside") private var showOutside = true
@@ -233,6 +248,18 @@ private struct Sidebar: View {
                     }
                 } icon: { Image(systemName: "sun.max") }
                     .tag(SidebarItem.today)
+                // Followed feeds, like a reader: folders, then feeds without
+                // one. No unread counts.
+                Section("Feeds", isExpanded: $showFeeds) {
+                    ForEach(model.feedFolders, id: \.self) { folder in
+                        DisclosureGroup {
+                            ForEach(model.feeds(inFolder: folder)) { feedRow($0) }
+                        } label: {
+                            Label(folder, systemImage: "folder").tag(SidebarItem.feedFolder(folder))
+                        }
+                    }
+                    ForEach(model.feeds(inFolder: "")) { feedRow($0) }
+                }
             }
             Label { HStack { Text("Overview"); Spacer(); count(model.allSourcesCount) } } icon: { Image(systemName: "circle.hexagongrid") }
                 .tag(SidebarItem.overview)
@@ -359,6 +386,23 @@ private struct Sidebar: View {
             rows.append(.init(id: LinkImporter.sourcePrefix + i.id, name: i.name, symbol: "tray.and.arrow.down", count: model.importCounts[i.id] ?? 0))
         }
         return rows
+    }
+
+    private func feedRow(_ feed: Feed) -> some View {
+        Label {
+            Text(feed.title).lineLimit(1).foregroundStyle(feed.enabled ? .primary : .tertiary)
+        } icon: {
+            Image(systemName: FeedProviders.provider(id: feed.provider)?.symbol ?? "dot.radiowaves.up.forward")
+                .foregroundStyle(feed.lastError == nil ? Color.secondary : Color.orange)
+        }
+        .tag(SidebarItem.feed(feed.id))
+        .help(feed.lastError ?? feed.url)
+        .contextMenu {
+            Button(feed.enabled ? "Pause" : "Resume") { model.setFeed(feed, enabled: !feed.enabled) }
+            Button("Copy Feed Address") { model.copy(feed.url) }
+            Divider()
+            Button("Unfollow", role: .destructive) { model.removeFeed(feed) }
+        }
     }
 
     private func count(_ n: Int) -> some View {

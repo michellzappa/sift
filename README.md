@@ -55,9 +55,16 @@ The source picker in the toolbar reads, all read-only:
   "YouTube and YouTube Music" (the YouTube API cannot read Watch Later).
   Import the Takeout zip with File > Import Links File.
 - **Feeds**, in **Today**: blogs, newsletters and sites with RSS, Atom or
-  JSON Feed. In Settings > Inputs, Import OPML shows every feed in the file
-  by folder; follow all of them or tick a subset. Add Feed finds a site's
-  feed from its address. Feed items are offered, not saved: they show only
+  JSON Feed, and the open social web. **Follow** (the + in the toolbar, or
+  Shift-Command-N) takes anything: a site, a Substack, `r/subreddit`,
+  `@name.bsky.social`, `@user@mastodon.social`, `#tag@instance`, a YouTube
+  channel or playlist, `podcast: name`, `owner/repo` on GitHub, a Medium or
+  Tumblr address, `hn` or `hn: words`, `news: words`, `arxiv cs.AI`. Each
+  kind is a small provider plugin (CONTRIBUTING.md). feed:// links and
+  `sift://subscribe?url=` work too. In Settings > Inputs, Import OPML shows
+  every feed in the file by folder; follow all of them or tick a subset.
+  The sidebar lists your feeds and folders like a reader, without unread
+  counts. Feed items are offered, not saved: they show only
   in Today, a digest of about ten at 07:00 and 17:00, ranked on your Mac by
   freshness, the feeds you keep from, your themes and links several feeds
   share. Keep one (K) and it moves into **Kept from Today** and your library.

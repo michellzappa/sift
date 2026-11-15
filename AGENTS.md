@@ -366,4 +366,21 @@ The one exception is anonymous diagnostics (owner, 2026-11-15, below).
   `sift`; `SiftApp` `.onOpenURL` calls `AppModel.subscribe(from:)`, which
   maps feed://, feed:https:// and sift://subscribe?url= to an address, runs
   `FeedFetcher.discover` and follows the feed.
+- RSS is the primary input (2026-11-15, owner: "FOCUS on rss … plugin style
+  extension for new rss sources"). Feed providers are plugins:
+  `Sift/Feeds/FeedProvider.swift` (`FeedProvider`: `id`, `name`, `symbol`,
+  `examples`, `matches` with no network, `candidates` may use the network;
+  `FeedProviders.all`, `WebProvider` last; `resolve` fetches and parses each
+  candidate, then falls back to web discovery). One file per provider in
+  `Sift/Feeds/Providers/`: Reddit, YouTube (channel id from the page),
+  Substack, Bluesky (one @ and a dot), Mastodon (@user@instance,
+  #tag@instance), Medium, Tumblr, GitHub (releases and commits), Podcast
+  (iTunes lookup and search), Hacker News (hnrss.org for queries), Google
+  News search, arXiv, Web. `Feed.provider` keeps the id for the icon; OPML
+  feeds get one from the host (`AppModel.providerID(forFeed:)`). Follow
+  sheet `Views/AddFeedSheet.swift` (toolbar +, Shift-Command-N, Settings,
+  `model.showAddFeed`). Sidebar Feeds section: folders (`.feedFolder`) and
+  feeds (`.feed`) open `FeedItemsView`, which shares `OfferedList` with
+  Today; no unread counts (owner's no-pile rule). With feeds, the start
+  view is Today. CONTRIBUTING.md has the provider checklist.
 
