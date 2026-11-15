@@ -36,6 +36,8 @@ struct TodayPick: Codable, Hashable, Sendable, Identifiable {
     /// Foresight", "You often keep Stratechery", "Something different".
     var reason: String
     var wildcard = false
+    /// The item's full text as Markdown, when the feed carries it.
+    var content: String? = nil
 }
 
 struct TodayDigest: Codable, Hashable, Sendable {
@@ -135,7 +137,8 @@ enum TodayBuilder {
 
                 candidates.append(Candidate(pick: TodayPick(
                     url: e.url, title: e.title.isEmpty ? e.url : e.title, date: date, feedID: feed.id,
-                    feedTitle: feed.title, summary: e.summary, image: e.image, reason: reason), score: score))
+                    feedTitle: feed.title, summary: e.summary, image: e.image, reason: reason,
+                    content: e.content), score: score))
             }
         }
 

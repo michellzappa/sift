@@ -36,6 +36,10 @@ struct FeedEntry: Codable, Hashable, Sendable {
     /// Plain text, at most about 1,200 characters.
     var summary: String
     var image: String?
+    /// The full item as Markdown (headings, emphasis, links, lists, quotes,
+    /// code), when the feed carries more than a summary. Nil in files from
+    /// before 1.2.
+    var content: String? = nil
 }
 
 enum FeedStore {
@@ -116,14 +120,59 @@ enum FeedParser {
         let entries = (f.items ?? []).compactMap { i -> FeedEntry? in
             guard let link = i.url ?? i.external_url, let u = URL(string: link, relativeTo: base) else { return nil }
             let text = i.content_text ?? i.summary ?? i.content_html.map(PreviewFetcher.plain) ?? ""
+            let full = i.content_html.map(Text.markdown) ?? i.content_text
             return FeedEntry(url: u.absoluteString, title: i.title ?? "", date: Dates.parse(i.date_published),
                              author: i.authors?.first?.name ?? i.author?.name, summary: Text.trim(text),
-                             image: i.image ?? i.banner_image)
+                             image: i.image ?? i.banner_image, content: Text.cap(full))
         }
         return Parsed(title: f.title ?? base.host() ?? "Feed", site: f.home_page_url, entries: entries)
     }
 
     enum Text {
+        /// Long enough for an article, short enough for today.json.
+        static let maxContent = 60_000
+
+        static func cap(_ s: String?) -> String? {
+            guard let s = s?.trimmingCharacters(in: .whitespacesAndNewlines), s.count > 280 else { return nil }
+            return s.count > maxContent ? String(s.prefix(maxContent)) + "…" : s
+        }
+
+        /// HTML to Markdown, with regular expressions (no dependencies):
+        /// paragraphs and line breaks, h1–h4, strong/b, em/i, links, list
+        /// items, blockquotes, inline code and pre blocks. Images, scripts,
+        /// styles and other tags are dropped; entities are decoded.
+        static func markdown(_ html: String) -> String {
+            var s = html
+            func sub(_ pattern: String, _ template: String) {
+                s = s.replacingOccurrences(of: pattern, with: template, options: [.regularExpression, .caseInsensitive])
+            }
+            sub(#"<(script|style|noscript|iframe|svg)[\s\S]*?</\1>"#, "")
+            sub(#"<pre[^>]*>\s*(?:<code[^>]*>)?([\s\S]*?)(?:</code>)?\s*</pre>"#, "\n\n```\n$1\n```\n\n")
+            for level in 1...4 {
+                sub("<h\(level)[^>]*>([\\s\\S]*?)</h\(level)>", "\n\n" + String(repeating: "#", count: min(level + 1, 4)) + " $1\n\n")
+            }
+            sub(#"<(strong|b)(?:\s[^>]*)?>([\s\S]*?)</\1>"#, "**$2**")
+            sub(#"<(em|i)(?:\s[^>]*)?>([\s\S]*?)</\1>"#, "*$2*")
+            sub(#"<code[^>]*>([\s\S]*?)</code>"#, "`$1`")
+            sub(#"<a\s[^>]*href=["']([^"']+)["'][^>]*>([\s\S]*?)</a>"#, "[$2]($1)")
+            sub(#"<li[^>]*>"#, "\n- ")
+            sub(#"</li>"#, "")
+            sub(#"<blockquote[^>]*>([\s\S]*?)</blockquote>"#, "\n\n> $1\n\n")
+            sub(#"<br\s*/?>"#, "\n")
+            sub(#"</(p|div|ul|ol|section|article|figure|figcaption|table|tr)>"#, "\n\n")
+            sub(#"<hr[^>]*>"#, "\n\n---\n\n")
+            // Remaining tags go; entities decode (PreviewFetcher.plain keeps newlines).
+            s = PreviewFetcher.plain(s)
+            // Tidy: spaces at line ends, three or more newlines.
+            s = s.replacingOccurrences(of: #"[ \t]+\n"#, with: "\n", options: .regularExpression)
+            s = s.replacingOccurrences(of: #"\n{3,}"#, with: "\n\n", options: .regularExpression)
+            // Quote every line of a blockquote paragraph.
+            s = s.components(separatedBy: "\n\n").map { block in
+                block.hasPrefix("> ") ? block.split(separator: "\n").map { $0.hasPrefix(">") ? String($0) : "> " + $0 }.joined(separator: "\n") : block
+            }.joined(separator: "\n\n")
+            return s.trimmingCharacters(in: .whitespacesAndNewlines)
+        }
+
         static func trim(_ s: String) -> String {
             let flat = s.split(whereSeparator: \.isWhitespace).joined(separator: " ")
             return flat.count > 1_200 ? String(flat.prefix(1_200)) + "…" : flat
@@ -270,8 +319,9 @@ private final class XMLFeed: NSObject, XMLParserDelegate {
                     title: PreviewFetcher.plain(item["title"] ?? ""),
                     date: FeedParser.Dates.parse(item["pubdate"] ?? item["published"] ?? item["updated"] ?? item["dc:date"]),
                     author: item["dc:creator"] ?? item["author"] ?? item["name"],
-                    summary: FeedParser.Text.trim(PreviewFetcher.plain(body)),
-                    image: firstImage.flatMap { URL(string: $0, relativeTo: url)?.absoluteString }))
+                    summary: FeedParser.Text.trim(PreviewFetcher.plain(item["description"] ?? item["summary"] ?? body)),
+                    image: firstImage.flatMap { URL(string: $0, relativeTo: url)?.absoluteString },
+                    content: FeedParser.Text.cap(FeedParser.Text.markdown(body))))
             case "link" where !value.isEmpty: link = link ?? value
             default:
                 if !value.isEmpty, item[n] == nil { item[n] = value }

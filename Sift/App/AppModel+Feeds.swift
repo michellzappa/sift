@@ -40,7 +40,8 @@ extension AppModel {
             feedProgress.done += 1
         }
         // New items can only reach Today; they never enter sources or themes.
-        if added > 0 { refreshToday() }
+        // A forced check rebuilds Today so picks carry the newest text.
+        if added > 0 || force { refreshToday(force: force) }
     }
 
     // MARK: Adding and removing
@@ -203,7 +204,7 @@ extension AppModel {
         for f in feeds {
             for e in FeedStore.entries(f.id) {
                 out.append(TodayPick(url: e.url, title: e.title.isEmpty ? e.url : e.title, date: e.date, feedID: f.id,
-                                     feedTitle: f.title, summary: e.summary, image: e.image, reason: ""))
+                                     feedTitle: f.title, summary: e.summary, image: e.image, reason: "", content: e.content))
             }
         }
         return Array(out.sorted { ($0.date ?? .distantPast) > ($1.date ?? .distantPast) }.prefix(limit))

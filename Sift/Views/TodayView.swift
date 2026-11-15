@@ -84,6 +84,7 @@ struct OfferedList<Header: View, Empty: View>: View {
     let empty: Empty
     @State private var selected: String?
     @State private var showPane = false
+    @State private var showPage = false
     @FocusState private var focused: Bool
 
     var body: some View {
@@ -105,6 +106,14 @@ struct OfferedList<Header: View, Empty: View>: View {
                             HStack {
                                 Text(pick.reason.isEmpty ? pick.feedTitle : pick.reason).font(.callout).foregroundStyle(.secondary).lineLimit(1)
                                 Spacer()
+                                if pick.content != nil {
+                                    // The feed's own text first; the website on request.
+                                    Picker("", selection: $showPage) {
+                                        Text("Text").tag(false)
+                                        Text("Page").tag(true)
+                                    }
+                                    .pickerStyle(.segmented).labelsHidden().fixedSize()
+                                }
                                 if model.isKept(pick.url) {
                                     Label("Kept", systemImage: "star.fill").foregroundStyle(.yellow)
                                 } else {
@@ -116,8 +125,13 @@ struct OfferedList<Header: View, Empty: View>: View {
                             }
                             .padding(.horizontal, 12).padding(.vertical, 8)
                             .background(.bar)
-                            WebPane(tab: SafariTab(url: pick.url, title: pick.title, lastViewed: pick.date, source: TodayStore.keptSourceID)) {
-                                withAnimation(.snappy) { showPane = false }
+                            if let content = pick.content, !showPage {
+                                FeedReader(pick: pick, content: content)
+                                    .onAppear { model.setSeen([pick.url], true) }
+                            } else {
+                                WebPane(tab: SafariTab(url: pick.url, title: pick.title, lastViewed: pick.date, source: TodayStore.keptSourceID)) {
+                                    withAnimation(.snappy) { showPane = false }
+                                }
                             }
                         }
                         .frame(width: BrowserOverlay.width(for: geo.size.width))
@@ -156,6 +170,7 @@ struct OfferedList<Header: View, Empty: View>: View {
             .focused($focused)
             .onChange(of: selected) { _, new in
                 guard new != nil else { return }
+                showPage = false
                 withAnimation(.snappy) { showPane = true }
             }
             .onKeyPress("k") {
@@ -222,5 +237,68 @@ private struct TodayRow: View {
         }
         .padding(.vertical, 6)
         .opacity(seen && !kept ? 0.7 : 1)
+    }
+}
+
+/// The feed's own text for an offered item, as Markdown: title, source,
+/// then each block (headings, quotes, lists, code, paragraphs). Links open
+/// in the browser.
+struct FeedReader: View {
+    let pick: TodayPick
+    let content: String
+
+    var body: some View {
+        ScrollView {
+            VStack(alignment: .leading, spacing: 12) {
+                Text(pick.title).font(.title2.weight(.semibold))
+                Text([pick.feedTitle, pick.date?.formatted(date: .abbreviated, time: .shortened)].compactMap { $0 }.joined(separator: " · "))
+                    .font(.caption).foregroundStyle(.secondary)
+                ForEach(Array(blocks.enumerated()), id: \.offset) { _, block in
+                    if block.hasPrefix("```") {
+                        Text(block.replacingOccurrences(of: "```", with: "").trimmingCharacters(in: .newlines))
+                            .font(.system(.callout, design: .monospaced))
+                            .padding(10)
+                            .frame(maxWidth: .infinity, alignment: .leading)
+                            .background(RoundedRectangle(cornerRadius: 6).fill(Color.secondary.opacity(0.1)))
+                    } else if block.hasPrefix("- ") {
+                        VStack(alignment: .leading, spacing: 4) {
+                            ForEach(Array(block.split(separator: "\n").enumerated()), id: \.offset) { _, line in
+                                HStack(alignment: .top, spacing: 6) {
+                                    Text("•").foregroundStyle(.secondary)
+                                    ReaderBlock(block: String(line.drop { $0 == "-" || $0 == " " }))
+                                }
+                            }
+                        }
+                    } else {
+                        // A quote: every line starts with "> "; ReaderBlock wants one.
+                        ReaderBlock(block: block.hasPrefix("> ")
+                            ? "> " + block.split(separator: "\n").map { $0.hasPrefix("> ") ? String($0.dropFirst(2)) : String($0) }.joined(separator: "\n")
+                            : block)
+                    }
+                }
+            }
+            .textSelection(.enabled)
+            .padding(24)
+            .frame(maxWidth: 680, alignment: .leading)
+            .frame(maxWidth: .infinity)
+        }
+    }
+
+    /// Blocks split on blank lines, keeping ``` code blocks whole.
+    private var blocks: [String] {
+        var out: [String] = []
+        var code: String?
+        for part in content.components(separatedBy: "\n\n") {
+            if var c = code {
+                c += "\n\n" + part
+                if part.hasSuffix("```") { out.append(c); code = nil } else { code = c }
+            } else if part.hasPrefix("```"), !(part.count > 3 && part.hasSuffix("```")) {
+                code = part
+            } else {
+                out.append(part)
+            }
+        }
+        if let c = code { out.append(c) }
+        return out.map { $0.trimmingCharacters(in: .whitespacesAndNewlines) }.filter { !$0.isEmpty }
     }
 }

@@ -167,7 +167,7 @@ struct ReaderView: View {
                             Text("Transcript").font(.headline).padding(.top, 6)
                         }
                         ForEach(Array(paragraphs.enumerated()), id: \.offset) { _, p in
-                            Text(p).font(.body).lineSpacing(4)
+                            MarkdownBlock(block: p)
                         }
                         if let url = URL(string: item.url) {
                             Link(destination: url) { Label("Open the original", systemImage: "safari") }
@@ -229,3 +229,51 @@ struct YouTubePlayer: UIViewRepresentable {
         view.loadHTMLString("", baseURL: nil)
     }
 }
+
+/// One Markdown block from a feed or the library: a heading, a quote, a list,
+/// a code block or a paragraph with inline emphasis and links. Single line
+/// breaks inside a block stay.
+struct MarkdownBlock: View {
+    let block: String
+
+    var body: some View {
+        let b = block.trimmingCharacters(in: .whitespacesAndNewlines)
+        if b.hasPrefix("```") {
+            Text(b.replacingOccurrences(of: "```", with: "").trimmingCharacters(in: .newlines))
+                .font(.system(.footnote, design: .monospaced))
+                .padding(10)
+                .frame(maxWidth: .infinity, alignment: .leading)
+                .background(RoundedRectangle(cornerRadius: 8).fill(Color(.tertiarySystemFill)))
+        } else if let level = headingLevel(b) {
+            Text(inline(String(b.drop { $0 == "#" }).trimmingCharacters(in: .whitespaces)))
+                .font(level <= 2 ? .title3.weight(.semibold) : .headline)
+                .padding(.top, 6)
+        } else if b.hasPrefix(">") {
+            Text(inline(b.split(separator: "\n").map { $0.drop { $0 == ">" || $0 == " " } }.joined(separator: "\n")))
+                .italic().foregroundStyle(.secondary)
+                .padding(.leading, 12)
+                .overlay(alignment: .leading) { Rectangle().fill(.quaternary).frame(width: 3) }
+        } else if b.hasPrefix("- ") {
+            VStack(alignment: .leading, spacing: 4) {
+                ForEach(Array(b.split(separator: "\n").enumerated()), id: \.offset) { _, line in
+                    HStack(alignment: .top, spacing: 6) {
+                        Text("•").foregroundStyle(.secondary)
+                        Text(inline(String(line.drop { $0 == "-" || $0 == " " })))
+                    }
+                }
+            }
+        } else {
+            Text(inline(b)).font(.body).lineSpacing(4)
+        }
+    }
+
+    private func headingLevel(_ s: String) -> Int? {
+        let hashes = s.prefix { $0 == "#" }.count
+        return (1...4).contains(hashes) && s.dropFirst(hashes).hasPrefix(" ") ? hashes : nil
+    }
+
+    private func inline(_ s: String) -> AttributedString {
+        (try? AttributedString(markdown: s, options: .init(interpretedSyntax: .inlineOnlyPreservingWhitespace))) ?? AttributedString(s)
+    }
+}
+

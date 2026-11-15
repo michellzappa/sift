@@ -131,6 +131,14 @@ final class AppModel {
         loadSeen()
         if !Demo.isOn { Task { await migrateStarlingsDestinations() } }
         if state.today == nil { pruneOfferedFromArchive() }
+        // 1.2 keeps each item's full text. Feeds fetched before would answer
+        // 304 (unchanged) and never send it: fetch them all again once.
+        if !UserDefaults.standard.bool(forKey: "feeds.contentV1") {
+            for i in state.feeds.indices {
+                state.feeds[i].etag = nil; state.feeds[i].lastModified = nil; state.feeds[i].lastFetched = nil
+            }
+            UserDefaults.standard.set(true, forKey: "feeds.contentV1")
+        }
         reload()
         settleOnboardingForExistingInstall()
         // Demo mode has no background jobs and no Chrome.

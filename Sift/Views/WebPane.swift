@@ -187,7 +187,7 @@ private struct WebViewHost: NSViewRepresentable {
 
 /// One paragraph of captured Markdown: headings, quotes and list items get
 /// their own style; inline Markdown (links, emphasis) renders natively.
-private struct ReaderBlock: View {
+struct ReaderBlock: View {
     let block: String
 
     var body: some View {

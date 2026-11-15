@@ -9,6 +9,16 @@ ships this file and shows it in Settings > About and in Sift > Version
 History. Headings are `## X.Y.Z - YYYY-MM-DD`; groups are `### Added`,
 `### Changed` and `### Fixed`.
 
+## 1.2.0 - 2026-11-15
+
+### Added
+
+- **Full text from feeds, with its formatting.** When a feed carries the whole article, Sift keeps it as Markdown: paragraphs and line breaks, headings, bold and italic, links, lists, quotes and code. On the Mac, an item in Today or a feed list opens on that text, with a Text and Page switch above it. On the iPhone, tapping such a card opens the full text, and Open the original is at the end.
+
+### Fixed
+
+- Feed items were cut to their first 1,200 characters and lost their line breaks.
+
 ## 1.1.1 - 2026-11-15
 
 ### Changed

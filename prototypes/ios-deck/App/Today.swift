@@ -16,13 +16,15 @@ struct TodayPick: Codable, Hashable, Sendable, Identifiable {
     var image: String?
     var reason: String
     var wildcard: Bool?
+    /// The full text as Markdown, when the feed carries it.
+    var content: String?
 
     /// The card's Item: the reason line takes the theme's place.
     var item: Item {
         let vid = Self.youTubeID(url)
         return Item(id: url, url: url, title: title, theme: reason, kind: vid == nil ? "article" : "video",
                     site: feedTitle, author: nil, saved: nil, duration: nil, summary: summary, passage: "",
-                    transcript: "", text: "", image: image ?? vid.map { "https://i.ytimg.com/vi/\($0)/hqdefault.jpg" },
+                    transcript: "", text: content ?? "", image: image ?? vid.map { "https://i.ytimg.com/vi/\($0)/hqdefault.jpg" },
                     also: [], neighbours: [], imageFile: nil,
                     video: vid.map { Item.Video(provider: "youtube", id: $0) },
                     published: date.map { $0.formatted(.iso8601) }, words: nil, keyLines: nil)
@@ -108,7 +110,9 @@ struct TodayView: View {
     private func open(_ pick: TodayPick) {
         store.setSeen([pick.item], true, mode: "today")
         store.record(pick.item, .open, mode: "today", position: 0)
-        if pick.item.video != nil { reading = pick.item } else { browsing = pick.item }
+        // Video and items with the feed's full text open in the reader
+        // (player or text, then "Open the original"); the rest open the page.
+        if pick.item.video != nil || !(pick.content ?? "").isEmpty { reading = pick.item } else { browsing = pick.item }
     }
 
     private func keep(_ pick: TodayPick) {

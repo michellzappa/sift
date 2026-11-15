@@ -403,4 +403,15 @@ The one exception is anonymous diagnostics (owner, 2026-11-15, below).
   Archive, Transcripts, Duplicates, Broken Links, To Close), then Saved
   searches, Themes, Sent to, Sites. Each section folds (`sidebar.*` in
   AppStorage).
+- Feed full text (2026-11-15, owner: "showing all available text …
+  respecting linebreaks … formatting if we have MD"). `FeedEntry.content`
+  and `TodayPick.content`: the item as Markdown (`FeedParser.Text.markdown`,
+  regex HTML to Markdown: paragraphs, br, h1-h4 demoted one level, strong,
+  em, links, li, blockquote, code, pre), at most 60,000 characters, nil
+  when the feed has only a summary (under 280 characters). `summary` stays
+  short plain text from description/summary. Mac: `FeedReader` in the
+  Today/feed pane with a Text/Page switch (`ReaderBlock` is shared with the
+  web pane). Phone: `MarkdownBlock` in `ReaderView`; a tap on a card with
+  content opens the reader. A one-time reset (`feeds.contentV1`) clears
+  ETags so followed feeds send full items again.
 
