@@ -483,11 +483,12 @@ The one exception is anonymous diagnostics (owner, 2026-11-15, below).
   `feedItemCounts` (stored, refreshed by `refreshFeedCounts` on launch, after
   a check, follow and unfollow), folder total = sum. They count items held,
   not unread items.
-- Reader beside the list (2026-11-15, owner: "opening reader shud shrink
-  entries list, not overlay it … horizontally"). TabList and OfferedList put
-  the pane in `.safeAreaInset(edge: .trailing)` with
-  `containerRelativeFrame(.horizontal)` (`BrowserOverlay.width`), so the
-  list narrows; no overlay, no shadow.
+- Reader beside the list (2026-11-15, owner: "standard macos patterns").
+  TabList and OfferedList are an `HSplitView`: the list (min 320) and the
+  pane (min 380, ideal 560) on `textBackgroundColor`, a draggable divider.
+  No `safeAreaInset`, overlay or own Divider (the list's row separators
+  ran under the old pane). TodayRow shows the content's first paragraph
+  when the summary is under 12 characters ("…").
 - Unsorted in the Library box (2026-11-15, owner): `LibraryStatus` shows
   "N not in a theme" with a Sort menu button (primary: Sort into Themes;
   menu: Discover Themes Again). `UnsortedBanner` shows only before themes

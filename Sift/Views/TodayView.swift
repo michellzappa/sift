@@ -89,6 +89,9 @@ struct OfferedList<Header: View, Empty: View>: View {
     @FocusState private var focused: Bool
 
     var body: some View {
+        // A split view, as in Mail and NetNewsWire: the list, a divider you
+        // can drag, the reader on the content background.
+        HSplitView {
         VStack(spacing: 0) {
             header
             Divider()
@@ -98,9 +101,7 @@ struct OfferedList<Header: View, Empty: View>: View {
                 list
             }
         }
-        // The reader sits beside the list; the list gets narrower, nothing
-        // covers it.
-        .safeAreaInset(edge: .trailing, spacing: 0) {
+        .frame(minWidth: 320, maxWidth: .infinity)
             if showPane, let pick = picks.first(where: { $0.url == selected }) {
                         VStack(spacing: 0) {
                             HStack {
@@ -137,10 +138,8 @@ struct OfferedList<Header: View, Empty: View>: View {
                                 }
                             }
                         }
-                        .containerRelativeFrame(.horizontal) { width, _ in BrowserOverlay.width(for: width) }
-                        .background(.background)
-                        .overlay(alignment: .leading) { Divider() }
-                        .transition(.move(edge: .trailing))
+                        .frame(minWidth: 380, idealWidth: 560, maxWidth: .infinity)
+                        .background(Color(nsColor: .textBackgroundColor))
             }
         }
     }
@@ -234,6 +233,16 @@ private struct TodayRow: View {
     @Environment(AppModel.self) private var model
     let pick: TodayPick
 
+    /// The summary, or the article's first line when the feed's summary says
+    /// nothing ("…", empty).
+    private var lede: String? {
+        let summary = pick.summary.trimmingCharacters(in: .whitespacesAndNewlines)
+        if summary.count >= 12 { return summary }
+        guard let content = pick.content else { return summary }
+        let first = content.components(separatedBy: "\n\n").first { !$0.hasPrefix("#") && $0.count > 20 } ?? ""
+        return first.replacingOccurrences(of: #"[*_`>\[\]]|\(https?://[^)]+\)"#, with: "", options: .regularExpression)
+    }
+
     var body: some View {
         let seen = model.isSeen(pick.url)
         let kept = model.isKept(pick.url)
@@ -266,8 +275,8 @@ private struct TodayRow: View {
                 }
                 Text([pick.feedTitle, pick.date?.formatted(.relative(presentation: .named))].compactMap { $0 }.joined(separator: " · "))
                     .font(.caption).foregroundStyle(.secondary)
-                if !pick.summary.isEmpty {
-                    Text(pick.summary).font(.callout).foregroundStyle(.secondary).lineLimit(2)
+                if let line = lede, !line.isEmpty {
+                    Text(line).font(.callout).foregroundStyle(.secondary).lineLimit(2)
                 }
                 if !pick.reason.isEmpty {
                     Label {

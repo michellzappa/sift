@@ -81,6 +81,9 @@ struct TabList: View {
     }
 
     var body: some View {
+        // A split view, as in Mail: the list, a divider you can drag, the page
+        // on the content background.
+        HSplitView {
         VStack(spacing: 0) {
             if item == .closeQueue { closeHeader }
             if item == .duplicates { duplicatesHeader }
@@ -132,15 +135,11 @@ struct TabList: View {
         }
         .navigationTitle(title)
         .navigationSubtitle(subtitle)
-        // The page sits beside the list; the list gets narrower, nothing
-        // covers it.
-        .safeAreaInset(edge: .trailing, spacing: 0) {
+        .frame(minWidth: 320, maxWidth: .infinity)
             if showInspector, let tab = rows.first(where: { $0.id == selected }) {
-                WebPane(tab: tab) { withAnimation(.snappy) { showInspector = false } }
-                    .containerRelativeFrame(.horizontal) { width, _ in BrowserOverlay.width(for: width) }
-                    .background(.background)
-                    .overlay(alignment: .leading) { Divider() }
-                    .transition(.move(edge: .trailing))
+                WebPane(tab: tab) { showInspector = false }
+                    .frame(minWidth: 380, idealWidth: 560, maxWidth: .infinity)
+                    .background(Color(nsColor: .textBackgroundColor))
             }
         }
         .toolbar { listToolbar }

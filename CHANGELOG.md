@@ -9,6 +9,17 @@ ships this file and shows it in Settings > About and in Sift > Version
 History. Headings are `## X.Y.Z - YYYY-MM-DD`; groups are `### Added`,
 `### Changed` and `### Fixed`.
 
+## 1.4.1 - 2026-11-15
+
+### Changed
+
+- **The reader is a real split view, as in Mail.** The list, a divider you can drag, and the page on its own white (or dark) background. This is the same in Today, feeds and saved links.
+
+### Fixed
+
+- The thin line that ran across the reader is gone.
+- Items whose feed gives only "…" as a summary now show the article's first lines in the list.
+
 ## 1.4.0 - 2026-11-15
 
 ### Added
