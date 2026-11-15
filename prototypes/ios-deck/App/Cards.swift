@@ -7,6 +7,8 @@ struct ItemImage: View {
     @Environment(Store.self) private var store
     let item: Item
     var height: CGFloat
+    /// An image found on the phone (Open Graph), when the deck had none.
+    var fallback: String? = nil
 
     var body: some View {
         let tint = store.color(item.theme)
@@ -22,7 +24,7 @@ struct ItemImage: View {
     @ViewBuilder private func picture(_ tint: Color) -> some View {
         if let local = store.localImage(item), let image = UIImage(contentsOfFile: local.path(percentEncoded: false)) {
                 Image(uiImage: image).resizable().scaledToFill()
-            } else if let s = item.image, let url = URL(string: s) {
+            } else if let s = item.image ?? fallback, let url = URL(string: s) {
                 AsyncImage(url: url) { phase in
                     if let img = phase.image { img.resizable().scaledToFill() }
                 }
@@ -42,13 +44,15 @@ struct CardView: View {
     var compact = false
     /// Full-height page in the vertical deck: a taller picture.
     var tall = false
+    @State private var og: OpenGraph.Preview?
 
     var body: some View {
         let color = store.color(item.theme)
-        let picture = item.imageFile != nil || item.image != nil
+        let picture = item.imageFile != nil || item.image != nil || og?.image != nil
+        let summary = item.summary.isEmpty ? (og?.description ?? "") : item.summary
         VStack(alignment: .leading, spacing: 0) {
             if picture || item.video != nil {
-                ItemImage(item: item, height: compact ? 120 : (tall ? 330 : 210))
+                ItemImage(item: item, height: compact ? 120 : (tall ? 330 : 210), fallback: og?.image)
                     .overlay {
                         if item.video != nil {
                             Image(systemName: "play.circle.fill")
@@ -83,8 +87,8 @@ struct CardView: View {
                 Text([item.author, item.site, item.year].compactMap { $0?.isEmpty == false ? $0 : nil }.joined(separator: " · "))
                     .font(.caption).foregroundStyle(.secondary).lineLimit(1)
 
-                if !item.summary.isEmpty {
-                    Text(item.summary).font(.callout).lineLimit(compact ? 3 : (picture ? 4 : 6))
+                if !summary.isEmpty {
+                    Text(summary).font(.callout).lineLimit(compact ? 3 : (picture ? 4 : 6))
                 }
                 if !compact {
                     let lines = item.keyLines ?? []
@@ -114,6 +118,11 @@ struct CardView: View {
         .background(Color(.secondarySystemGroupedBackground))
         .clipShape(RoundedRectangle(cornerRadius: 22))
         .overlay(RoundedRectangle(cornerRadius: 22).strokeBorder(color.opacity(0.35), lineWidth: 1))
+        // No picture from the Mac: look for the page's own preview image.
+        .task(id: item.id) {
+            guard item.imageFile == nil, item.image == nil, item.video == nil else { return }
+            og = await OpenGraph.shared.preview(for: item.url)
+        }
     }
 }
 
