@@ -40,6 +40,8 @@ extension AppModel {
             feedProgress.done += 1
         }
         refreshFeedCounts()
+        refreshTodayText()
+        await fetchMissingIcons()
         // New items can only reach Today; they never enter sources or themes.
         // A forced check rebuilds Today so picks carry the newest text.
         if added > 0 || force { refreshToday(force: force) }
@@ -209,6 +211,18 @@ extension AppModel {
                                          ("github.com", "github"), ("arxiv.org", "arxiv"), ("hnrss.org", "hackernews"),
                                          ("ycombinator.com", "hackernews"), ("news.google.com", "news")]
         return rules.first { host.hasSuffix($0.0) }?.1
+    }
+
+    /// Site icons for feeds that have none yet; each feed is tried once.
+    func fetchMissingIcons() async {
+        var tried = Set(UserDefaults.standard.stringArray(forKey: "feedIconTried") ?? [])
+        var got = false
+        for feed in state.feeds where !tried.contains(feed.id) && FeedIcons.image(feed.id) == nil {
+            tried.insert(feed.id)
+            if await FeedIcons.fetch(feed) { got = true }
+        }
+        UserDefaults.standard.set(Array(tried), forKey: "feedIconTried")
+        if got { feedIconVersion += 1 }
     }
 
     /// Reads each feed's item count once, for the sidebar totals.

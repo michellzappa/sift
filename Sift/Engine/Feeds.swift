@@ -158,8 +158,11 @@ enum FeedParser {
             for level in 1...4 {
                 sub("<h\(level)[^>]*>([\\s\\S]*?)</h\(level)>", "\n\n" + String(repeating: "#", count: min(level + 1, 4)) + " $1\n\n")
             }
-            sub(#"<(strong|b)(?:\s[^>]*)?>([\s\S]*?)</\1>"#, "**$2**")
-            sub(#"<(em|i)(?:\s[^>]*)?>([\s\S]*?)</\1>"#, "*$2*")
+            // Spaces inside the tags go outside the markers: "<strong>1: </strong>"
+            // must become "**1:** ", because "**1: **" is not Markdown.
+            sub(#"<(strong|b)(?:\s[^>]*)?>(\s*)([\s\S]*?)(\s*)</\1>"#, "$2**$3**$4")
+            sub(#"<(em|i)(?:\s[^>]*)?>(\s*)([\s\S]*?)(\s*)</\1>"#, "$2*$3*$4")
+            s = s.replacingOccurrences(of: "****", with: "")
             sub(#"<code[^>]*>([\s\S]*?)</code>"#, "`$1`")
             sub(#"<a\s[^>]*href=["']([^"']+)["'][^>]*>([\s\S]*?)</a>"#, "[$2]($1)")
             sub(#"<li[^>]*>"#, "\n- ")
@@ -168,8 +171,12 @@ enum FeedParser {
             sub(#"<br\s*/?>"#, "\n")
             sub(#"</(p|div|ul|ol|section|article|figure|figcaption|table|tr)>"#, "\n\n")
             sub(#"<hr[^>]*>"#, "\n\n---\n\n")
-            // Remaining tags go; entities decode (PreviewFetcher.plain keeps newlines).
-            s = PreviewFetcher.plain(s)
+            // Remaining tags go and entities decode. PreviewFetcher.plain folds
+            // all whitespace into one space, so line breaks travel as a mark
+            // that has no other use and come back after.
+            let mark = "\u{1E}"
+            s = PreviewFetcher.plain(s.replacingOccurrences(of: "\n", with: " \(mark) "))
+            s = s.replacingOccurrences(of: " ?\(mark) ?", with: "\n", options: .regularExpression)
             // Tidy: spaces at line ends, three or more newlines.
             s = s.replacingOccurrences(of: #"[ \t]+\n"#, with: "\n", options: .regularExpression)
             s = s.replacingOccurrences(of: #"\n{3,}"#, with: "\n\n", options: .regularExpression)

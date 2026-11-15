@@ -9,6 +9,16 @@ ships this file and shows it in Settings > About and in Sift > Version
 History. Headings are `## X.Y.Z - YYYY-MM-DD`; groups are `### Added`,
 `### Changed` and `### Fixed`.
 
+## 1.3.6 - 2026-11-15
+
+### Added
+
+- **Site icons.** Each feed shows its site's icon beside it in the sidebar, and items without a picture show it in grey. Sift fetches the icon once from the site itself.
+
+### Fixed
+
+- Articles in the reader lost their paragraphs and line breaks, and bold text with a space inside (as Substack writes it) showed as **1: **. Sift fetches every feed once more so the text is right.
+
 ## 1.3.5 - 2026-11-15
 
 ### Changed

@@ -68,6 +68,23 @@ extension AppModel {
         return text
     }
 
+    /// After a feed check: today's picks take the newest text and title of
+    /// their items (a feed fixed a post, or Sift parses it better now).
+    func refreshTodayText() {
+        guard var picks = state.today?.picks else { return }
+        var changed = false
+        var cache: [String: [FeedEntry]] = [:]
+        for i in picks.indices {
+            let id = picks[i].feedID
+            if cache[id] == nil { cache[id] = FeedStore.entries(id) }
+            guard let e = cache[id]?.first(where: { $0.url == picks[i].url }) else { continue }
+            if let c = e.content, c != picks[i].content { picks[i].content = c; changed = true }
+        }
+        guard changed else { return }
+        state.today?.picks = picks
+        writeTodayForPhone()
+    }
+
     /// After a digest: fetch the full text of picks that have only a summary,
     /// one at a time, so the reader (and the phone) has the article.
     func fillTodayText() async {

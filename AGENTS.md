@@ -495,4 +495,12 @@ The one exception is anonymous diagnostics (owner, 2026-11-15, below).
   text, about 90 characters); a digest with URL titles rebuilds at once.
   `fullText` skips YouTube, bsky.app and Mastodon status URLs, and short
   summaries (under 280 characters, not ending in "…").
+- Reader text fixes and site icons (2026-11-15). `PreviewFetcher.plain`
+  folds all whitespace, so `FeedParser.Text.markdown` carries line breaks
+  through it as U+001E and restores them. Emphasis tags move inner spaces
+  outside the markers. `refreshTodayText` updates today's picks after each
+  check; reset key `feeds.contentV3`. `Feeds/FeedIcons.swift`: one try per
+  feed (`feedIconTried`), the site's apple-touch-icon.png else favicon.ico,
+  saved as PNG in feeds/icons; `FeedIconView` shows it desaturated (rows
+  without a picture, sidebar). No third-party icon service.
 

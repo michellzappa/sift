@@ -462,8 +462,12 @@ private struct Sidebar: View {
                 count(model.feedItemCounts[feed.id] ?? 0)
             }
         } icon: {
-            Image(systemName: FeedProviders.provider(id: feed.provider)?.symbol ?? "dot.radiowaves.up.forward")
-                .foregroundStyle(feed.lastError == nil ? Color.secondary : Color.orange)
+            if feed.lastError != nil {
+                Image(systemName: "exclamationmark.triangle").foregroundStyle(.orange)
+            } else {
+                FeedIconView(feedID: feed.id, symbol: FeedProviders.provider(id: feed.provider)?.symbol ?? "dot.radiowaves.up.forward")
+                    .id(model.feedIconVersion)
+            }
         }
         .tag(SidebarItem.feed(feed.id))
         .help(feed.lastError ?? feed.url)

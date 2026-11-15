@@ -117,6 +117,8 @@ final class AppModel {
     /// Items held per feed (feed id → count), for the sidebar totals.
     /// Refreshed after each check, follow and unfollow (`refreshFeedCounts`).
     var feedItemCounts: [String: Int] = [:]
+    /// Bumped when a feed icon arrives, so rows draw it.
+    var feedIconVersion = 0
     /// Opens the Add Feed sheet (toolbar, File menu, Settings).
     var showAddFeed = false
     /// Ask the main window to show a sidebar item (keyboard shortcuts, the
@@ -155,11 +157,11 @@ final class AppModel {
         refreshFeedCounts()
         // 1.2 keeps each item's full text. Feeds fetched before would answer
         // 304 (unchanged) and never send it: fetch them all again once.
-        if !UserDefaults.standard.bool(forKey: "feeds.contentV2") {
+        if !UserDefaults.standard.bool(forKey: "feeds.contentV3") {
             for i in state.feeds.indices {
                 state.feeds[i].etag = nil; state.feeds[i].lastModified = nil; state.feeds[i].lastFetched = nil
             }
-            UserDefaults.standard.set(true, forKey: "feeds.contentV2")
+            UserDefaults.standard.set(true, forKey: "feeds.contentV3")
         }
         reload()
         settleOnboardingForExistingInstall()

@@ -245,7 +245,8 @@ private struct TodayRow: View {
                         if let img = phase.image { img.resizable().scaledToFill() }
                     }
                 } else {
-                    Image(systemName: "dot.radiowaves.up.forward").foregroundStyle(.secondary)
+                    // No picture: the site's icon, in grey.
+                    FeedIconView(feedID: pick.feedID, size: 28).id(model.feedIconVersion)
                 }
             }
             .frame(width: 64, height: 64)
