@@ -147,6 +147,9 @@ struct ContentView: View {
                 if model.xConnected {
                     Text("X Bookmarks (\(model.xBookmarkIDs.count))").tag(AppModel.xBookmarksSourceID)
                 }
+                if !model.state.feeds.isEmpty {
+                    Text("Feeds (\(model.feedCount))").tag(FeedStore.sourceID)
+                }
                 if model.state.instagramExportPath != nil, model.instagramCount > 0 {
                     Text("Instagram Saved (\(model.instagramCount))").tag(InstagramReader.sourceID)
                 }
@@ -335,6 +338,7 @@ private struct Sidebar: View {
         if model.readingListCount > 0 { rows.append(.init(id: ReadingListReader.sourceID, name: "Reading List", symbol: "eyeglasses", count: model.readingListCount)) }
         if model.instagramCount > 0 { rows.append(.init(id: InstagramReader.sourceID, name: "Instagram Saved", symbol: "camera", count: model.instagramCount)) }
         if model.xConnected { rows.append(.init(id: AppModel.xBookmarksSourceID, name: "X Bookmarks", symbol: "bookmark", count: model.xBookmarkIDs.count)) }
+        if !model.state.feeds.isEmpty { rows.append(.init(id: FeedStore.sourceID, name: "Feeds", symbol: "dot.radiowaves.up.forward", count: model.feedCount)) }
         for i in model.state.importedSources {
             rows.append(.init(id: LinkImporter.sourcePrefix + i.id, name: i.name, symbol: "tray.and.arrow.down", count: model.importCounts[i.id] ?? 0))
         }

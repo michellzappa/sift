@@ -102,6 +102,8 @@ extension AppModel {
     func startLibraryJobs() {
         // Seen marks from the other devices come in with each round.
         loadSeen()
+        // Feeds not fetched in the last hour.
+        Task { await fetchFeeds() }
         checkDataProblems()
         // Demo mode: no capture, transcripts, images or summaries.
         guard !Demo.isOn else { return }

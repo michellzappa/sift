@@ -16,6 +16,8 @@ struct SiftState: Codable, Sendable {
     /// The Client ID of the user's own X app (not a secret). Empty: X API off.
     /// Link exports the user imported (Instapaper, Pocket, Pinboard, bookmarks).
     var importedSources: [LinkImporter.Source] = []
+    /// Followed RSS, Atom and JSON feeds (Engine/Feeds.swift).
+    var feeds: [Feed] = []
     /// Capture new links into the library in the background.
     var autoCapture = true
     /// Fetch YouTube transcripts with youtube-transcript-api when installed.
@@ -73,6 +75,7 @@ struct SiftState: Codable, Sendable {
         closeQueue = try c.decodeIfPresent([String].self, forKey: .closeQueue) ?? []
         exportTargets = try c.decodeIfPresent([String: String].self, forKey: .exportTargets) ?? [:]
         importedSources = try c.decodeIfPresent([LinkImporter.Source].self, forKey: .importedSources) ?? []
+        feeds = try c.decodeIfPresent([Feed].self, forKey: .feeds) ?? []
         autoCapture = try c.decodeIfPresent(Bool.self, forKey: .autoCapture) ?? true
         youtubeTranscripts = try c.decodeIfPresent(Bool.self, forKey: .youtubeTranscripts) ?? true
         instagramImages = try c.decodeIfPresent(Bool.self, forKey: .instagramImages) ?? true

@@ -323,4 +323,20 @@ The one exception is anonymous diagnostics (owner, 2026-11-15, below).
   search.sqlite or sift-mcp. The iOS prototype (`prototypes/ios-deck`) uses
   the same files: a card on screen for a second counts as seen when you
   swipe on.
+- Feeds (2026-11-15, owner: "feeds now, TikTok next"; feeds are a power-user
+  input, the mainstream input is what people save on Instagram, TikTok and
+  X). `Engine/Feeds.swift`: `Feed` (in `state.feeds`), `FeedEntry`,
+  `FeedStore` (items per feed in `Application Support/Sift/feeds/<id>.json`,
+  90 days, 150 per feed), `FeedParser` (RSS 2.0, RDF, Atom, JSON Feed, OPML
+  in and out; XMLParser, no dependencies), `FeedFetcher` (conditional GET
+  with ETag/Last-Modified, paced by `HostGate`, an hour's pause on 429/503;
+  `discover` reads `<link rel="alternate">`, then common paths).
+  `AppModel+Feeds.swift`: one source, `FeedStore.sourceID` ("feeds"); feed
+  text and images fill `previews`; `fetchFeeds` runs with the library jobs
+  for feeds older than an hour. Settings > Inputs > Feeds
+  (`Views/FeedSettings.swift`): Import OPML with folder and per-feed
+  checkboxes (all picked at first), Add Feed by address, Check Now, Export
+  OPML. Telemetry source kind `feed` (client, Worker whitelist, docs). Next
+  (planned): the daily digest and no-unread-pile expiry; Bluesky/Mastodon
+  issues; TikTok data export.
 

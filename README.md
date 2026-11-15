@@ -54,6 +54,11 @@ The source picker in the toolbar reads, all read-only:
 - **YouTube Watch Later and playlists**, from a Google Takeout export of
   "YouTube and YouTube Music" (the YouTube API cannot read Watch Later).
   Import the Takeout zip with File > Import Links File.
+- **Feeds**: blogs, newsletters and sites with RSS, Atom or JSON Feed. In
+  Settings > Inputs, Import OPML shows every feed in the file by folder;
+  follow all of them or tick a subset. Add Feed finds a site's feed from its
+  address. Sift checks each feed about once an hour and keeps 90 days of
+  items. Export OPML takes them to any other reader.
 - **All Sources**: everything above together, each link once, newest first,
   with a small icon for where it came from.
 

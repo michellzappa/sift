@@ -136,6 +136,8 @@ private struct InputSettings: View {
 
             ChromeSettings()
 
+            FeedSettings()
+
             Section {
                 StatusRow(icon: "camera", name: "Instagram Saved", status: model.instagramStatus,
                           warning: model.state.instagramExportPath != nil && model.instagramError != nil) {

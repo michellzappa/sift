@@ -5,7 +5,7 @@
 import { communityPage } from "./community_page.js";
 
 const ALLOWED_SOURCES = new Set([
-  "safari", "chrome", "reading-list", "instagram", "x", "import",
+  "safari", "chrome", "reading-list", "instagram", "x", "import", "feed",
 ]);
 const ALLOWED_DESTINATIONS = new Set([
   "starlings", "obsidian", "markdown", "reading-list",

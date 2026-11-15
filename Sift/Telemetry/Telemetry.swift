@@ -42,7 +42,7 @@ struct TelemetryBatch: Codable, Equatable, Sendable {
     let cohort: String
     let app: App
     /// Kinds of source with at least one link: safari, chrome, reading-list,
-    /// instagram, x, import.
+    /// instagram, x, import, feed.
     let sources: [String]
     /// Kinds of destination set up: starlings, obsidian, markdown, reading-list.
     let destinations: [String]
@@ -196,6 +196,7 @@ enum Telemetry {
         if id.hasPrefix("tabs") || id.hasPrefix("demo-") { return "safari" }
         if id.hasPrefix(ChromeReader.sourcePrefix) { return "chrome" }
         if id.hasPrefix(LinkImporter.sourcePrefix) { return "import" }
+        if id == FeedStore.sourceID { return "feed" }
         switch id {
         case ReadingListReader.sourceID: return "reading-list"
         case InstagramReader.sourceID: return "instagram"

@@ -18,6 +18,7 @@ struct SafariTab: Identifiable, Hashable, Sendable {
         case "reading-list": return "eyeglasses"
         case "instagram": return "camera"
         case "x": return "bookmark"
+        case "feeds": return "dot.radiowaves.up.forward"
         default: return "iphone"
         }
     }

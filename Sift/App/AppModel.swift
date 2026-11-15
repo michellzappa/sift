@@ -112,6 +112,10 @@ final class AppModel {
     // Export
     var exportMessage: String?
 
+    // MARK: Feeds (AppModel+Feeds.swift, Engine/Feeds.swift)
+    var isFetchingFeeds = false
+    var feedProgress: (done: Int, total: Int) = (0, 0)
+
     // MARK: Seen (AppModel+Seen.swift, Storage/Seen.swift)
     /// Newest seen or unseen mark per URL, from every device.
     var seenMarks: [String: SeenMark] = [:]
@@ -201,6 +205,7 @@ final class AppModel {
                 add(reading.map(\.tab), "reading-list")
                 add(instagram.map(\.tab), "instagram")
                 add(xBookmarkTabs(), "x")
+                add(feedTabs(), FeedStore.sourceID)
                 for source in state.importedSources {
                     let items = importedItems(source)
                     for item in items where previews[item.tab.url] == nil {
@@ -215,6 +220,8 @@ final class AppModel {
                 for item in items where previews[item.tab.url] == nil {
                     if let p = item.preview { previews[item.tab.url] = p }
                 }
+            } else if isFeeds {
+                tabs = feedTabs()
             } else if isXBookmarks {
                 tabs = xBookmarkTabs()
             } else if let profile = currentChrome {

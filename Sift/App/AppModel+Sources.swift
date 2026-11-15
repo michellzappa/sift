@@ -15,7 +15,7 @@ extension AppModel {
     var isAll: Bool { state.deviceID == Self.allSourcesID }
 
     /// Sources that are lists, not open tabs: nothing to close on a phone.
-    var isSavedList: Bool { isReadingList || isInstagram || isXBookmarks || currentImport != nil }
+    var isSavedList: Bool { isReadingList || isInstagram || isXBookmarks || isFeeds || currentImport != nil }
 
     /// A source's name for titles: "Safari · MZ Air", "Instagram Saved".
     func sourceTitle(_ id: String) -> String {
@@ -24,6 +24,7 @@ extension AppModel {
         if id == ReadingListReader.sourceID { return "Reading List" }
         if id == InstagramReader.sourceID { return "Instagram Saved" }
         if id == AppModel.xBookmarksSourceID { return "X Bookmarks" }
+        if id == FeedStore.sourceID { return "Feeds" }
         if let i = state.importedSources.first(where: { LinkImporter.sourcePrefix + $0.id == id }) { return i.name }
         return "Links"
     }

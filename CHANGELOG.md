@@ -9,6 +9,12 @@ ships this file and shows it in Settings > About and in Sift > Version
 History. Headings are `## X.Y.Z - YYYY-MM-DD`; groups are `### Added`,
 `### Changed` and `### Fixed`.
 
+## 0.7.0 - 2026-11-15
+
+### Added
+
+- **Feeds.** Follow blogs, newsletters and sites with RSS, Atom or JSON Feed. Settings > Inputs > Import OPML shows every feed in your file by folder: follow all of them, or tick the ones you want. Add Feed finds a site's feed from its address. Sift checks each feed about once an hour, one site at a time, and its items work like every other link: saved text, themes, seen and search. Export OPML takes your feeds to any other reader.
+
 ## 0.6.0 - 2026-11-15
 
 ### Added

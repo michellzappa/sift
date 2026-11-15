@@ -29,6 +29,7 @@ extension AppModel {
         run("sort", sortingOnDevice ? "Sorting on this Mac" : "Sorting with Claude", isSorting, sortProgress)
         run("discover", "Finding themes with Claude", isDiscovering, nil)
         run("connections", "Finding links that feed two themes", isConnecting, connectProgress)
+        run("feeds", "Checking feeds", isFetchingFeeds, feedProgress)
         run("capture", "Saving page text", isCapturing, captureProgress)
         run("youtube", "YouTube transcripts", isTranscribing, transcriptProgress)
         run("reels", "Reel transcripts", isTranscribingReels, reelProgress)
