@@ -9,6 +9,12 @@ ships this file and shows it in Settings > About and in Sift > Version
 History. Headings are `## X.Y.Z - YYYY-MM-DD`; groups are `### Added`,
 `### Changed` and `### Fixed`.
 
+## 1.5.9 - 2026-11-16
+
+### Added
+- Help > Sift Guide and Help > Claude Tools (sift-mcp) open the documentation.
+- The README covers everything that shipped: Today and its ranking, Follow, the reader, keyboard shortcuts and Go to, seen and unseen, the Sort menu and Merge Into, transcripts, Claude's tools, the iPhone app and updates. `docs/mcp.md` lists every tool Claude can call.
+
 ## 1.5.8 - 2026-11-16
 
 ### Added

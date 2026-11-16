@@ -1,8 +1,10 @@
 # Sift
 
 A native macOS app for everything you saved "for later": open tabs on all
-your devices, your Reading List, Instagram saves, X bookmarks and exports
-from read-later tools.
+your devices, your Reading List, Instagram saves, TikTok favourites, X
+bookmarks, YouTube Watch Later and exports from read-later tools. It is also
+a feed reader with a daily digest, Today, that ranks on your Mac and never
+builds an unread pile.
 
 Most of those links are not junk. Each one is a small promise to yourself:
 this could matter. The browser keeps the link and forgets the promise. Sift
@@ -16,8 +18,16 @@ curiosity, and Sift makes it legible.
 And it stays yours. Sift turns what you already save, on the platforms you
 already use, into a knowledge base on your own Mac: the full text of pages,
 video and reel transcripts, your notes and themes, in plain Markdown, JSON
-and SQLite. No account, and your library never goes to a Sift server. Your own Claude can search it
-through the built-in MCP server, and you can open every file without Sift.
+and SQLite. No account, and your library never goes to a Sift server. Your
+own Claude can search it and work on it through the built-in MCP server, and
+you can open every file without Sift.
+
+**Contents:** [Sources](#sources) · [Today and feeds](#today-and-feeds) ·
+[Themes](#themes) · [Graph](#graph) · [Lists and the reader](#lists-and-the-reader) ·
+[Keyboard](#keyboard) · [Send](#send) · [Library](#library) ·
+[Claude and sift-mcp](#claude-and-sift-mcp) · [iPhone](#iphone) ·
+[What Sift sends where](#what-sift-sends-where) · [Install](#install) ·
+[Settings](#settings) · [Architecture](#architecture) · [Limitations](#limitations)
 
 <picture>
   <source media="(prefers-color-scheme: dark)" srcset="docs/images/overview-dark.png">
@@ -46,6 +56,11 @@ The source picker in the toolbar reads, all read-only:
 - **Instagram Saved**, from Instagram's data export. In Instagram's Accounts
   Center, open Download your information and ask for JSON (HTML does not
   work), then choose the zip in Settings > Inputs.
+- **TikTok**, from TikTok's data export: your favourite videos, and your
+  liked videos if you turn that on. In TikTok, open Settings and privacy >
+  Account > Download your data and ask for JSON, then choose the zip in
+  Settings > Inputs. Sift reads each video's caption, author and cover from
+  its public page and does not sign in.
 - **X Bookmarks**, with the optional X API connection.
 - **Imported files**: File > Import Links File reads Instapaper and Pocket
   CSV, Readwise Reader and Raindrop CSV, Pinboard JSON, and the bookmarks
@@ -54,24 +69,61 @@ The source picker in the toolbar reads, all read-only:
 - **YouTube Watch Later and playlists**, from a Google Takeout export of
   "YouTube and YouTube Music" (the YouTube API cannot read Watch Later).
   Import the Takeout zip with File > Import Links File.
-- **Feeds**, in **Today**: blogs, newsletters and sites with RSS, Atom or
-  JSON Feed, and the open social web. **Follow** (the + in the toolbar, or
-  Shift-Command-N) takes anything: a site, a Substack, `r/subreddit`,
-  `@name.bsky.social`, `@user@mastodon.social`, `#tag@instance`, a YouTube
-  channel or playlist, `podcast: name`, `owner/repo` on GitHub, a Medium or
-  Tumblr address, `hn` or `hn: words`, `news: words`, `arxiv cs.AI`. Each
-  kind is a small provider plugin (CONTRIBUTING.md). feed:// links and
-  `sift://subscribe?url=` work too. In Settings > Inputs, Import OPML shows
-  every feed in the file by folder; follow all of them or tick a subset.
-  The sidebar lists your feeds and folders like a reader, without unread
-  counts. Feed items are offered, not saved: they show only
-  in Today, a digest of about ten at 07:00 and 17:00, ranked on your Mac by
-  freshness, the feeds you keep from, your themes and links several feeds
-  share. Keep one (S) and it moves into **Kept from Today** and your library.
-  The rest leave Today after three days, so no unread pile builds up. Export
-  OPML takes your feeds to any other reader.
-- **All Sources**: everything above together, each link once, newest first,
-  with a small icon for where it came from.
+- **Feeds** you follow. Their items are offered, not saved: they show in
+  Today and in the feed's own list, never in your themes. See
+  [Today and feeds](#today-and-feeds).
+- **Kept from Today**: feed items you chose to keep. These are saved like
+  any other source.
+- **All Sources**: every saved source together, each link once, newest
+  first, with a small icon for where it came from.
+
+### Today and feeds
+
+**Follow** (the + in the toolbar, Shift-Command-N, the A key or File >
+Follow…) takes almost anything: a site, a feed address, a Substack,
+`r/subreddit`, `@name.bsky.social`, `@user@mastodon.social`,
+`#tag@instance`, a YouTube channel or playlist, `podcast: name`,
+`owner/repo` on GitHub, a Medium or Tumblr address, `hn` or `hn: words`,
+`news: words`, `arxiv cs.AI`. It starts from an address on the clipboard,
+finds the feed while you type, and shows how often it posts and its newest
+titles before you follow. You can pick a folder and the feed's place in
+Today there. Drop a link or an OPML file on the sheet, or on the sidebar's
+Feeds section. "Follow <site>" is also in every link's context menu (F), and
+Sift suggests sites, subreddits and repositories you save often. feed://
+and `sift://subscribe?url=` links open in Sift. Each kind of input is a
+small provider plugin ([CONTRIBUTING.md](CONTRIBUTING.md)).
+
+In Settings > Inputs > Feeds, Import OPML shows every feed in the file by
+folder, so you can follow all of them or a subset. Export OPML takes your
+feeds to any other reader. The sidebar lists feeds and folders. Drag a feed
+onto a folder, or use Move to Folder in its context menu. Counts show items
+held. Sift shows no unread counts.
+
+**Today** is the digest. It updates after each feed check and keeps what is
+already there in place; new picks go on top. It takes items from the last
+three days and ranks them on your Mac. Today does not call Claude.
+
+- Items from Don't Miss feeds always show, for 14 days or until you see them.
+- A link that two or more of your feeds share is hot and goes first.
+- The rest are scored by freshness, how often the feed posts (a feed that
+  posts 50 times a day does not drown one that posts weekly), what you did
+  with the feed before (keeps, reads, time on the phone), and overlap with
+  your themes.
+- Each feed gets one or two places at most. One place goes to a feed Sift
+  knows little about yet, and one to a wildcard.
+
+Every pick has a line that says why it is there. Help > How Today Works
+(also the ? in Today's toolbar) shows these rules and each feed's standing:
+its priority, posts a day and what Sift learned. You can change a feed's
+priority there: Auto, Don't Miss, Normal, Best Only or Not in Today. Auto
+makes a feed that posts more than five times a day Best Only.
+
+An item opens as text first, like a reader app: the feed's full text, or
+the article that Sift fetches once and keeps. The Reader/Page switch shows
+the web page. Links inside open in Sift's own browser window, not in Safari,
+so they do not come back as tabs. **Keep** (S, the context menu or the
+button above the page) moves an item into Kept from Today and your library.
+What you do not keep leaves Today after three days.
 
 ### Themes
 
@@ -82,9 +134,19 @@ and a suggested home. You rename, untick or accept them; nothing changes
 before you do. Run it again later and Claude keeps the names that still fit,
 so links do not reshuffle. There is one set of themes for every source.
 
-New links that are in no theme yet show as a grey cluster, and a banner
-always offers the next step: **Discover Themes Again** to read everything
-together, or **Sort into Current Themes**, which is cheaper.
+New links that are in no theme yet show as a grey cluster. The box at the
+foot of the sidebar counts them and has a Sort menu:
+
+- **Sort into Themes** files new links into the themes you have. It is the
+  cheapest option.
+- **New Themes from Unsorted** sends only the unsorted links to Claude and
+  proposes themes for those that fit none of yours. Your themes stay as
+  they are, and links that fit one of them go there.
+- **Discover Themes Again** reads everything and rebuilds the whole set.
+
+To join two themes, use **Merge Into** in a theme's context menu or in
+Settings > Themes. Every link, hand moves included, and the theme's history
+move to the theme you keep.
 
 Tabs that are open for a task rather than out of curiosity (orders,
 accounts, carts, searches, dashboards, documents being edited) go to an
@@ -105,18 +167,50 @@ Click a theme and the camera glides onto it: its links appear as a list in a
 panel on the left, with the cluster still in view. Pinch or two-finger scroll
 to zoom the map. Esc or a click on empty space zooms back out.
 
-### List and the browser
+### Lists and the reader
 
-Links show as a list: thumbnail, title, source, date, what Sift saved and
-one line of preview, then the theme and a send button. Click a link and the page opens in a browser that slides in over the
-right side. ↑↓ move through the list; Space opens and closes the browser.
-The browser has back, forward, reload, Open in Safari, Send and, for pages
-in the library, a reader view of the saved text.
+Links show as rows: thumbnail, title, source, date, what Sift saved and one
+line of preview. Rows have no buttons. Send, Follow, Copy, Add Note and the
+rest are in the context menu and above the open page. Pick a row and the
+page opens in a pane beside the list. Drag the divider to set its width.
+Saved pages and transcripts open on the saved text, and a switch shows the
+live page. The pane has back, forward, reload, Open in Safari and Send.
+
+A link is **unseen** until you open it or mark it (M). Theme counts in the
+sidebar are unseen counts, and each list has Unseen Only and Mark All as
+Seen. Seen marks sync with the iPhone app through iCloud Drive, with one
+file per device, so there are no conflicts.
 
 <picture>
   <source media="(prefers-color-scheme: dark)" srcset="docs/images/list-dark.png">
   <img alt="A list of links: thumbnail, title, source, date, what Sift saved, a line of preview, the theme and the send button." src="docs/images/list-light.png">
 </picture>
+
+### Keyboard
+
+Single keys work in the main window when no text field has focus, in the
+style of Google Reader. Help > Keyboard Shortcuts (? or ⌘/) shows the list.
+
+| Keys | Action |
+| --- | --- |
+| J / K, N / P | Next and previous item |
+| O or Return | Open or close the page beside the list |
+| V | Open the original in Sift's browser window |
+| S | Keep (Today and feeds) |
+| M | Mark seen or unseen |
+| Shift-A | Mark every item in the list as seen |
+| C | Copy the link |
+| F | Follow the item's site |
+| E | Send to the theme's destination |
+| G then T, A, U, K, R, X, D | Go to Today, Overview, Unsorted, Kept, Archive, Transcripts, Duplicates |
+| Shift-J / Shift-K | Next and previous feed or theme in the sidebar |
+| R | Reload sources and check feeds |
+| / | Search |
+| A | Follow… |
+
+**Go to** (⌘K, or View > Go to…) is a command palette: every sidebar place,
+every Settings pane, actions, links by title, Today picks and full-text
+hits. Type an address or a handle to follow it.
 
 ### Send
 
@@ -129,9 +223,9 @@ A link stays in Sift until you send it where it will be used. Destinations:
 | Markdown file | Adds one line per link at the end of the file |
 | Reading List | Adds the link to Safari's Reading List |
 
-Sending is immediate. Each theme can name a default destination: then one
-click on the plane sends there, and the theme header can send all of its
-links at once. A sent Safari tab goes on the iPhone close list. The sidebar
+Sending is immediate. Each theme can name a default destination: then E,
+or Send in the context menu, sends there, and the theme header can send all
+of its links at once. A sent Safari tab goes on the iPhone close list. The sidebar
 lists what went to each destination. Connect Starlings in Settings > Outputs:
 Sift signs in like Claude Code (OAuth, no API key) and keeps the tokens in
 the keychain. Destinations are plugins: one file per kind in `Sift/Send/`.
@@ -149,7 +243,7 @@ Sift saves the readable text of every link into a library on your Mac: one
 Markdown file per link, with the URL, title, author, site, theme and date at
 the top, in `~/Library/Application Support/Sift/Library/`. Articles keep
 their headings, paragraphs and lists; PDFs keep their text; posts keep their
-text (Instagram posts their caption); YouTube videos keep their title,
+text (Instagram posts and TikTok videos their caption); YouTube videos keep their title,
 channel and full description, which usually includes the chapters. With the
 open-source `youtube-transcript-api` tool installed (Settings > Library >
 Install Transcript Tool, which needs Python 3), Sift also
@@ -158,6 +252,14 @@ captions in a way YouTube has not sanctioned, so it can stop working; Sift
 paces it and pauses for an hour when YouTube refuses. Errands are skipped. Capture runs on
 its own in the background, with a progress bar at the foot of the sidebar,
 and does not use Claude. When a tab closes, its text stays.
+
+Instagram reels and TikTok videos get their speech as text too: the optional
+open-source `yt-dlp` fetches the audio without a login or cookies, macOS
+speech recognition writes it down, and the audio is deleted. When YouTube
+refuses captions, Sift can do the same with a video's audio. The sidebar's
+Transcripts list shows every link with a transcript. When a site refuses
+requests, its job waits (one hour, doubling up to a day) and the sidebar
+footer says until when.
 
 ### X posts
 
@@ -223,6 +325,34 @@ The Export menu writes your themes and links out:
 Each exporter is one Swift file. Adding one is the easiest way to
 contribute; see [CONTRIBUTING.md](CONTRIBUTING.md).
 
+### Claude and sift-mcp
+
+Sift ships an MCP server, `sift-mcp`, so your own Claude can use your
+library. Settings > Intelligence > Add to Claude Code runs
+`claude mcp add --scope user sift -- /Applications/Sift.app/Contents/MacOS/sift-mcp`.
+
+- Claude can read: it searches titles, page text, transcripts and
+  summaries, lists themes and their links, and reads a link in full. Search
+  leaves out links you dropped as noise and errands, and ranks what you
+  kept, sent or noted first.
+- Claude can act: it merges and renames themes, files a link, adds a note,
+  sorts, proposes and applies new themes, follows and unfollows feeds, sets
+  a feed's place in Today, marks links seen, keeps and sends. `sift-mcp` never writes
+  Sift's files itself. It leaves a request that the running app carries
+  out, the same way a button does, and opens Sift in the background if it
+  is closed. Settings > Intelligence lists Claude's recent actions.
+
+[docs/mcp.md](docs/mcp.md) lists every tool and its arguments.
+
+### iPhone
+
+A prototype iPhone app, Sift Deck (`prototypes/ios-deck`), shares Sift's
+folder in iCloud Drive. It shows Today as cards (swipe moves on and marks
+seen, double-tap keeps, tap opens the reader), your library as a deck, and
+your feeds. Follows, keeps, seen marks and reading signals from the phone go
+back to the Mac through files in `iCloud Drive/Sift`; the Mac does all the
+fetching. It is not in the App Store. Build it from Xcode.
+
 ### What Sift sends where
 
 - **To Claude**, through your Claude Code login or your own API key: for
@@ -233,7 +363,8 @@ contribute; see [CONTRIBUTING.md](CONTRIBUTING.md).
   URL and preview for sorting, and saved page text for summaries. Nothing
   leaves the Mac.
 - **To each site**, once: a request for its page, for the preview and the
-  library. X posts go to X's oEmbed endpoint, and to its embed data or API
+  library. TikTok videos: their public page, and the audio through
+  `yt-dlp` if you installed it. X posts go to X's oEmbed endpoint, and to its embed data or API
   only if you turn those on.
 - **To Sift's diagnostics**, once a week: an anonymous report with the app
   and macOS version, which kinds of source and destination you use, which
@@ -266,7 +397,7 @@ Apple, and carry a build provenance attestation. To check that a download
 came from this repository's release workflow:
 
 ```sh
-gh attestation verify Sift-1.5.8.zip -R michellzappa/sift
+gh attestation verify Sift-1.5.9.zip -R michellzappa/sift
 ```
 
 Each release also has a `SHA256SUMS` file.
@@ -295,9 +426,9 @@ You need Xcode and `xcodegen`. Set your own `DEVELOPMENT_TEAM` in
 `project.yml` signs with an Apple Development identity, not ad hoc, because
 macOS ties the Full Disk Access grant to the code signature: an ad hoc build
 loses the grant on every rebuild. Set `SIGN_IDENTITY` to use another
-identity. The app icon comes from the `sift` glyph in HouseKit, the small
-package Sift shares with Tessellate, Cargo and Clip; without HouseKit next to
-this repo, the script uses the committed `AppIcon.icns`.
+identity. Sift uses HouseKit, a small package it shares with other apps, for
+the Settings shell and the changelog; Swift Package Manager fetches it. The
+app icon is Sift's own: `scripts/icon/make-icon.swift` writes it.
 
 ### Demo mode
 
@@ -331,9 +462,17 @@ It quits Sift, opens it in demo mode once per view and appearance, and
 writes `docs/images/<view>-light.png` and `<view>-dark.png` (overview,
 theme, list, settings-library, settings-outputs).
 
+### Updates
+
+Once a day Sift asks GitHub for the latest release. When there is a new
+one, "Update to X" shows in the toolbar and in Settings > General (also
+Sift > Check for Updates…). The update checks the download's checksum,
+Apple's notarization, the signature and the team before it replaces the
+app. Sift > Version History… shows the changelog.
+
 ### Releases
 
-Push a tag that matches `CFBundleShortVersionString`, for example `v1.5.8`.
+Push a tag that matches `CFBundleShortVersionString`, for example `v1.5.9`.
 The workflow in `.github/workflows/release.yml` builds a universal app,
 signs it with Developer ID, notarizes and staples it, attests its provenance,
 and publishes the ZIP and `SHA256SUMS`. It needs these repository secrets:
@@ -353,10 +492,14 @@ and publishes the ZIP and `SHA256SUMS`. It needs these repository secrets:
   <img alt="Settings, Outputs: destinations to send to, and the exporters." src="docs/images/settings-outputs-light.png" width="560">
 </picture>
 
+Settings has eight panes: General, Inputs, Library, Outputs, Intelligence,
+Themes, Telemetry and About.
+
 **Inputs** lists every source with its status and actions: Safari tabs
 (devices and tab counts, the tab database, Full Disk Access), the Reading
-List, the Instagram export, X (preview options and the optional X API
-connection with Sync Bookmarks) and imported link files.
+List, Chrome, the Instagram and TikTok exports, X (preview options and the
+optional X API connection with Sync Bookmarks), feeds (Follow, Import and
+Export OPML, Check Now) and imported link files.
 
 **Library** controls what Sift saves on this Mac. Each kind has its own
 switch and counts: page text (saved, thin and failed, with Retry Failed),
@@ -369,12 +512,6 @@ Library in Finder.
 
 **Search** works in every list: the filter field searches titles, saved
 page text and transcripts (SQLite full-text index on this Mac).
-
-**Claude can read your library.** Sift ships a small MCP server,
-`sift-mcp`. Settings > Intelligence > Add to Claude Code runs
-`claude mcp add --scope user sift -- /Applications/Sift.app/Contents/MacOS/sift-mcp`.
-Claude can then search your links, page text and transcripts, list your
-themes and read a link in full. It only reads Sift's index.
 
 **Upkeep.** Duplicates (the same page from two sources, or with tracking
 parameters) show under Duplicates, with Merge All. Pages that are gone
@@ -394,8 +531,10 @@ link to the other theme.
 iPhone close list and the Shortcut guide, and explains Add to Reading List
 (Safari asks once for Automation permission).
 
-**Claude** chooses Claude Code or an API key (`claude-opus-5-5` at low
-effort) and stores the key in the keychain.
+**Intelligence** chooses Claude Code or an API key (`claude-opus-5-5` at low
+effort) and stores the key in the keychain. It also adds `sift-mcp` to
+Claude Code, lists Claude's recent actions, and has the on-device model
+switches below.
 
 **On this Mac.** On macOS 26 or later with Apple Intelligence on, Apple's
 on-device model does part of Claude's work, for free and offline. When you
@@ -408,17 +547,27 @@ and wait while the Mac runs on battery. Settings > Intelligence > On this Mac ha
 switch for each feature, says whether the model is available, and counts the
 links each model sorted. On older Macs, Claude does all of it as before.
 
-**Themes** lists your themes. You can rename or delete one, add one by hand,
-or run Discover Themes again.
+**Themes** lists your themes. You can rename, merge or delete one, add one
+by hand, find new themes for unsorted links, or run Discover Themes again.
+
+**Telemetry** has the switch for the weekly anonymous report, shows the
+exact report, and, while it is on, the Community Pulse: what Sift users as a
+group use, in counts that hide anyone small.
 
 ## Architecture
 
-About 5,500 lines of SwiftUI. No dependencies.
+About 18,000 lines of Swift. The only package is HouseKit (Settings shell, changelog).
 
 | | |
 | --- | --- |
 | `Storage/CloudTabsReader` | Safari's synced tabs (`CloudTabs.db`, SQLite, read-only) |
-| `Storage/ReadingListReader`, `InstagramReader`, `LinkImporter` | The other sources |
+| `Storage/ReadingListReader`, `InstagramReader`, `TikTokReader`, `LinkImporter` | The other saved sources |
+| `Engine/Feeds`, `Feeds/*` | Feed parsing and fetching, one provider plugin per kind of input, full text, icons |
+| `Engine/Today`, `Feeds/Signals` | The Today ranking and what Sift learns from your reading |
+| `Engine/Transcripts`, `ReelTranscripts`, `TikTokDetails` | YouTube transcripts, reel and TikTok speech, TikTok captions |
+| `Engine/SearchIndex` | The SQLite full-text index that search and `sift-mcp` read |
+| `SiftMCP/`, `Shared/` | `sift-mcp` and the request files it shares with the app |
+| `Telemetry/` | The weekly anonymous report and the Community Pulse; `telemetry/` is its Worker |
 | `Storage/ChromeReader`, `ChromeHelper` | Chrome tabs from the extension, and the helper setup |
 | `SiftChrome/` | `sift-chrome`, Chrome's native messaging host (embedded in the app) |
 | `ChromeExtension/` | The Chrome extension (plain JavaScript, no build step) |
@@ -432,7 +581,8 @@ About 5,500 lines of SwiftUI. No dependencies.
 | `Sorting/Errands` | Rules for transactional tabs |
 | `X/*` | Optional X API: sign-in, client, cache and the native post view |
 | `Export/*` | The exporter protocol, the registry and one file per exporter |
-| `Views/*` | Sidebar, graph, list, browser pane, theme review, settings |
+| `App/*` | `AppModel` (split by area), keyboard map, command palette, updates |
+| `Views/*` | Sidebar, graph, lists, reader, Today, Follow sheet, settings |
 
 Swift has no official Anthropic SDK, so the API backend uses plain HTTP.
 
@@ -442,7 +592,10 @@ Swift has no official Anthropic SDK, so the API backend uses plain HTTP.
   iPhone Shortcut. Chrome tabs close directly.
 - Sift cannot remove items from the Reading List or from imported files.
 - Pages behind a login have no preview and only thin text in the library.
-- Instagram posts show the caption from your export, not the image.
+- TikTok exports have no captions, so a TikTok video shows only its link
+  until Sift reads its page.
+- Feeds and TikTok captions come from public pages: private or deleted
+  items stay as links.
 - One link belongs to one theme.
 
 ## License

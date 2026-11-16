@@ -48,6 +48,10 @@ struct SiftApp: App {
                 Button("Keyboard Shortcuts") { model.showShortcuts = true }
                     .keyboardShortcut("/", modifiers: .command)
                 Button("How Today Works") { model.showHowToday = true }
+                Divider()
+                Link("Sift Guide", destination: URL(string: "https://github.com/michellzappa/sift#readme")!)
+                Link("Claude Tools (sift-mcp)", destination: URL(string: "https://github.com/michellzappa/sift/blob/main/docs/mcp.md")!)
+                Divider()
                 SetupGuideCommand(model: model)
             }
         }
