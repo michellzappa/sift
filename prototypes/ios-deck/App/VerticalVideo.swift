@@ -84,7 +84,7 @@ struct VerticalVideoCard<Accessory: View>: View {
         ZStack {
             Color.black
             if playing {
-                VerticalPlayer(video: video, muted: muted)
+                VerticalPlayer(video: video, muted: muted, wide: wide)
                     .id(muted)
                     .aspectRatio(wide ? 16 / 9 : 9 / 16, contentMode: .fit)
             } else {
@@ -92,7 +92,8 @@ struct VerticalVideoCard<Accessory: View>: View {
             }
         }
         .overlay(alignment: .bottom) {
-            if !playing { caption }
+            // A wide video leaves room below the player: the title stays.
+            if !playing || wide { caption }
         }
         .overlay(alignment: .bottomLeading) {
             HStack(spacing: 8) {
@@ -225,13 +226,19 @@ private struct PosterImage: View {
 /// The inline player in a web view: plays inline, needs a tap in the player
 /// to start: it is made only after the tap on the poster, then plays at once
 /// (one tap), and unloads the page when it goes away, so
-/// the sound stops at once.
+/// the sound stops at once. A wide player goes full screen when the phone
+/// turns (`FullscreenPlayer`).
 struct VerticalPlayer: UIViewRepresentable {
     let video: VerticalVideo
     /// Autoplay: start without sound. The player's own button turns it on.
     var muted = false
+    /// A 16:9 video: turning the phone shows it full screen.
+    var wide = false
 
-    func makeUIView(context: Context) -> WKWebView {
+    final class Coordinator { var web: WKWebView? }
+    func makeCoordinator() -> Coordinator { Coordinator() }
+
+    func makeUIView(context: Context) -> UIView {
         let config = WKWebViewConfiguration()
         config.allowsInlineMediaPlayback = true
         // The player is made only after the user taps the poster, so it may
@@ -244,10 +251,10 @@ struct VerticalPlayer: UIViewRepresentable {
         web.backgroundColor = .black
         switch video {
         case .youTube(let id):
-            let src = "https://www.youtube-nocookie.com/embed/\(id)?playsinline=1&rel=0&loop=1&playlist=\(id)&autoplay=1" + (muted ? "&mute=1" : "")
+            let src = "https://www.youtube-nocookie.com/embed/\(id)?playsinline=1&rel=0&loop=1&playlist=\(id)&autoplay=1&enablejsapi=1" + (muted ? "&mute=1" : "")
             let html = """
             <html><head><meta name="viewport" content="width=device-width,initial-scale=1"><style>html,body{margin:0;background:#000}iframe{position:absolute;inset:0;width:100%;height:100%;border:0}</style></head>
-            <body><iframe src="\(src)" allow="encrypted-media; picture-in-picture" allowfullscreen></iframe></body></html>
+            <body><iframe src="\(src)" allow="autoplay; encrypted-media; picture-in-picture" allowfullscreen></iframe></body></html>
             """
             web.loadHTMLString(html, baseURL: URL(string: "https://www.youtube-nocookie.com"))
         case .instagram(let path, let id):
@@ -255,13 +262,112 @@ struct VerticalPlayer: UIViewRepresentable {
         case .tikTok(let id):
             if let url = URL(string: "https://www.tiktok.com/embed/v2/\(id)?autoplay=1") { web.load(URLRequest(url: url)) }
         }
-        return web
+        let home = UIView()
+        home.backgroundColor = .black
+        web.frame = home.bounds
+        web.autoresizingMask = [.flexibleWidth, .flexibleHeight]
+        home.addSubview(web)
+        context.coordinator.web = web
+        if wide { FullscreenPlayer.shared.attach(web, home: home) }
+        return home
     }
 
-    func updateUIView(_ view: WKWebView, context: Context) {}
+    func updateUIView(_ view: UIView, context: Context) {}
 
-    static func dismantleUIView(_ view: WKWebView, coordinator: ()) {
-        view.pauseAllMediaPlayback()
-        view.loadHTMLString("", baseURL: nil)
+    static func dismantleUIView(_ view: UIView, coordinator: Coordinator) {
+        guard let web = coordinator.web else { return }
+        FullscreenPlayer.shared.detach(web)
+        web.pauseAllMediaPlayback()
+        web.loadHTMLString("", baseURL: nil)
+    }
+}
+
+/// Turn the phone and the wide video on screen fills it (owner, 2026-11-16).
+/// The app stays portrait: the player's web view moves into the window,
+/// turned a quarter, so the list under it never lays out again and the
+/// card keeps its place. Turning back puts it in its card. Going full screen
+/// turns the sound on: turning the phone is the choice to watch.
+@MainActor final class FullscreenPlayer {
+    static let shared = FullscreenPlayer()
+    private weak var web: WKWebView?
+    private weak var home: UIView?
+    private var observer: NSObjectProtocol?
+    private var isOn = false
+
+    func attach(_ web: WKWebView, home: UIView) {
+        if let old = self.web, old !== web { leave(animated: false) }
+        self.web = web
+        self.home = home
+        if observer == nil {
+            UIDevice.current.beginGeneratingDeviceOrientationNotifications()
+            observer = NotificationCenter.default.addObserver(
+                forName: UIDevice.orientationDidChangeNotification, object: nil, queue: .main) { _ in
+                MainActor.assumeIsolated { FullscreenPlayer.shared.turned() }
+            }
+        }
+        // Already sideways when the player starts: wait for it to be in a window.
+        DispatchQueue.main.asyncAfter(deadline: .now() + 0.4) { self.turned() }
+    }
+
+    func detach(_ web: WKWebView) {
+        guard web === self.web else { return }
+        leave(animated: false)
+        web.removeFromSuperview()
+        self.web = nil
+        self.home = nil
+    }
+
+    private func turned() {
+        switch UIDevice.current.orientation {
+        case .landscapeLeft: enter(angle: .pi / 2)
+        case .landscapeRight: enter(angle: -.pi / 2)
+        case .portrait: leave(animated: true)
+        default: break
+        }
+    }
+
+    private func enter(angle: CGFloat) {
+        guard let web, let home, let window = home.window else { return }
+        if web.superview !== window {
+            let frame = home.convert(home.bounds, to: window)
+            web.removeFromSuperview()
+            web.autoresizingMask = []
+            web.transform = .identity
+            web.frame = frame
+            window.addSubview(web)
+        }
+        let b = window.bounds
+        UIView.animate(withDuration: 0.3) {
+            web.transform = CGAffineTransform(rotationAngle: angle)
+            web.bounds = CGRect(x: 0, y: 0, width: b.height, height: b.width)
+            web.center = CGPoint(x: b.midX, y: b.midY)
+        }
+        if !isOn {
+            isOn = true
+            // YouTube's iframe takes commands by postMessage (enablejsapi=1).
+            web.evaluateJavaScript("""
+            (function(){var f=document.querySelector('iframe');if(!f)return;
+            ['unMute','playVideo'].forEach(function(c){f.contentWindow.postMessage(JSON.stringify({event:'command',func:c,args:[]}),'*')});})()
+            """)
+        }
+    }
+
+    private func leave(animated: Bool) {
+        guard isOn, let web else { isOn = false; return }
+        isOn = false
+        guard let home, let window = web.superview else { return }
+        let target = home.convert(home.bounds, to: window)
+        let back = {
+            web.removeFromSuperview()
+            web.transform = .identity
+            web.frame = home.bounds
+            web.autoresizingMask = [.flexibleWidth, .flexibleHeight]
+            home.addSubview(web)
+        }
+        guard animated else { back(); return }
+        UIView.animate(withDuration: 0.3, animations: {
+            web.transform = .identity
+            web.frame = target
+        }, completion: { _ in back() })
     }
 }

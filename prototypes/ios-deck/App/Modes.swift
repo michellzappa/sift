@@ -50,6 +50,7 @@ struct ModeTab: View {
         switch (part, mode) {
         case (.today, .watch): TodayView(part: $part)
         case (.today, _): TodayListView(mode: mode, part: $part)
+        case (.library, .watch): LibraryWatchView(part: $part)
         case (.library, _): LibraryModeList(mode: mode, part: $part)
         }
     }

@@ -681,3 +681,12 @@ The one exception is anonymous diagnostics (owner, 2026-11-15, below).
   muted after 0.5 s (`mute=1`), stops when it leaves; a tap plays with sound
   and is the only "play" signal. TikTok and Instagram stay tap to play.
   Switch: UserDefaults `watch.autoplay` (Log), on by default.
+- Phone video, full screen and Library (2026-11-16, owner). Turning the
+  phone while a wide video plays moves its web view into the window, turned
+  a quarter (`FullscreenPlayer` in VerticalVideo.swift); the app stays
+  portrait, so the pager never lays out again; sound goes on (YouTube
+  postMessage, `enablejsapi=1`). A wide card keeps its title while playing.
+  Library in the Watch tab is a pager of player cards
+  (`App/LibraryWatch.swift`, `Item.playable`): Instagram and TikTok play on
+  a tap, YouTube muted on screen; playing or Text marks seen, scrolling
+  past does not.

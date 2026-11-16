@@ -46,7 +46,10 @@ Sift, Starlings or any server. Delete this folder once the answers are in.
   one in a 16:9 player) plays muted while its card is on screen; Log has
   the switch "Autoplay videos, muted". TikTok and Instagram wait for a tap. Swiping on
   unloads it. The Text pill opens the transcript or summary. In Today,
-  double-tap and the Keep pill still keep.
+  double-tap and the Keep pill still keep. Turn the phone while a wide video plays and
+  it fills the screen with sound; turn back and it returns to its card.
+  Library in the Watch tab shows your saved videos as the same player
+  cards (Instagram reels and TikTok on a tap).
 - **Signals:** what you do with Today picks goes to
   `iCloud Drive/Sift/signals/iphone-<id>.json` for the Mac's ranking:
   dwell (seconds on screen, 1.5 s or more), skip, open, keep, unseen and
