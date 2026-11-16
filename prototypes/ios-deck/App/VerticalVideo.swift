@@ -11,6 +11,20 @@ enum VerticalVideo: Hashable, Sendable {
     /// `path` is "reel" or "p", as in the item's URL.
     case instagram(path: String, id: String)
     case tikTok(String)
+    /// A Vimeo video (found in a page).
+    case vimeo(String)
+    /// A video file (og:video .mp4, .m3u8): played in a <video> element.
+    case file(String)
+    /// A player page made to be embedded (twitter:player, og:video as a page).
+    case embed(String)
+
+    /// Plays muted on its own: YouTube, Vimeo and files take a mute switch.
+    var autoplays: Bool {
+        switch self {
+        case .youTube, .vimeo, .file: true
+        default: false
+        }
+    }
 
     /// The vertical video in the item, if it is one. `vertical` is the Mac's
     /// flag on a Today pick (true for YouTube Shorts).
@@ -49,9 +63,11 @@ enum VerticalVideo: Hashable, Sendable {
 
     var label: String {
         switch self {
-        case .youTube: "Short"
+        case .youTube: "YouTube"
         case .instagram: "Instagram"
         case .tikTok: "TikTok"
+        case .vimeo: "Vimeo"
+        case .file, .embed: "Video"
         }
     }
 }
@@ -73,27 +89,52 @@ struct VerticalVideoCard<Accessory: View>: View {
     let text: () -> Void
     /// A 16:9 video (a normal YouTube video) in the same full card.
     var wide = false
-    /// Plays muted while the card is the current one (YouTube only).
+    /// Plays muted while the card is the current one (YouTube, Vimeo, files).
     var autoplay = false
+    /// Why it is here: Today's reason line, or the theme in the Library.
+    var reason: String? = nil
     @ViewBuilder var accessory: () -> Accessory
     @State private var playing = false
     /// True while the player was started by autoplay: it is muted.
     @State private var muted = false
 
     var body: some View {
-        ZStack {
-            Color.black
-            if playing {
-                VerticalPlayer(video: video, muted: muted, wide: wide)
-                    .id(muted)
-                    .aspectRatio(wide ? 16 / 9 : 9 / 16, contentMode: .fit)
+        Group {
+            if wide {
+                // A wide video sits at the top; what it is and why fills the
+                // space below (owner, 2026-11-16).
+                VStack(spacing: 0) {
+                    ZStack {
+                        Color.black
+                        if playing {
+                            VerticalPlayer(video: video, muted: muted, wide: true).id(muted)
+                        } else {
+                            poster
+                        }
+                    }
+                    .aspectRatio(16 / 9, contentMode: .fit)
+                    .clipped()
+                    details(summaryLines: 6)
+                        .padding(.horizontal, 16)
+                        .padding(.top, 14)
+                    Spacer(minLength: 56)
+                }
+                .background(Color.black)
             } else {
-                poster
+                ZStack {
+                    Color.black
+                    if playing {
+                        VerticalPlayer(video: video, muted: muted)
+                            .id(muted)
+                            .aspectRatio(9 / 16, contentMode: .fit)
+                    } else {
+                        poster
+                    }
+                }
+                .overlay(alignment: .bottom) {
+                    if !playing { caption }
+                }
             }
-        }
-        .overlay(alignment: .bottom) {
-            // A wide video leaves room below the player: the title stays.
-            if !playing || wide { caption }
         }
         .overlay(alignment: .bottomLeading) {
             HStack(spacing: 8) {
@@ -138,27 +179,63 @@ struct VerticalVideoCard<Accessory: View>: View {
                 .exclusively(before: TapGesture().onEnded { start() }))
     }
 
+    /// Over a vertical video's poster: what it is and why, on a gradient.
     private var caption: some View {
-        VStack(alignment: .leading, spacing: 4) {
-            HStack(spacing: 6) {
-                Image(systemName: "play.rectangle")
-                Text([video.label, item.site].filter { !$0.isEmpty }.joined(separator: " · ")).lineLimit(1)
-                if let t = item.length { Text("· \(t)") }
+        details(summaryLines: 2)
+            .padding(.horizontal, 16)
+            .padding(.top, 60)
+            // Room for the pills below the text.
+            .padding(.bottom, 56)
+            .background(LinearGradient(colors: [.clear, .black.opacity(0.85)], startPoint: .top, endPoint: .bottom))
+    }
+
+    /// Why it is here, the title, channel, age and length, then the summary
+    /// (or the start of the transcript).
+    private func details(summaryLines: Int) -> some View {
+        VStack(alignment: .leading, spacing: 6) {
+            if let reason, !reason.isEmpty {
+                Label(reason, systemImage: "sparkles")
+                    .font(.caption.weight(.semibold))
+                    .foregroundStyle(.yellow)
+                    .lineLimit(1)
             }
-            .font(.caption.weight(.semibold))
-            .foregroundStyle(.white.opacity(0.8))
             Text(item.title)
                 .font(.headline)
                 .foregroundStyle(.white)
                 .lineLimit(3)
+            Text(byline)
+                .font(.caption.weight(.semibold))
+                .foregroundStyle(.white.opacity(0.7))
+                .lineLimit(1)
+            if !blurb.isEmpty {
+                Text(blurb)
+                    .font(.subheadline)
+                    .foregroundStyle(.white.opacity(0.85))
+                    .lineLimit(summaryLines)
+            }
         }
         .frame(maxWidth: .infinity, alignment: .leading)
-        .padding(.horizontal, 16)
-        .padding(.top, 60)
-        // Room for the pills below the title.
-        .padding(.bottom, 56)
-        .background(LinearGradient(colors: [.clear, .black.opacity(0.85)], startPoint: .top, endPoint: .bottom))
         .allowsHitTesting(false)
+    }
+
+    /// "Channel · 2 days ago · 12 min".
+    private var byline: String {
+        let who = item.author.flatMap { $0.isEmpty ? nil : $0 } ?? (item.site.isEmpty ? video.label : item.site)
+        let when = (item.published ?? item.saved).flatMap(Self.date)?.formatted(.relative(presentation: .named))
+        return [who, when, item.length].compactMap { $0 }.joined(separator: " · ")
+    }
+
+    private var blurb: String {
+        let summary = item.summary.trimmingCharacters(in: .whitespacesAndNewlines)
+        return summary.isEmpty ? item.excerpt : summary
+    }
+
+    private static func date(_ s: String) -> Date? {
+        if let d = try? Date(s, strategy: .iso8601) { return d }
+        let f = DateFormatter()
+        f.locale = Locale(identifier: "en_US_POSIX")
+        f.dateFormat = "yyyy-MM-dd"
+        return f.date(from: String(s.prefix(10)))
     }
 
     private func start() {
@@ -171,7 +248,7 @@ struct VerticalVideoCard<Accessory: View>: View {
     /// Starts the player muted when the card settles on screen. A tap on the
     /// poster plays with sound; autoplay is not a "play" signal.
     private func autostart() {
-        guard autoplay, active, !playing, case .youTube = video,
+        guard autoplay, active, !playing, video.autoplays,
               UserDefaults.standard.object(forKey: "watch.autoplay") as? Bool ?? true else { return }
         Task { @MainActor in
             try? await Task.sleep(for: .milliseconds(500))
@@ -261,6 +338,22 @@ struct VerticalPlayer: UIViewRepresentable {
             if let url = URL(string: "https://www.instagram.com/\(path)/\(id)/embed/") { web.load(URLRequest(url: url)) }
         case .tikTok(let id):
             if let url = URL(string: "https://www.tiktok.com/embed/v2/\(id)?autoplay=1") { web.load(URLRequest(url: url)) }
+        case .vimeo(let id):
+            let src = "https://player.vimeo.com/video/\(id)?autoplay=1&playsinline=1" + (muted ? "&muted=1" : "")
+            let html = """
+            <html><head><meta name="viewport" content="width=device-width,initial-scale=1"><style>html,body{margin:0;background:#000}iframe{position:absolute;inset:0;width:100%;height:100%;border:0}</style></head>
+            <body><iframe src="\(src)" allow="autoplay; fullscreen; picture-in-picture" allowfullscreen></iframe></body></html>
+            """
+            web.loadHTMLString(html, baseURL: URL(string: "https://player.vimeo.com"))
+        case .file(let src):
+            let safe = src.replacingOccurrences(of: "\"", with: "%22").replacingOccurrences(of: "<", with: "%3C")
+            let html = """
+            <html><head><meta name="viewport" content="width=device-width,initial-scale=1"><style>html,body{margin:0;background:#000}video{position:absolute;inset:0;width:100%;height:100%}</style></head>
+            <body><video src="\(safe)" playsinline autoplay controls loop \(muted ? "muted" : "")></video></body></html>
+            """
+            web.loadHTMLString(html, baseURL: nil)
+        case .embed(let src):
+            if let url = URL(string: src) { web.load(URLRequest(url: url)) }
         }
         let home = UIView()
         home.backgroundColor = .black
@@ -347,7 +440,9 @@ struct VerticalPlayer: UIViewRepresentable {
             // YouTube's iframe takes commands by postMessage (enablejsapi=1).
             web.evaluateJavaScript("""
             (function(){var f=document.querySelector('iframe');if(!f)return;
-            ['unMute','playVideo'].forEach(function(c){f.contentWindow.postMessage(JSON.stringify({event:'command',func:c,args:[]}),'*')});})()
+            ['unMute','playVideo'].forEach(function(c){f.contentWindow.postMessage(JSON.stringify({event:'command',func:c,args:[]}),'*')});})();
+            (function(){var f=document.querySelector('iframe');if(f){f.contentWindow.postMessage(JSON.stringify({method:'setVolume',value:1}),'*');f.contentWindow.postMessage(JSON.stringify({method:'setMuted',value:false}),'*')}
+            var v=document.querySelector('video');if(v){v.muted=false;v.play()}})()
             """)
         }
     }

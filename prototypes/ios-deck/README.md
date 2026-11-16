@@ -49,7 +49,9 @@ Sift, Starlings or any server. Delete this folder once the answers are in.
   double-tap and the Keep pill still keep. Turn the phone while a wide video plays and
   it fills the screen with sound; turn back and it returns to its card.
   Library in the Watch tab shows your saved videos as the same player
-  cards (Instagram reels and TikTok on a tap).
+  cards (Instagram reels and TikTok on a tap). Each video card shows why it is
+  here, the channel, age and length, and the summary. A link to a page with
+  a video in it (a YouTube or Vimeo player, og:video) plays that video.
 - **Signals:** what you do with Today picks goes to
   `iCloud Drive/Sift/signals/iphone-<id>.json` for the Mac's ranking:
   dwell (seconds on screen, 1.5 s or more), skip, open, keep, unseen and

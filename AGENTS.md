@@ -690,3 +690,11 @@ The one exception is anonymous diagnostics (owner, 2026-11-15, below).
   (`App/LibraryWatch.swift`, `Item.playable`): Instagram and TikTok play on
   a tap, YouTube muted on screen; playing or Text marks seen, scrolling
   past does not.
+  Card context (owner): a wide video sits at the top of the card with why
+  (Today's reason, the Library theme), title, channel · age · length and
+  the summary (else the transcript start) below; vertical cards show the
+  same on the poster. `PlayableCard` (LibraryWatch.swift) is the one card
+  for Today and Library: a known video link, else `VideoFinder` reads the
+  page once (YouTube or Vimeo iframe, og:video, twitter:player, <video>;
+  cache Documents/videos.json, "" = none) and plays what it finds, else
+  the usual card. `VerticalVideo` has `vimeo`, `file` and `embed` cases.

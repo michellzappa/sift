@@ -244,20 +244,8 @@ private struct TodayCard: View {
     /// A vertical video gets the full-card player layout; the rest the
     /// usual card. Both keep the Keep pill and double-tap = keep.
     @ViewBuilder private var content: some View {
-        if let video = pick.verticalVideo {
-            VerticalVideoCard(item: pick.item, video: video, active: current, doubleTap: keep,
-                              played: { store.signal(.play, pick) }, text: open, autoplay: true) { keepPill }
-        } else if let id = TodayPick.youTubeID(pick.url) {
-            // A normal YouTube video: the same full card, 16:9 player.
-            VerticalVideoCard(item: pick.item, video: .youTube(id), active: current, doubleTap: keep,
-                              played: { store.signal(.play, pick) }, text: open, wide: true, autoplay: true) { keepPill }
-        } else {
-            CardView(item: pick.item, tall: true, lede: true)
-                .contentShape(Rectangle())
-                .onTapGesture(count: 2, perform: keep)
-                .onTapGesture(perform: open)
-                .overlay(alignment: .bottomTrailing) { keepPill.padding(12) }
-        }
+        PlayableCard(item: pick.item, vertical: pick.vertical, active: current, reason: pick.reason,
+                     doubleTap: keep, played: { store.signal(.play, pick) }, text: open) { keepPill }
     }
 
     private var keepPill: some View {
