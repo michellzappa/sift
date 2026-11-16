@@ -704,3 +704,7 @@ The one exception is anonymous diagnostics (owner, 2026-11-15, below).
   `playAddr`, and gives it with that page's cookies and referer to AVPlayer.
   Addresses expire: memory only. Nothing found: the embed after a tap, as
   before. They autoplay muted only when the file is found.
+  No player controls: a tap pauses or plays (`ClipPlayback`); the first
+  tap on a muted clip turns the sound on (the "play" signal). Embedded
+  players (`VerticalPlayer`) cancel link taps and new windows, so a video
+  never opens as a page.

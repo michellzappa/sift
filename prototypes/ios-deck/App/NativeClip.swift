@@ -98,42 +98,110 @@ import WebKit
     }
 }
 
-/// The system player for a clip: loops, its own full-screen button
-/// (turns with the phone), picture in picture.
-struct NativeClip: UIViewControllerRepresentable {
-    let clip: ClipResolver.Clip
-    let muted: Bool
+/// The clip's player: loops; a tap pauses or plays, like Instagram and
+/// TikTok (owner, 2026-11-16: "play/pause, never open it as url"). The
+/// first tap on a muted clip turns the sound on instead.
+@MainActor @Observable final class ClipPlayback {
+    let player = AVQueuePlayer()
+    private var looper: AVPlayerLooper?
+    var paused = false
+    var muted: Bool
 
-    final class Coordinator { var looper: AVPlayerLooper? }
-    func makeCoordinator() -> Coordinator { Coordinator() }
-
-    func makeUIViewController(context: Context) -> AVPlayerViewController {
+    init(clip: ClipResolver.Clip, muted: Bool) {
         let asset = AVURLAsset(url: clip.url, options: [
             AVURLAssetHTTPCookiesKey: clip.cookies,
             "AVURLAssetHTTPHeaderFieldsKey": ["Referer": clip.referer, "User-Agent": ClipResolver.agent],
         ])
-        let player = AVQueuePlayer()
-        context.coordinator.looper = AVPlayerLooper(player: player, templateItem: AVPlayerItem(asset: asset))
+        looper = AVPlayerLooper(player: player, templateItem: AVPlayerItem(asset: asset))
+        self.muted = muted
         player.isMuted = muted
-        if !muted {
-            try? AVAudioSession.sharedInstance().setCategory(.playback)
-            try? AVAudioSession.sharedInstance().setActive(true)
-        }
-        let controller = AVPlayerViewController()
-        controller.player = player
-        controller.videoGravity = .resizeAspect
-        controller.allowsPictureInPicturePlayback = true
-        controller.view.backgroundColor = .black
+        if !muted { Self.sound() }
         player.play()
-        return controller
     }
 
-    func updateUIViewController(_ controller: AVPlayerViewController, context: Context) {}
+    /// Returns true when the tap turned the sound on.
+    func tap() -> Bool {
+        if muted {
+            muted = false
+            player.isMuted = false
+            Self.sound()
+            if paused { paused = false; player.play() }
+            return true
+        }
+        paused.toggle()
+        if paused { player.pause() } else { player.play() }
+        return false
+    }
 
-    static func dismantleUIViewController(_ controller: AVPlayerViewController, coordinator: Coordinator) {
-        controller.player?.pause()
-        coordinator.looper?.disableLooping()
-        controller.player = nil
+    func stop() {
+        player.pause()
+        looper?.disableLooping()
+    }
+
+    private static func sound() {
+        try? AVAudioSession.sharedInstance().setCategory(.playback)
+        try? AVAudioSession.sharedInstance().setActive(true)
+    }
+}
+
+/// The video layer, no controls.
+private struct PlayerLayer: UIViewRepresentable {
+    let player: AVPlayer
+
+    final class LayerView: UIView {
+        override class var layerClass: AnyClass { AVPlayerLayer.self }
+        var playerLayer: AVPlayerLayer { layer as! AVPlayerLayer }
+    }
+
+    func makeUIView(context: Context) -> LayerView {
+        let view = LayerView()
+        view.backgroundColor = .black
+        view.playerLayer.videoGravity = .resizeAspect
+        view.playerLayer.player = player
+        return view
+    }
+
+    func updateUIView(_ view: LayerView, context: Context) {}
+}
+
+struct NativeClip: View {
+    let clip: ClipResolver.Clip
+    let muted: Bool
+    var unmuted: () -> Void = {}
+    @State private var playback: ClipPlayback?
+
+    var body: some View {
+        ZStack {
+            Color.black
+            if let playback {
+                PlayerLayer(player: playback.player)
+                if playback.paused {
+                    Image(systemName: "play.fill")
+                        .font(.system(size: 54))
+                        .foregroundStyle(.white.opacity(0.9))
+                        .shadow(radius: 8)
+                        .allowsHitTesting(false)
+                } else if playback.muted {
+                    Image(systemName: "speaker.slash.fill")
+                        .font(.caption.weight(.semibold))
+                        .padding(8)
+                        .background(.black.opacity(0.5), in: Circle())
+                        .foregroundStyle(.white)
+                        .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .topLeading)
+                        .padding(12)
+                        .allowsHitTesting(false)
+                }
+            }
+        }
+        .contentShape(Rectangle())
+        .onTapGesture {
+            if playback?.tap() == true { unmuted() }
+        }
+        .onAppear { if playback == nil { playback = ClipPlayback(clip: clip, muted: muted) } }
+        .onDisappear {
+            playback?.stop()
+            playback = nil
+        }
     }
 }
 
@@ -144,6 +212,8 @@ struct ClipPlayer: View {
     let video: VerticalVideo
     let muted: Bool
     var failed: () -> Void = {}
+    /// The sound went on by a tap: a "play" signal.
+    var unmuted: () -> Void = {}
     @State private var clip: ClipResolver.Clip?
     @State private var looked = false
 
@@ -151,7 +221,7 @@ struct ClipPlayer: View {
         ZStack {
             Color.black
             if let clip {
-                NativeClip(clip: clip, muted: muted)
+                NativeClip(clip: clip, muted: muted, unmuted: unmuted)
             } else if looked {
                 if !muted { VerticalPlayer(video: video, muted: false) }
             } else {

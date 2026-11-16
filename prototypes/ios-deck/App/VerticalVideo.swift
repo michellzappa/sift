@@ -133,7 +133,7 @@ struct VerticalVideoCard<Accessory: View>: View {
                 ZStack {
                     Color.black
                     if playing, video.native {
-                        ClipPlayer(video: video, muted: muted, failed: { playing = false })
+                        ClipPlayer(video: video, muted: muted, failed: { playing = false }, unmuted: played)
                             .id(muted)
                     } else if playing {
                         VerticalPlayer(video: video, muted: muted)
@@ -324,7 +324,20 @@ struct VerticalPlayer: UIViewRepresentable {
     /// A 16:9 video: turning the phone shows it full screen.
     var wide = false
 
-    final class Coordinator { var web: WKWebView? }
+    /// Keeps the player in its card: a link in an embed (the title, "View on
+    /// Instagram", the channel) never opens a page (owner, 2026-11-16).
+    final class Coordinator: NSObject, WKNavigationDelegate, WKUIDelegate {
+        var web: WKWebView?
+
+        func webView(_ webView: WKWebView, decidePolicyFor action: WKNavigationAction,
+                     decisionHandler: @escaping @MainActor @Sendable (WKNavigationActionPolicy) -> Void) {
+            decisionHandler(action.navigationType == .linkActivated ? .cancel : .allow)
+        }
+
+        /// target="_blank" links and window.open: no new window.
+        func webView(_ webView: WKWebView, createWebViewWith configuration: WKWebViewConfiguration,
+                     for action: WKNavigationAction, windowFeatures: WKWindowFeatures) -> WKWebView? { nil }
+    }
     func makeCoordinator() -> Coordinator { Coordinator() }
 
     func makeUIView(context: Context) -> UIView {
@@ -338,6 +351,9 @@ struct VerticalPlayer: UIViewRepresentable {
         web.scrollView.isScrollEnabled = false
         web.isOpaque = false
         web.backgroundColor = .black
+        web.navigationDelegate = context.coordinator
+        web.uiDelegate = context.coordinator
+        web.allowsLinkPreview = false
         switch video {
         case .youTube(let id):
             let src = "https://www.youtube-nocookie.com/embed/\(id)?playsinline=1&rel=0&loop=1&playlist=\(id)&autoplay=1&enablejsapi=1" + (muted ? "&mute=1" : "")
