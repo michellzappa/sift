@@ -9,6 +9,11 @@ ships this file and shows it in Settings > About and in Sift > Version
 History. Headings are `## X.Y.Z - YYYY-MM-DD`; groups are `### Added`,
 `### Changed` and `### Fixed`.
 
+## 1.6.0 - 2026-11-16
+
+### Changed
+- Help > Sift Guide and Help > Claude Tools open the documentation at michellzappa.com/apps/sift/docs.
+
 ## 1.5.9 - 2026-11-16
 
 ### Added
