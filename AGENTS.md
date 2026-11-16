@@ -649,4 +649,7 @@ The one exception is anonymous diagnostics (owner, 2026-11-15, below).
   list: `Views/ModePicker.swift` in the toolbar (principal), keys 0-3.
   Watch is the one place with cards (`WatchCard`, tall for Shorts, TikTok,
   reels); Scan rows have no picture or preview; Read rows show reading
-  time and 3 lines. Not yet: Today slots per mode, the phone's tabs.
+  time and 3 lines. Not yet: Today slots per mode. Phone (1.6.3): tabs
+  Scan, Watch, Read, Library, Lists (Log in Lists' toolbar); the Mac writes
+  `TodayPick.mode` into today.json only (`withModes`), the phone falls
+  back to its own rule for older files.

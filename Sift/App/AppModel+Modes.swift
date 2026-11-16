@@ -9,6 +9,7 @@ extension AppModel {
     func setMode(_ feed: Feed, _ mode: ReadingMode?) {
         guard let i = state.feeds.firstIndex(where: { $0.id == feed.id }) else { return }
         state.feeds[i].mode = mode?.rawValue
+        writeTodayForPhone()
     }
 
     /// What Auto picks for a feed: from its provider, else from most of its items.
@@ -46,5 +47,12 @@ extension AppModel {
     func inMode(_ tabs: [SafariTab]) -> [SafariTab] {
         guard let listMode else { return tabs }
         return tabs.filter { mode(of: $0) == listMode }
+    }
+
+    /// The picks with their mode filled in, for the phone's Scan, Watch and
+    /// Read tabs.
+    func withModes(_ picks: [TodayPick]) -> [TodayPick] {
+        let feeds = Dictionary(state.feeds.map { ($0.id, $0) }, uniquingKeysWith: { a, _ in a })
+        return picks.map { var p = $0; p.mode = mode(of: p, feeds: feeds).rawValue; return p }
     }
 }

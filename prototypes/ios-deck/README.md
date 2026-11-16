@@ -18,11 +18,18 @@ Sift, Starlings or any server. Delete this folder once the answers are in.
    gitignored.
 2. Open `SiftDeck.xcodeproj` after `xcodegen generate` in this folder, pick
    your iPhone, Run. The app opens on made-up sample data.
-3. In the app: Log > Import deck.json…, pick it from iCloud Drive/Sift.
-4. Use it for a few days. Log > Share log.jsonl sends the decisions back.
+3. In the app: Lists > Log (top right) > Import deck.json…, pick it from iCloud Drive/Sift.
+4. Use it for a few days. Lists > Log > Share log.jsonl sends the decisions back.
 
 ## What it has
 
+- **Scan, Watch, Read (tabs):** today's picks from the Mac, split by how
+  you take them in, the same modes as the Mac's switch. The Mac writes
+  each pick's `mode` into today.json. Scan is a list of headlines and
+  posts; Watch is the full-screen video cards; Read is long texts with the
+  reading time. Tap opens the reader and counts as seen, swipe right
+  keeps, swipe left switches seen. Library and Lists follow; Log is the
+  button at the top right of Lists.
 - **Deck:** seven cards across themes (or one theme from the top-right menu).
   Right keep, left let go, up send, down later (two per deck), tap to read.
   The end card counts what you did; another deck is a quiet button.

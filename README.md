@@ -373,9 +373,10 @@ library. Settings > Intelligence > Add to Claude Code runs
 ### iPhone
 
 A prototype iPhone app, Sift Deck (`prototypes/ios-deck`), shares Sift's
-folder in iCloud Drive. It shows Today as cards (swipe moves on and marks
-seen, double-tap keeps, tap opens the reader), your library as a deck, and
-your feeds. Follows, keeps, seen marks and reading signals from the phone go
+folder in iCloud Drive. It shows Today in three tabs: Scan (a list of
+headlines), Watch (full-screen video cards: swipe moves on and marks seen,
+double-tap keeps) and Read (long texts with the reading time). Tap opens
+the reader. It also shows your library as a deck, and your feeds. Follows, keeps, seen marks and reading signals from the phone go
 back to the Mac through files in `iCloud Drive/Sift`; the Mac does all the
 fetching. It is not in the App Store. Build it from Xcode.
 
@@ -423,7 +424,7 @@ Apple, and carry a build provenance attestation. To check that a download
 came from this repository's release workflow:
 
 ```sh
-gh attestation verify Sift-1.6.2.zip -R michellzappa/sift
+gh attestation verify Sift-1.6.3.zip -R michellzappa/sift
 ```
 
 Each release also has a `SHA256SUMS` file.
@@ -498,7 +499,7 @@ app. Sift > Version History… shows the changelog.
 
 ### Releases
 
-Push a tag that matches `CFBundleShortVersionString`, for example `v1.6.2`.
+Push a tag that matches `CFBundleShortVersionString`, for example `v1.6.3`.
 The workflow in `.github/workflows/release.yml` builds a universal app,
 signs it with Developer ID, notarizes and staples it, attests its provenance,
 and publishes the ZIP and `SHA256SUMS`. It needs these repository secrets:

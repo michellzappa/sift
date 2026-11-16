@@ -6,6 +6,7 @@ import SwiftUI
 struct ListsView: View {
     @Environment(Store.self) private var store
     @AppStorage("lists.unseenOnly") private var unseenOnly = false
+    @State private var showLog = false
 
     var body: some View {
         NavigationStack {
@@ -34,6 +35,12 @@ struct ListsView: View {
                 }
             }
             .navigationTitle("Lists")
+            .toolbar {
+                ToolbarItem(placement: .topBarTrailing) {
+                    Button { showLog = true } label: { Label("Log", systemImage: "list.bullet.rectangle") }
+                }
+            }
+            .sheet(isPresented: $showLog) { LogView() }
             .refreshable { store.sync() }
         }
     }

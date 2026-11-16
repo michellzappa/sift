@@ -22,6 +22,23 @@ struct TodayPick: Codable, Hashable, Sendable, Identifiable {
     var content: String?
     /// True for a vertical video (the Mac sets it for YouTube Shorts).
     var vertical: Bool?
+    /// "scan", "watch" or "read", from the Mac's classifier
+    /// (Sift/Engine/Modes.swift). Older files have none: see `readingMode`.
+    var mode: String?
+
+    /// The tab this pick shows in. Without a mode from the Mac: video is
+    /// Watch, about 600 words or more is Read, the rest Scan.
+    var readingMode: ReadingMode {
+        if let mode, let m = ReadingMode(rawValue: mode) { return m }
+        if vertical == true || verticalVideo != nil || Self.youTubeID(url) != nil { return .watch }
+        return (content?.split(whereSeparator: \.isWhitespace).count ?? 0) >= 600 ? .read : .scan
+    }
+
+    /// Minutes of reading at 220 words a minute, nil without text.
+    var minutes: Int? {
+        let words = content?.split(whereSeparator: \.isWhitespace).count ?? 0
+        return words > 0 ? max(1, Int((Double(words) / 220).rounded())) : nil
+    }
 
     /// The vertical video in this pick, if it is one.
     var verticalVideo: VerticalVideo? { VerticalVideo.detect(item, vertical: vertical) }
@@ -40,6 +57,21 @@ struct TodayPick: Codable, Hashable, Sendable, Identifiable {
     static func youTubeID(_ url: String) -> String? {
         guard let r = url.range(of: #"(?:v=|youtu\.be/|/shorts/)([\w-]{11})"#, options: .regularExpression) else { return nil }
         return String(url[r].suffix(11))
+    }
+}
+
+/// Scan (headlines and posts), Watch (video) or Read (long text): the
+/// phone's first three tabs, the same modes as the Mac's switch.
+enum ReadingMode: String, Codable, CaseIterable, Sendable, Identifiable {
+    case scan, watch, read
+    var id: String { rawValue }
+    var title: String { rawValue.capitalized }
+    var symbol: String {
+        switch self {
+        case .scan: "list.bullet"
+        case .watch: "play.rectangle"
+        case .read: "book"
+        }
     }
 }
 
@@ -80,7 +112,8 @@ struct TodayView: View {
     @State private var watching: (url: String, since: Date)?
     var goToLibrary: () -> Void
 
-    private var picks: [TodayPick] { store.today?.picks ?? [] }
+    /// Watch: the videos among today's picks, as full-screen cards.
+    private var picks: [TodayPick] { (store.today?.picks ?? []).filter { $0.readingMode == .watch } }
 
     var body: some View {
         NavigationStack {
@@ -108,15 +141,15 @@ struct TodayView: View {
                 .scrollIndicators(.hidden)
                 .overlay {
                     if picks.isEmpty {
-                        ContentUnavailableView("Nothing in Today yet", systemImage: "sun.max",
+                        ContentUnavailableView("Nothing to watch", systemImage: "play.rectangle",
                                                description: Text(store.connectedFolder == nil
-                                                                 ? "Connect the Sift folder in Log. Today comes from your Mac, at 07:00 and 17:00."
-                                                                 : "Follow feeds in Sift on your Mac: Settings > Inputs > Feeds."))
+                                                                 ? "Connect the Sift folder: Lists, then Log. Today comes from your Mac."
+                                                                 : "Videos from your feeds show here: YouTube channels and playlists, Shorts, TikTok."))
                     }
                 }
             }
             .background(Color(.systemGroupedBackground))
-            .navigationTitle("Today")
+            .navigationTitle("Watch")
             .navigationBarTitleDisplayMode(.inline)
             .refreshable { store.sync() }
             .sheet(item: $browsing) { InAppBrowser(url: URL(string: $0.url)!).ignoresSafeArea() }
@@ -260,5 +293,97 @@ private struct TodayEnd: View {
         }
         .padding(24)
         .frame(maxWidth: .infinity, maxHeight: .infinity)
+    }
+}
+
+/// Scan and Read: today's headlines or long texts as a list. Tap opens the
+/// reader and counts as seen; swipe right keeps, swipe left switches seen.
+struct TodayListView: View {
+    @Environment(Store.self) private var store
+    let mode: ReadingMode
+    @State private var reading: Item?
+
+    private var picks: [TodayPick] { (store.today?.picks ?? []).filter { $0.readingMode == mode } }
+
+    var body: some View {
+        NavigationStack {
+            List(picks) { pick in
+                Button { open(pick) } label: { row(pick) }
+                    .buttonStyle(.plain)
+                    .swipeActions(edge: .leading) {
+                        if !store.isKept(pick.url) {
+                            Button { store.keep(pick); store.signal(.keep, pick) } label: { Label("Keep", systemImage: "star") }
+                                .tint(.yellow)
+                        }
+                    }
+                    .swipeActions(edge: .trailing) {
+                        let seen = store.isSeen(pick.url)
+                        Button { store.setSeen([pick.item], !seen, mode: "today") } label: {
+                            Label(seen ? "Unseen" : "Seen", systemImage: seen ? "circle.fill" : "checkmark.circle")
+                        }
+                        .tint(.accentColor)
+                    }
+            }
+            .listStyle(.plain)
+            .overlay {
+                if picks.isEmpty {
+                    ContentUnavailableView(mode == .scan ? "No headlines" : "Nothing to read", systemImage: mode.symbol,
+                                           description: Text(store.connectedFolder == nil
+                                                             ? "Connect the Sift folder: Lists, then Log. Today comes from your Mac."
+                                                             : mode == .scan ? "Headlines and posts from your feeds show here: Hacker News, Reddit, Bluesky."
+                                                                             : "Articles of about 3 minutes or more from your feeds show here."))
+                }
+            }
+            .navigationTitle(mode.title)
+            .navigationBarTitleDisplayMode(.inline)
+            .refreshable { store.sync() }
+            .sheet(item: $reading) { ReaderView(item: $0) }
+        }
+    }
+
+    private func open(_ pick: TodayPick) {
+        store.setSeen([pick.item], true, mode: "today")
+        store.record(pick.item, .open, mode: "today", position: 0)
+        store.signal(.open, pick)
+        reading = pick.item
+    }
+
+    @ViewBuilder
+    private func row(_ pick: TodayPick) -> some View {
+        let seen = store.isSeen(pick.url)
+        let kept = store.isKept(pick.url)
+        HStack(alignment: .top, spacing: 12) {
+            VStack(alignment: .leading, spacing: 4) {
+                HStack(alignment: .firstTextBaseline, spacing: 6) {
+                    if kept {
+                        Image(systemName: "star.fill").foregroundStyle(.yellow).font(.caption)
+                    } else if !seen {
+                        Circle().fill(Color.accentColor).frame(width: 7, height: 7)
+                    }
+                    Text(pick.title)
+                        .font(mode == .read ? .headline : .body)
+                        .fontWeight(seen && !kept ? .regular : .semibold)
+                        .foregroundStyle(seen && !kept ? .secondary : .primary)
+                        .lineLimit(mode == .scan ? 3 : 2)
+                }
+                Text([pick.feedTitle, mode == .read ? pick.minutes.map { "\($0) min read" } : nil,
+                      pick.date?.formatted(.relative(presentation: .named))].compactMap { $0 }.joined(separator: " · "))
+                    .font(.caption).foregroundStyle(.secondary).lineLimit(1)
+                if mode == .read, !pick.summary.isEmpty {
+                    Text(pick.summary).font(.subheadline).foregroundStyle(.secondary).lineLimit(3)
+                }
+            }
+            Spacer(minLength: 0)
+            if mode == .read, let image = pick.image, let url = URL(string: image) {
+                AsyncImage(url: url) { phase in
+                    if let img = phase.image { img.resizable().scaledToFill() } else { Color.secondary.opacity(0.12) }
+                }
+                .frame(width: 72, height: 72)
+                .clipShape(RoundedRectangle(cornerRadius: 8))
+                .saturation(seen && !kept ? 0 : 1)
+            }
+        }
+        .padding(.vertical, mode == .scan ? 2 : 6)
+        .contentShape(Rectangle())
     }
 }

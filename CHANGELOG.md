@@ -9,6 +9,18 @@ ships this file and shows it in Settings > About and in Sift > Version
 History. Headings are `## X.Y.Z - YYYY-MM-DD`; groups are `### Added`,
 `### Changed` and `### Fixed`.
 
+## 1.6.3 - 2026-11-16
+
+### Added
+
+- The iPhone app has Scan, Watch and Read tabs for Today. Sift on the Mac
+  now writes each pick's mode into today.json, so both apps sort items the
+  same way. Log moved to the top right of Lists.
+
+### Changed
+
+- Setting a feed's Mode on the Mac updates the iPhone's tabs at once.
+
 ## 1.6.2 - 2026-11-16
 
 ### Added

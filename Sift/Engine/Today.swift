@@ -43,6 +43,10 @@ struct TodayPick: Codable, Hashable, Sendable, Identifiable {
     var vertical: Bool? = nil
     /// The same link is in two or more of your feeds right now.
     var hot: Bool? = nil
+    /// Scan, Watch or Read (`ReadingMode` raw value). Set only in the
+    /// phone's today.json (`writeTodayForPhone`), so both apps use one
+    /// classifier; nil in state.json.
+    var mode: String? = nil
 }
 
 struct TodayDigest: Codable, Hashable, Sendable {

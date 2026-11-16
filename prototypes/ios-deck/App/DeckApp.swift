@@ -7,7 +7,7 @@ import UniformTypeIdentifiers
 @main
 struct DeckApp: App {
     @State private var store = Store()
-    @State private var tab = "today"
+    @State private var tab = "scan"
     @Environment(\.scenePhase) private var phase
 
     var body: some Scene {
@@ -15,12 +15,17 @@ struct DeckApp: App {
             // Today: what your feeds offer, a digest that ends. Library: what
             // you saved, unseen first, as a deck or deeper by theme.
             TabView(selection: $tab) {
+                // Today's picks in three tabs, by how you take them in
+                // (owner, 2026-11-16): Scan, Watch, Read. Log sits in Lists.
+                TodayListView(mode: .scan)
+                    .tabItem { Label("Scan", systemImage: ReadingMode.scan.symbol) }.tag("scan")
                 TodayView(goToLibrary: { tab = "library" })
-                    .tabItem { Label("Today", systemImage: "sun.max") }.tag("today")
+                    .tabItem { Label("Watch", systemImage: ReadingMode.watch.symbol) }.tag("watch")
+                TodayListView(mode: .read)
+                    .tabItem { Label("Read", systemImage: ReadingMode.read.symbol) }.tag("read")
                 LibraryView()
                     .tabItem { Label("Library", systemImage: "books.vertical") }.tag("library")
                 ListsView().tabItem { Label("Lists", systemImage: "tray.full") }.tag("lists")
-                LogView().tabItem { Label("Log", systemImage: "list.bullet.rectangle") }.tag("log")
             }
             .environment(store)
             // Seen marks from the Mac, and a newer Deck, whenever the app comes back.

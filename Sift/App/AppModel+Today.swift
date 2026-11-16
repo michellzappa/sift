@@ -169,7 +169,7 @@ extension AppModel {
             var kept: [String]
         }
         let file = File(slot: digest.slot, next: TodayBuilder.nextSlot(), built: digest.built,
-                        picks: digest.picks, kept: state.kept.map(\.url))
+                        picks: withModes(digest.picks), kept: state.kept.map(\.url))
         let e = JSONEncoder(); e.dateEncodingStrategy = .iso8601; e.outputFormatting = [.sortedKeys]
         guard let data = try? e.encode(file) else { return }
         let dir = CloseList.folder.appending(path: "Deck", directoryHint: .isDirectory)
