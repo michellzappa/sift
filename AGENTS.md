@@ -568,6 +568,14 @@ The one exception is anonymous diagnostics (owner, 2026-11-15, below).
   player is made after the poster tap and plays at once (one tap). Library
   is one level (DeckView); StreamView stays in code, unused.
 
+- YouTube playlists as watch lists (2026-11-16, owner: Watch Later cannot
+  be shared). `Feeds/YouTubePlaylist.swift`: the playlist feed holds only
+  the first 15 videos in playlist order, so `FeedFetcher.fetch` (no
+  ETag for playlists) and `FeedProviders.fetch` add the videos on the
+  playlist page (`ytInitialData` `lockupViewModel`, first 100, consent
+  cookie, gate "youtube.com"). A playlist item's date is when Sift first
+  saw it; on the first read items keep the publish date and page-only
+  items have none, so the backlog stays out of Today.
 - Follow sheet (2026-11-15, owner: "top notch"). `Views/AddFeedSheet.swift`:
   finds while you type (700 ms pause, only input that looks complete),
   starts from an address or handle on the clipboard, takes a dropped link

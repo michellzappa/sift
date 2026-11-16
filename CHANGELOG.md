@@ -9,6 +9,15 @@ ships this file and shows it in Settings > About and in Sift > Version
 History. Headings are `## X.Y.Z - YYYY-MM-DD`; groups are `### Added`,
 `### Changed` and `### Fixed`.
 
+## 1.6.1 - 2026-11-16
+
+### Changed
+
+- A followed YouTube playlist now brings in its first 100 videos, not only
+  the 15 that YouTube's playlist feed holds. A video counts as new on the
+  day you add it to the playlist, so a public or unlisted playlist works as
+  a shared Watch Later list in Today.
+
 ## 1.6.0 - 2026-11-16
 
 ### Changed

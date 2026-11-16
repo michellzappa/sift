@@ -59,7 +59,7 @@ Any other MCP client works with the same command.
 | `sort_unsorted` | none | Long job. Files every unsorted link into the current themes with your own Claude. |
 | `propose_new_themes` | none | Long job. Proposes new themes for unsorted links that fit none of the current themes. Nothing changes yet; `job_status` returns the proposal and its id. |
 | `apply_theme_proposal` | `proposal`, `accept` (theme names, default all), `rename` ("Old => New") | Adds the accepted new themes and files their links. Current themes and hand moves stay. |
-| `follow` | `input`, `folder` (optional), `priority` (optional: `auto`, `must`, `normal`, `best`, `off`) | Follows anything the Follow sheet takes: a site, a feed address, `r/name`, `@name.bsky.social`, `@user@instance`, a YouTube channel, `podcast: name`, `news: words`. |
+| `follow` | `input`, `folder` (optional), `priority` (optional: `auto`, `must`, `normal`, `best`, `off`) | Follows anything the Follow sheet takes: a site, a feed address, `r/name`, `@name.bsky.social`, `@user@instance`, a YouTube channel or playlist, `podcast: name`, `news: words`. |
 | `unfollow` | `feed` (title, address or id) | Stops following a feed and removes its items. |
 | `set_feed_priority` | `feed`, `priority` | Sets the feed's place in Today: `auto`, `must` (Don't Miss), `normal`, `best` (Best Only) or `off` (Not in Today). |
 | `move_feed` | `feed`, `folder` (leave out for no folder) | Puts a feed in a folder. |

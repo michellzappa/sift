@@ -93,6 +93,14 @@ Sift suggests sites, subreddits and repositories you save often. feed://
 and `sift://subscribe?url=` links open in Sift. Each kind of input is a
 small provider plugin ([CONTRIBUTING.md](CONTRIBUTING.md)).
 
+**A playlist as a watch list.** YouTube's Watch Later list is private, so
+no app can follow it. Make a public or unlisted playlist instead, add
+videos to it from any device, and follow its link
+(`youtube.com/playlist?list=…`). Sift reads the first 100 videos, not only
+the 15 that YouTube's playlist feed holds, and counts a video as new on the
+day you add it, whatever its publish date. Set the feed to Don't Miss so
+each new video stays in Today until you see it.
+
 In Settings > Inputs > Feeds, Import OPML shows every feed in the file by
 folder, so you can follow all of them or a subset. Export OPML takes your
 feeds to any other reader. The sidebar lists feeds and folders. Drag a feed
@@ -397,7 +405,7 @@ Apple, and carry a build provenance attestation. To check that a download
 came from this repository's release workflow:
 
 ```sh
-gh attestation verify Sift-1.6.0.zip -R michellzappa/sift
+gh attestation verify Sift-1.6.1.zip -R michellzappa/sift
 ```
 
 Each release also has a `SHA256SUMS` file.
@@ -472,7 +480,7 @@ app. Sift > Version History… shows the changelog.
 
 ### Releases
 
-Push a tag that matches `CFBundleShortVersionString`, for example `v1.6.0`.
+Push a tag that matches `CFBundleShortVersionString`, for example `v1.6.1`.
 The workflow in `.github/workflows/release.yml` builds a universal app,
 signs it with Developer ID, notarizes and staples it, attests its provenance,
 and publishes the ZIP and `SHA256SUMS`. It needs these repository secrets:

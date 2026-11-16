@@ -95,7 +95,9 @@ enum FeedProviders {
         req.setValue("Sift (feed reader; +https://github.com/michellzappa/sift)", forHTTPHeaderField: "User-Agent")
         guard let (data, response) = try? await URLSession.shared.data(for: req),
               ((response as? HTTPURLResponse)?.statusCode ?? 0) < 400 else { return nil }
-        return FeedParser.parse(data, base: url)
+        guard let parsed = FeedParser.parse(data, base: url) else { return nil }
+        if let list = YouTubePlaylist.id(inFeed: url) { return await YouTubePlaylist.complete(parsed, list: list, stored: []) }
+        return parsed
     }
 }
 

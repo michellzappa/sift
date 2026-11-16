@@ -412,8 +412,11 @@ enum FeedFetcher {
         var req = URLRequest(url: url, timeoutInterval: 20)
         req.setValue("Sift (feed reader; +https://github.com/michellzappa/sift)", forHTTPHeaderField: "User-Agent")
         req.setValue("application/rss+xml, application/atom+xml, application/feed+json, application/xml;q=0.9, */*;q=0.5", forHTTPHeaderField: "Accept")
-        if let e = feed.etag { req.setValue(e, forHTTPHeaderField: "If-None-Match") }
-        if let m = feed.lastModified { req.setValue(m, forHTTPHeaderField: "If-Modified-Since") }
+        // A playlist can change past the feed's first 15 videos while the
+        // feed stays the same, so a playlist always takes a full read.
+        let list = YouTubePlaylist.id(inFeed: url)
+        if list == nil, let e = feed.etag { req.setValue(e, forHTTPHeaderField: "If-None-Match") }
+        if list == nil, let m = feed.lastModified { req.setValue(m, forHTTPHeaderField: "If-Modified-Since") }
         do {
             let (data, response) = try await URLSession.shared.data(for: req)
             let http = response as? HTTPURLResponse
@@ -425,7 +428,8 @@ enum FeedFetcher {
             case 200..<300: break
             case let code: return .failed("The feed answered \(code)")
             }
-            guard let parsed = FeedParser.parse(data, base: url) else { return .failed("Not an RSS, Atom or JSON feed") }
+            guard var parsed = FeedParser.parse(data, base: url) else { return .failed("Not an RSS, Atom or JSON feed") }
+            if let list { parsed = await YouTubePlaylist.complete(parsed, list: list, stored: FeedStore.entries(feed.id)) }
             return .items(parsed, etag: http?.value(forHTTPHeaderField: "ETag"), lastModified: http?.value(forHTTPHeaderField: "Last-Modified"))
         } catch {
             return .failed(error.localizedDescription)
