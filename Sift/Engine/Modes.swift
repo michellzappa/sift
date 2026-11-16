@@ -45,6 +45,18 @@ enum Modes {
     /// for them later (the article behind an HN link).
     static let headlineProviders: Set<String> = ["hackernews", "reddit", "news", "bluesky", "mastodon", "github", "arxiv"]
 
+    /// Feed providers whose items are long reads, even when the feed holds
+    /// only the opening of a paid post.
+    static let readProviders: Set<String> = ["substack", "medium"]
+
+    /// The mode a provider sets for every item that is not a video, if any.
+    static func providerMode(_ provider: String?) -> ReadingMode? {
+        guard let provider else { return nil }
+        if headlineProviders.contains(provider) { return .scan }
+        if readProviders.contains(provider) { return .read }
+        return nil
+    }
+
     /// Video pages: YouTube (watch, Shorts, youtu.be, live), TikTok,
     /// Instagram reels, Vimeo.
     static func isVideo(_ url: String) -> Bool {
@@ -89,10 +101,10 @@ enum Modes {
     static func minutes(_ words: Int) -> Int { max(1, Int((Double(words) / Double(wordsPerMinute)).rounded())) }
 
     /// The mode for one item. `words`: the text Sift has for it.
-    /// `headlines`: its feed gives headlines (HN, Reddit) unless set otherwise.
-    static func mode(url: String, words: Int, headlines: Bool = false) -> ReadingMode {
+    /// `provider`: the mode its feed's provider sets (HN: Scan, Substack: Read).
+    static func mode(url: String, words: Int, provider: ReadingMode? = nil) -> ReadingMode {
         if isVideo(url) { return .watch }
-        if headlines { return .scan }
+        if let provider { return provider }
         // A thread on X with a long saved text reads like an article.
         return words >= readWords ? .read : .scan
     }

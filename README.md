@@ -193,7 +193,8 @@ a folder, a source, a theme) shows one way of taking things in:
   TikTok, Instagram reels and Vimeo. Shorts, TikToks and reels are tall
   cards.
 - **Read** shows texts of about 3 minutes or more, with the reading time
-  and three lines of the summary.
+  and three lines of the summary. Every Substack and Medium post goes to
+  Read, even a paid post whose feed holds only the opening.
 
 All shows everything as before. The keys are 0 (All), 1, 2 and 3. Sift
 gives each item a mode from what it knows: the link, the length of the
@@ -424,7 +425,7 @@ Apple, and carry a build provenance attestation. To check that a download
 came from this repository's release workflow:
 
 ```sh
-gh attestation verify Sift-1.6.3.zip -R michellzappa/sift
+gh attestation verify Sift-1.6.4.zip -R michellzappa/sift
 ```
 
 Each release also has a `SHA256SUMS` file.
@@ -499,7 +500,7 @@ app. Sift > Version History… shows the changelog.
 
 ### Releases
 
-Push a tag that matches `CFBundleShortVersionString`, for example `v1.6.3`.
+Push a tag that matches `CFBundleShortVersionString`, for example `v1.6.4`.
 The workflow in `.github/workflows/release.yml` builds a universal app,
 signs it with Developer ID, notarizes and staples it, attests its provenance,
 and publishes the ZIP and `SHA256SUMS`. It needs these repository secrets:

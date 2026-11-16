@@ -14,7 +14,7 @@ extension AppModel {
 
     /// What Auto picks for a feed: from its provider, else from most of its items.
     func autoMode(of feed: Feed) -> ReadingMode {
-        if Modes.headlineProviders.contains(feed.provider ?? AppModel.providerID(forFeed: feed.url) ?? "") { return .scan }
+        if let set = Modes.providerMode(feed.provider ?? AppModel.providerID(forFeed: feed.url)) { return set }
         let entries = FeedStore.entries(feed.id).prefix(30)
         guard !entries.isEmpty else { return .scan }
         var counts: [ReadingMode: Int] = [:]
@@ -26,8 +26,8 @@ extension AppModel {
         let feed = feeds[pick.feedID]
         if let feed, let set = mode(of: feed) { return set }
         if pick.vertical == true { return .watch }
-        let headlines = feed.map { Modes.headlineProviders.contains($0.provider ?? AppModel.providerID(forFeed: $0.url) ?? "") } ?? false
-        return Modes.mode(url: pick.url, words: Modes.words(pick.content), headlines: headlines)
+        let byProvider = feed.flatMap { Modes.providerMode($0.provider ?? AppModel.providerID(forFeed: $0.url)) }
+        return Modes.mode(url: pick.url, words: Modes.words(pick.content), provider: byProvider)
     }
 
     func mode(of tab: SafariTab) -> ReadingMode {

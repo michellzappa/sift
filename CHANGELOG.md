@@ -9,6 +9,13 @@ ships this file and shows it in Settings > About and in Sift > Version
 History. Headings are `## X.Y.Z - YYYY-MM-DD`; groups are `### Added`,
 `### Changed` and `### Fixed`.
 
+## 1.6.4 - 2026-11-16
+
+### Changed
+
+- Substack and Medium posts go to Read, including paid posts whose feed
+  holds only the opening.
+
 ## 1.6.3 - 2026-11-16
 
 ### Added

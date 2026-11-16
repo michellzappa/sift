@@ -640,7 +640,8 @@ The one exception is anonymous diagnostics (owner, 2026-11-15, below).
   first and seen a little, and shows the marks; `get_link` shows them.
 - Scan, Watch, Read (2026-11-16, owner: "cards vs list"). `Engine/Modes.swift`
   (`ReadingMode`, `Modes.mode`: video URL = watch, headline providers
-  (HN, Reddit, News, Bluesky, Mastodon, GitHub, arXiv) = scan, 600+ words =
+  (HN, Reddit, News, Bluesky, Mastodon, GitHub, arXiv) = scan, Substack and
+  Medium = read (`Modes.providerMode`), 600+ words =
   read, else scan; posts on X are scan unless their saved text is long).
   `App/AppModel+Modes.swift`: `mode(of:)` for picks and tabs (library
   transcript or duration = watch), `inMode` filters, `Feed.mode` override
