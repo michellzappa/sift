@@ -9,6 +9,18 @@ ships this file and shows it in Settings > About and in Sift > Version
 History. Headings are `## X.Y.Z - YYYY-MM-DD`; groups are `### Added`,
 `### Changed` and `### Fixed`.
 
+## 1.6.2 - 2026-11-16
+
+### Added
+
+- Scan, Watch, Read: a switch at the top of every list. Scan shows
+  headlines and posts as short rows without pictures. Watch shows videos as
+  cards, with tall cards for Shorts, TikToks and reels. Read shows long
+  texts with their reading time. Keys 0 to 3. It works the same in Today,
+  feeds and your library.
+- Mode in a feed's context menu sets Scan, Watch or Read for all of the
+  feed's items.
+
 ## 1.6.1 - 2026-11-16
 
 ### Changed

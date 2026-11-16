@@ -509,6 +509,21 @@ private struct Sidebar: View {
                     }
                 }
             }
+            // Scan, Watch or Read for every item of this feed.
+            Menu("Mode") {
+                let set = model.mode(of: feed)
+                Button { model.setMode(feed, nil) } label: {
+                    Text("Auto (\(model.autoMode(of: feed).title))")
+                    if set == nil { Image(systemName: "checkmark") }
+                }
+                Divider()
+                ForEach(ReadingMode.allCases) { m in
+                    Button { model.setMode(feed, m) } label: {
+                        Text(m.title)
+                        if set == m { Image(systemName: "checkmark") }
+                    }
+                }
+            }
             Button(feed.enabled ? "Pause" : "Resume") { model.setFeed(feed, enabled: !feed.enabled) }
             Button("Copy Feed Address") { model.copy(feed.url) }
             Divider()

@@ -8,7 +8,7 @@ struct TodayView: View {
     @Environment(AppModel.self) private var model
 
     private var picks: [TodayPick] { model.todayPicks }
-    private var open: [TodayPick] { picks.filter { !model.isSeen($0.url) && !model.isKept($0.url) } }
+    private var open: [TodayPick] { model.inMode(picks).filter { !model.isSeen($0.url) && !model.isKept($0.url) } }
 
     var body: some View {
         OfferedList(picks: picks, header: EmptyView(), empty: ContentUnavailableView {
@@ -21,6 +21,7 @@ struct TodayView: View {
         .navigationTitle("Today")
         .navigationSubtitle(subtitle)
         .toolbar {
+            ToolbarItem(placement: .principal) { ModePicker() }
             ToolbarItem {
                 Button { model.refreshToday(force: true) } label: { Label("Rebuild Today", systemImage: "arrow.triangle.2.circlepath") }
                     .help("Build Today again from nothing. It also updates by itself when feeds bring new items.")
@@ -60,8 +61,9 @@ struct FeedItemsView: View {
         empty: ContentUnavailableView("Nothing here yet", systemImage: "dot.radiowaves.up.forward",
                                       description: Text(feeds.first?.lastError ?? "Sift checks feeds about once an hour.")))
         .navigationTitle(title)
-        .navigationSubtitle("\(picks.count) items")
+        .navigationSubtitle("\(model.inMode(picks).count) items")
         .toolbar {
+            ToolbarItem(placement: .principal) { ModePicker() }
             ToolbarItem {
                 Button { Task { await model.fetchFeeds(force: true) } } label: { Label("Check Now", systemImage: "arrow.clockwise") }
                     .disabled(model.isFetchingFeeds)
@@ -75,6 +77,9 @@ struct FeedItemsView: View {
 struct OfferedList<Header: View, Empty: View>: View {
     @Environment(AppModel.self) private var model
     let picks: [TodayPick]
+    /// The picks in the current mode (Scan, Watch, Read or All).
+    private var shown: [TodayPick] { model.inMode(picks) }
+    @State private var gridOwner = UUID()
     let header: Header
     let empty: Empty
     @State private var selected: String?
@@ -86,20 +91,27 @@ struct OfferedList<Header: View, Empty: View>: View {
     var body: some View {
         // A split view, as in Mail and NetNewsWire: the list, a divider you
         // can drag, the reader on the content background.
-        ReaderSplit(showing: showPane && picks.contains { $0.url == selected }) {
+        ReaderSplit(showing: showPane && shown.contains { $0.url == selected }) {
         VStack(spacing: 0) {
             if Header.self != EmptyView.self {
                 header
                 Divider()
             }
-            if picks.isEmpty {
-                empty
+            if shown.isEmpty {
+                if let mode = model.listMode, !picks.isEmpty {
+                    ContentUnavailableView(mode.empty, systemImage: mode.symbol,
+                                           description: Text("Switch to All, or to another mode, in the toolbar (0 to 3)."))
+                } else {
+                    empty
+                }
+            } else if model.listMode == .watch {
+                grid
             } else {
                 list
             }
         }
         } pane: {
-            if showPane, let pick = picks.first(where: { $0.url == selected }) {
+            if showPane, let pick = shown.first(where: { $0.url == selected }) {
                         VStack(spacing: 0) {
                             HStack {
                                 Text(pick.reason.isEmpty ? pick.feedTitle : pick.reason).font(.callout).foregroundStyle(.secondary).lineLimit(1)
@@ -141,12 +153,12 @@ struct OfferedList<Header: View, Empty: View>: View {
 
     /// Google Reader keys for offered items (KeyMap.swift); s keeps.
     private func handleKey(_ action: KeyAction, _ proxy: ScrollViewProxy) -> Bool {
-        let pick = picks.first { $0.url == selected }
+        let pick = shown.first { $0.url == selected }
         func move(_ by: Int) {
-            guard !picks.isEmpty else { return }
-            let i = picks.firstIndex { $0.url == selected }.map { min(max($0 + by, 0), picks.count - 1) } ?? 0
-            selected = picks[i].url
-            proxy.scrollTo(picks[i].url)
+            guard !shown.isEmpty else { return }
+            let i = shown.firstIndex { $0.url == selected }.map { min(max($0 + by, 0), shown.count - 1) } ?? 0
+            selected = shown[i].url
+            proxy.scrollTo(shown[i].url)
         }
         switch action {
         case .next: move(1)
@@ -164,8 +176,8 @@ struct OfferedList<Header: View, Empty: View>: View {
             guard let pick else { return false }
             model.setSeen([pick.url], !model.isSeen(pick.url))
         case .markAllSeen:
-            model.setSeen(picks.map(\.url), true)
-            model.note("Marked \(picks.count) as seen")
+            model.setSeen(shown.map(\.url), true)
+            model.note("Marked \(shown.count) as seen")
         case .copyLink:
             guard let pick else { return false }
             model.copy(pick.url)
@@ -179,26 +191,72 @@ struct OfferedList<Header: View, Empty: View>: View {
         return true
     }
 
+    @ViewBuilder
+    private func menu(_ pick: TodayPick) -> some View {
+        if model.isKept(pick.url) {
+            Button("Remove from Kept") { model.unkeep(pick.url) }
+        } else {
+            Button("Keep") { model.keep(pick) }
+        }
+        Button(model.isSeen(pick.url) ? "Mark as Unseen" : "Mark as Seen") {
+            model.setSeen([pick.url], !model.isSeen(pick.url))
+        }
+        Divider()
+        Button("Open in Safari") { TabActions.openInSafari(pick.url) }
+        Button("Copy Link") { model.copy(pick.url) }
+    }
+
+    /// Watch: videos as cards, tall ones at their own shape.
+    private var grid: some View {
+        ScrollViewReader { proxy in
+            ScrollView {
+                LazyVGrid(columns: [WatchCard.column], alignment: .leading, spacing: 22) {
+                    ForEach(shown) { pick in
+                        WatchCard(title: pick.title,
+                                  byline: [pick.feedTitle, pick.date?.formatted(.relative(presentation: .named))].compactMap { $0 }.joined(separator: " · "),
+                                  image: pick.image,
+                                  vertical: pick.vertical == true || Modes.isVertical(pick.url),
+                                  seconds: nil,
+                                  seen: model.isSeen(pick.url),
+                                  selected: selected == pick.url,
+                                  kept: model.isKept(pick.url))
+                            .id(pick.url)
+                            .onTapGesture { selected = pick.url }
+                            .contextMenu { menu(pick) }
+                    }
+                }
+                .padding(16)
+            }
+            .background(Color(nsColor: .textBackgroundColor))
+            .focusable()
+            .focusEffectDisabled()
+            .focused($focused)
+            .onChange(of: selected) { _, new in
+                guard new != nil else { return }
+                showPage = false
+                withAnimation(.snappy) { showPane = true }
+            }
+            .onKeyPress(.space) {
+                guard selected != nil else { return .ignored }
+                withAnimation(.snappy) { showPane.toggle() }
+                return .handled
+            }
+            .onAppear {
+                focused = true
+                KeyRouter.shared.register(gridOwner) { handleKey($0, proxy) }
+            }
+            .onDisappear { KeyRouter.shared.unregister(gridOwner) }
+        }
+    }
+
     private var list: some View {
         ScrollViewReader { proxy in
             List(selection: $selected) {
-                ForEach(picks) { pick in
-                    TodayRow(pick: pick)
+                ForEach(shown) { pick in
+                    TodayRow(pick: pick, mode: model.listMode)
                         .tag(pick.url)
                         .id(pick.url)
-                        .contextMenu {
-                            if model.isKept(pick.url) {
-                                Button("Remove from Kept") { model.unkeep(pick.url) }
-                            } else {
-                                Button("Keep") { model.keep(pick) }
-                            }
-                            Button(model.isSeen(pick.url) ? "Mark as Unseen" : "Mark as Seen") {
-                                model.setSeen([pick.url], !model.isSeen(pick.url))
-                            }
-                            Divider()
-                            Button("Open in Safari") { TabActions.openInSafari(pick.url) }
-                            Button("Copy Link") { model.copy(pick.url) }
-                        }
+                        .contextMenu { menu(pick) }
                 }
             }
             .listStyle(.inset)
@@ -227,6 +285,8 @@ struct OfferedList<Header: View, Empty: View>: View {
 private struct TodayRow: View {
     @Environment(AppModel.self) private var model
     let pick: TodayPick
+    /// Scan: no picture and no summary. Read: reading time and three lines.
+    var mode: ReadingMode? = nil
 
     /// The summary, or the article's first line when the feed's summary says
     /// nothing ("…", empty).
@@ -238,10 +298,18 @@ private struct TodayRow: View {
         return first.replacingOccurrences(of: #"[*_`>\[\]]|\(https?://[^)]+\)"#, with: "", options: .regularExpression)
     }
 
+    /// "8 min read" in Read, from the text Sift has.
+    private var readingTime: String? {
+        guard mode == .read else { return nil }
+        let words = Modes.words(pick.content)
+        return words > 0 ? "\(Modes.minutes(words)) min read" : nil
+    }
+
     var body: some View {
         let seen = model.isSeen(pick.url)
         let kept = model.isKept(pick.url)
         HStack(alignment: .top, spacing: 12) {
+            if mode != .scan {
             ZStack {
                 RoundedRectangle(cornerRadius: 8).fill(Color.secondary.opacity(0.12))
                 if let s = pick.image, let url = URL(string: s) {
@@ -257,6 +325,7 @@ private struct TodayRow: View {
             .saturation(seen && !kept ? 0 : 1)
             .frame(width: 64, height: 64)
             .clipShape(RoundedRectangle(cornerRadius: 8))
+            }
 
             VStack(alignment: .leading, spacing: 3) {
                 HStack(spacing: 6) {
@@ -270,10 +339,10 @@ private struct TodayRow: View {
                         .foregroundStyle(seen && !kept ? .secondary : .primary)
                         .lineLimit(2)
                 }
-                Text([pick.feedTitle, pick.date?.formatted(.relative(presentation: .named))].compactMap { $0 }.joined(separator: " · "))
+                Text([pick.feedTitle, pick.date?.formatted(.relative(presentation: .named)), readingTime].compactMap { $0 }.joined(separator: " · "))
                     .font(.caption).foregroundStyle(.secondary)
-                if let line = lede, !line.isEmpty {
-                    Text(line).font(.callout).foregroundStyle(.secondary).lineLimit(2)
+                if mode != .scan, let line = lede, !line.isEmpty {
+                    Text(line).font(.callout).foregroundStyle(.secondary).lineLimit(mode == .read ? 3 : 2)
                 }
                 if !pick.reason.isEmpty {
                     Label {
@@ -287,7 +356,7 @@ private struct TodayRow: View {
                 }
             }
         }
-        .padding(.vertical, 6)
+        .padding(.vertical, mode == .scan ? 2 : 6)
         .opacity(seen && !kept ? 0.7 : 1)
     }
 }

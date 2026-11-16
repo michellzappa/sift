@@ -638,3 +638,15 @@ The one exception is anonymous diagnostics (owner, 2026-11-15, below).
   through `SearchIndex.updateSignals`). sift-mcp `search` leaves out
   `drop` and `errands` unless `include_hidden`, ranks kept/sent/noted
   first and seen a little, and shows the marks; `get_link` shows them.
+- Scan, Watch, Read (2026-11-16, owner: "cards vs list"). `Engine/Modes.swift`
+  (`ReadingMode`, `Modes.mode`: video URL = watch, headline providers
+  (HN, Reddit, News, Bluesky, Mastodon, GitHub, arXiv) = scan, 600+ words =
+  read, else scan; posts on X are scan unless their saved text is long).
+  `App/AppModel+Modes.swift`: `mode(of:)` for picks and tabs (library
+  transcript or duration = watch), `inMode` filters, `Feed.mode` override
+  (sidebar feed menu Mode, Auto from provider or most items).
+  `AppModel.listMode` (UserDefaults `list.mode`) is one switch for every
+  list: `Views/ModePicker.swift` in the toolbar (principal), keys 0-3.
+  Watch is the one place with cards (`WatchCard`, tall for Shorts, TikTok,
+  reels); Scan rows have no picture or preview; Read rows show reading
+  time and 3 lines. Not yet: Today slots per mode, the phone's tabs.

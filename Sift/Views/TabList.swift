@@ -71,6 +71,7 @@ struct TabList: View {
     private var rows: [SafariTab] {
         var base = siteFilter.map { host in all.filter { $0.host == host } } ?? all
         if unseenOnly { base = base.filter { !model.isSeen($0.url) } }
+        base = model.inMode(base)
         guard !search.isEmpty else { return base }
         return base.filter {
             textHits[$0.url] != nil
@@ -93,9 +94,17 @@ struct TabList: View {
                         .frame(maxWidth: .infinity, alignment: .leading)
                         .padding([.horizontal, .top], 16)
                 }
-                LazyVStack(spacing: 2) {
-                    ForEach(rows) { tab in
-                        cell(tab).id(tab.id)
+                Group {
+                    if model.listMode == .watch {
+                        // Watch: videos as cards, tall ones at their own shape.
+                        LazyVGrid(columns: [WatchCard.column], alignment: .leading, spacing: 22) {
+                            ForEach(rows) { tab in cell(tab).id(tab.id) }
+                        }
+                        .padding(.horizontal, 6)
+                    } else {
+                        LazyVStack(spacing: 2) {
+                            ForEach(rows) { tab in cell(tab).id(tab.id) }
+                        }
                     }
                 }
                 .padding(.horizontal, 10)
@@ -119,7 +128,12 @@ struct TabList: View {
         }
         .overlay {
             if rows.isEmpty {
-                ContentUnavailableView(item == .unsorted ? "Nothing left to sort" : "No tabs here", systemImage: "checkmark.circle")
+                if let mode = model.listMode, !all.isEmpty {
+                    ContentUnavailableView(mode.empty, systemImage: mode.symbol,
+                                           description: Text("Switch to All, or to another mode, in the toolbar (0 to 3)."))
+                } else {
+                    ContentUnavailableView(item == .unsorted ? "Nothing left to sort" : "No tabs here", systemImage: "checkmark.circle")
+                }
             }
         }
         .searchable(text: $search, prompt: "Search titles, page text and transcripts")
@@ -148,6 +162,7 @@ struct TabList: View {
 
     @ToolbarContentBuilder
     private var listToolbar: some ToolbarContent {
+        ToolbarItem(placement: .principal) { ModePicker() }
         ToolbarItem {
             Button { model.saveSearch(search) } label: { Label("Save Search", systemImage: "bookmark") }
                 .disabled(search.count < 2 || model.state.savedSearches.contains(search))
@@ -231,7 +246,7 @@ struct TabList: View {
     @State private var scrolledTo: String?
 
     private func cell(_ tab: SafariTab) -> some View {
-        TabCard(tab: tab, isSelected: selected == tab.id, showTheme: project == nil || Project.buckets.contains(project ?? ""))
+        TabCard(tab: tab, isSelected: selected == tab.id, showTheme: project == nil || Project.buckets.contains(project ?? ""), style: model.listMode)
             .onTapGesture(count: 2) { TabActions.openInSafari(tab.url) }
             .onTapGesture { withAnimation(.snappy) { selected = tab.id; showInspector = true } }
     }
@@ -313,6 +328,9 @@ struct TabCard: View {
     let isSelected: Bool
     /// Off inside a theme's own list, where the theme would repeat on every card.
     var showTheme = true
+    /// Watch: a card. Scan: no picture and no preview text. Read: reading
+    /// time and the summary. Nil (All): the usual row.
+    var style: ReadingMode? = nil
     @State private var hovering = false
     @State private var editingNote = false
     @State private var noteDraft = ""
@@ -324,7 +342,17 @@ struct TabCard: View {
         let preview = model.previews[tab.url]
         let closing = model.isQueuedToClose(tab)
         Group {
-            row(a, preview, closing)
+            if style == .watch {
+                WatchCard(title: cardTitle(preview),
+                          byline: [tab.host, tab.lastViewed.map { $0.formatted(Self.dateFormat($0)) }].compactMap { $0 }.joined(separator: " · "),
+                          image: preview?.imageURL,
+                          vertical: Modes.isVertical(tab.url),
+                          seconds: model.library[tab.url]?.duration,
+                          seen: model.isSeen(tab.url),
+                          selected: isSelected)
+            } else {
+                row(a, preview, closing)
+            }
         }
         .contentShape(Rectangle())
         .task(id: tab.url) { await model.preview(for: tab) }
@@ -392,12 +420,14 @@ struct TabCard: View {
     /// row fits any width.
     private func row(_ a: Assignment?, _ preview: Preview?, _ closing: Bool) -> some View {
         HStack(spacing: 12) {
+            if style != .scan {
             thumbnail(preview)
                 // Unseen in colour, seen in grey, like read mail.
                 .saturation(model.isSeen(tab.url) ? 0 : 1)
                 .frame(width: 48, height: 48)
                 .clipShape(RoundedRectangle(cornerRadius: 8))
                 .overlay(RoundedRectangle(cornerRadius: 8).strokeBorder(Color.primary.opacity(0.06)))
+            }
             VStack(alignment: .leading, spacing: 3) {
                 // Unseen reads like unread mail: a dot and a heavier title.
                 let seen = model.isSeen(tab.url)
@@ -423,13 +453,20 @@ struct TabCard: View {
                     if let saved = savedSymbol {
                         Image(systemName: saved.symbol).help(saved.help)
                     }
-                    if let text = bodyText(preview) ?? xText(preview) {
+                    if style == .read, let words = model.library[tab.url]?.words, words > 0 {
+                        Text("·")
+                        Text("\(Modes.minutes(words)) min read").fixedSize()
+                    }
+                    if style != .scan, style != .read, let text = bodyText(preview) ?? xText(preview) {
                         Text("·")
                         Text(text).lineLimit(1).foregroundStyle(.tertiary)
                     }
                 }
                 .font(.caption)
                 .foregroundStyle(.secondary)
+                if style == .read, let text = readLede(preview) {
+                    Text(text).font(.callout).foregroundStyle(.secondary).lineLimit(3)
+                }
                 if let note = model.note(for: tab.url) {
                     Label(note, systemImage: "pencil.line").font(.caption).lineLimit(1).foregroundStyle(.primary.opacity(0.75))
                 }
@@ -461,6 +498,12 @@ struct TabCard: View {
                     in: RoundedRectangle(cornerRadius: 8))
         .opacity(closing ? 0.6 : 1)
         .onHover { hovering = $0 }
+    }
+
+    /// Read: the on-device summary, else the preview text.
+    private func readLede(_ p: Preview?) -> String? {
+        if let s = model.library[tab.url]?.summary, !s.isEmpty { return s }
+        return bodyText(p)
     }
 
     /// What Sift saved of this link, as one small symbol.

@@ -77,6 +77,8 @@ final class KeyRouter {
             model.showAddFeed = true
         case .help:
             model.showShortcuts.toggle()
+        case .mode(let mode):
+            model.listMode = mode
         default:
             return listHandler?(action) ?? false
         }

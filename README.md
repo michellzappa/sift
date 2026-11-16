@@ -184,6 +184,23 @@ page opens in a pane beside the list. Drag the divider to set its width.
 Saved pages and transcripts open on the saved text, and a switch shows the
 live page. The pane has back, forward, reload, Open in Safari and Send.
 
+**Scan, Watch, Read.** The switch at the top of every list (Today, a feed,
+a folder, a source, a theme) shows one way of taking things in:
+
+- **Scan** shows headlines and posts as short rows without pictures:
+  Hacker News, Reddit, X, Bluesky and Mastodon, and anything short.
+- **Watch** shows videos as cards with their length: YouTube, Shorts,
+  TikTok, Instagram reels and Vimeo. Shorts, TikToks and reels are tall
+  cards.
+- **Read** shows texts of about 3 minutes or more, with the reading time
+  and three lines of the summary.
+
+All shows everything as before. The keys are 0 (All), 1, 2 and 3. Sift
+gives each item a mode from what it knows: the link, the length of the
+saved text, and the feed. A feed's context menu has Mode, to set it for
+every item of that feed. A headline whose article you open shows in the
+reader, and once you keep it with its text, it counts as Read.
+
 A link is **unseen** until you open it or mark it (M). Theme counts in the
 sidebar are unseen counts, and each list has Unseen Only and Mark All as
 Seen. Seen marks sync with the iPhone app through iCloud Drive, with one
@@ -212,6 +229,7 @@ style of Google Reader. Help > Keyboard Shortcuts (? or ⌘/) shows the list.
 | E | Send to the theme's destination |
 | G then T, A, U, K, R, X, D | Go to Today, Overview, Unsorted, Kept, Archive, Transcripts, Duplicates |
 | Shift-J / Shift-K | Next and previous feed or theme in the sidebar |
+| 0, 1, 2, 3 | All, Scan, Watch, Read |
 | R | Reload sources and check feeds |
 | / | Search |
 | A | Follow… |
@@ -405,7 +423,7 @@ Apple, and carry a build provenance attestation. To check that a download
 came from this repository's release workflow:
 
 ```sh
-gh attestation verify Sift-1.6.1.zip -R michellzappa/sift
+gh attestation verify Sift-1.6.2.zip -R michellzappa/sift
 ```
 
 Each release also has a `SHA256SUMS` file.
@@ -480,7 +498,7 @@ app. Sift > Version History… shows the changelog.
 
 ### Releases
 
-Push a tag that matches `CFBundleShortVersionString`, for example `v1.6.1`.
+Push a tag that matches `CFBundleShortVersionString`, for example `v1.6.2`.
 The workflow in `.github/workflows/release.yml` builds a universal app,
 signs it with Developer ID, notarizes and staples it, attests its provenance,
 and publishes the ZIP and `SHA256SUMS`. It needs these repository secrets:

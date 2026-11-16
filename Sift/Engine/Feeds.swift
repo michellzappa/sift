@@ -21,6 +21,9 @@ struct Feed: Codable, Hashable, Sendable, Identifiable {
     var provider: String?
     /// How it takes part in Today (`FeedPriority` raw value); nil = Auto.
     var priority: String? = nil
+    /// Scan, Watch or Read for every item (`ReadingMode` raw value); nil =
+    /// Auto: videos Watch, headline feeds (HN, Reddit) Scan, long text Read.
+    var mode: String? = nil
     var enabled = true
     var added: Date
     var lastFetched: Date?

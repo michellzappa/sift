@@ -131,6 +131,11 @@ final class AppModel {
     var feedIconVersion = 0
     /// Opens the Add Feed sheet (toolbar, File menu, Settings).
     var showAddFeed = false
+    /// The Scan / Watch / Read switch over every list (nil = All). One
+    /// setting for Today, feeds and the library, kept across launches.
+    var listMode: ReadingMode? = ReadingMode(rawValue: UserDefaults.standard.string(forKey: "list.mode") ?? "") {
+        didSet { UserDefaults.standard.set(listMode?.rawValue ?? "", forKey: "list.mode") }
+    }
     /// Ask the main window to show a sidebar item (keyboard shortcuts, the
     /// command palette). ContentView applies it and sets it back to nil.
     var navigationRequest: SidebarItem?

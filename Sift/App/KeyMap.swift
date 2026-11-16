@@ -9,6 +9,8 @@ enum KeyAction: Hashable, Sendable {
     case next, previous, open, original, keep, toggleSeen, markAllSeen, copyLink, follow, send
     // Anywhere in the main window
     case go(SidebarItem), nextSource, previousSource, refresh, search, followSheet, help
+    /// Scan, Watch, Read; nil = All.
+    case mode(ReadingMode?)
 }
 
 struct KeyBinding: Identifiable, Sendable {
@@ -47,6 +49,11 @@ enum KeyMap {
         .init(keys: "g d", action: .go(.duplicates), title: "Go to Duplicates", group: "Go"),
         .init(keys: "J", action: .nextSource, title: "Next feed or theme in the sidebar", group: "Go"),
         .init(keys: "K", action: .previousSource, title: "Previous feed or theme in the sidebar", group: "Go"),
+        // Modes
+        .init(keys: "0", action: .mode(nil), title: "All items", group: "Mode"),
+        .init(keys: "1", action: .mode(.scan), title: "Scan: headlines and posts", group: "Mode"),
+        .init(keys: "2", action: .mode(.watch), title: "Watch: videos as cards", group: "Mode"),
+        .init(keys: "3", action: .mode(.read), title: "Read: long texts", group: "Mode"),
         // The app
         .init(keys: "r", action: .refresh, title: "Refresh: reload sources and check feeds", group: "App"),
         .init(keys: "/", action: .search, title: "Search", group: "App"),
@@ -54,7 +61,7 @@ enum KeyMap {
         .init(keys: "?", action: .help, title: "Show these shortcuts", group: "App"),
     ]
 
-    static let groups = ["List", "Item", "Go", "App"]
+    static let groups = ["List", "Item", "Go", "Mode", "App"]
 
     /// The binding for a typed sequence ("j", "g t"), if any.
     static func action(for keys: String) -> KeyAction? {
