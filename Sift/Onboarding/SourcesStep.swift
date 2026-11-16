@@ -60,6 +60,11 @@ struct SourcesStep: OnboardingStep {
                             Button("Choose Export…") { model.chooseInstagramExport() }
                         }
                         hint(model.instagramError ?? "In Instagram's Accounts Center, open Download your information and ask for JSON. Choose the zip when it arrives.")
+                        StatusRow(icon: "music.note", name: "TikTok", status: model.tiktokStatus,
+                                  warning: model.state.tiktokExportPath != nil && model.tiktokError != nil) {
+                            Button("Choose Export…") { model.chooseTikTokExport() }
+                        }
+                        hint(model.tiktokError ?? "In TikTok, open Settings and privacy, Account, Download your data, and ask for JSON. Choose the zip when it arrives.")
                         Divider()
                         StatusRow(icon: "play.rectangle", name: "YouTube playlists", status: model.youtubeStatus) {
                             Button("Import Takeout…") { model.importLinksFile() }

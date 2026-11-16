@@ -42,7 +42,7 @@ struct TelemetryBatch: Codable, Equatable, Sendable {
     let cohort: String
     let app: App
     /// Kinds of source with at least one link: safari, chrome, reading-list,
-    /// instagram, x, import, feed.
+    /// instagram, tiktok, x, import, feed.
     let sources: [String]
     /// Kinds of destination set up: starlings, obsidian, markdown, reading-list.
     let destinations: [String]
@@ -218,6 +218,7 @@ enum Telemetry {
         switch id {
         case ReadingListReader.sourceID: return "reading-list"
         case InstagramReader.sourceID: return "instagram"
+        case TikTokReader.sourceID: return "tiktok"
         case AppModel.xBookmarksSourceID: return "x"
         default: return nil
         }

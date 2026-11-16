@@ -171,6 +171,26 @@ private struct InputSettings: View {
             }
 
             Section {
+                StatusRow(icon: "music.note", name: "TikTok", status: model.tiktokStatus,
+                          warning: model.state.tiktokExportPath != nil && model.tiktokError != nil) {
+                    Button("Choose…") { model.chooseTikTokExport() }
+                    if model.state.tiktokExportPath != nil {
+                        Button("Remove") { model.clearTikTokExport() }
+                    }
+                }
+                if let path = model.state.tiktokExportPath {
+                    LabeledContent("Export") {
+                        Text(abbreviated(path)).lineLimit(1).truncationMode(.middle)
+                    }
+                    Toggle("Include liked videos", isOn: .init(get: { model.state.tiktokLikes },
+                                                               set: { model.state.tiktokLikes = $0; model.reload() }))
+                }
+            } footer: {
+                Text(model.tiktokError ?? "Reads your favourite videos (and, if you turn it on, liked videos) from TikTok's data export: Settings and privacy > Account > Download your data, format JSON. Choose the zip or the folder it unpacks to. Captions and covers come from each video's public page; speech becomes text like Instagram reels.")
+                    .foregroundStyle(.secondary)
+            }
+
+            Section {
                 StatusRow(icon: "at", name: "X", status: model.xStatus)
                 Toggle("Use X's embed data for post images (unofficial, may stop working)", isOn: .init(
                     get: { model.state.xSyndication },

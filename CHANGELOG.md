@@ -9,6 +9,13 @@ ships this file and shows it in Settings > About and in Sift > Version
 History. Headings are `## X.Y.Z - YYYY-MM-DD`; groups are `### Added`,
 `### Changed` and `### Fixed`.
 
+## 1.5.8 - 2026-11-16
+
+### Added
+- TikTok as a source. Choose your TikTok data export (JSON) in Settings > Inputs or the Setup Guide. Sift reads your favourite videos, and liked videos when you turn that on.
+- Each TikTok video gets its caption, author and cover from its public page, with no login. Covers stay on this Mac.
+- TikTok speech becomes text the same way as Instagram reels: yt-dlp fetches the audio without cookies, and macOS speech recognition writes it down. When one platform refuses, the other keeps going.
+
 ## 1.5.7 - 2026-11-15
 
 ### Added

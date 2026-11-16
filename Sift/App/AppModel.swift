@@ -71,6 +71,13 @@ final class AppModel {
     var isFetchingInstagramImages = false
     var instagramImageProgress: (done: Int, total: Int) = (0, 0)
     var instagramImageTried = Set<String>()
+    // TikTok (AppModel+TikTok)
+    private(set) var tiktokCount = 0
+    var tiktokCounts = TikTokReader.Counts()
+    var tiktokError: String?
+    var isFetchingTikTok = false
+    var tiktokProgress: (done: Int, total: Int) = (0, 0)
+    var tiktokTried = Set<String>()
 
     // Imports
     private(set) var importCounts: [String: Int] = [:]
@@ -216,9 +223,13 @@ final class AppModel {
             let instagram = instagramItems()
             instagramCount = instagram.count
             if isInstagram && instagram.isEmpty { state.deviceID = nil }
+            let tiktok = tiktokItems()
+            tiktokCount = tiktok.count
+            if isTikTok && tiktok.isEmpty { state.deviceID = nil }
             // Unique links across every source, for the All Sources label.
             var everyURL = Set(readingItems.map(\.tab.url))
             everyURL.formUnion(instagram.map(\.tab.url))
+            everyURL.formUnion(tiktok.map(\.tab.url))
             everyURL.formUnion(xBookmarkTabs().map(\.url))
             importCounts = [:]
             for source in state.importedSources {
@@ -247,11 +258,12 @@ final class AppModel {
                 if let phone = devices.first { add(try CloudTabsReader.tabs(deviceID: phone.id), "tabs:\(phone.id)") }
                 for profile in chromeProfiles { add(profile.tabs, profile.id) }
                 let reading = (try? ReadingListReader.items()) ?? []
-                for item in reading + instagram where previews[item.tab.url] == nil {
+                for item in reading + instagram + tiktok where previews[item.tab.url] == nil {
                     if let p = item.preview { previews[item.tab.url] = p }
                 }
                 add(reading.map(\.tab), "reading-list")
                 add(instagram.map(\.tab), "instagram")
+                add(tiktok.map(\.tab), "tiktok")
                 add(xBookmarkTabs(), "x")
                 add(keptTabs(), TodayStore.keptSourceID)
                 for source in state.importedSources {
@@ -274,6 +286,11 @@ final class AppModel {
                 tabs = xBookmarkTabs()
             } else if let profile = currentChrome {
                 tabs = profile.tabs
+            } else if isTikTok {
+                tabs = tiktok.map(\.tab)
+                for item in tiktok where previews[item.tab.url] == nil {
+                    if let p = item.preview { previews[item.tab.url] = p }
+                }
             } else if isInstagram {
                 tabs = instagram.map(\.tab)
                 // The export carries author, caption and collection; use them until Sift fetches its own.

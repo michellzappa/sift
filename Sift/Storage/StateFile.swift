@@ -59,6 +59,10 @@ struct SiftState: Codable, Sendable {
     var xSyndication: Bool = false
     /// The Instagram data export (zip or folder) the user chose in Settings.
     var instagramExportPath: String?
+    /// The TikTok data export (zip, folder or JSON) the user chose in Settings.
+    var tiktokExportPath: String?
+    /// Also read liked videos, not only favourites. Off: likes can be thousands.
+    var tiktokLikes = false
     /// Setup Guide step ids the user has been shown. nil: this state predates
     /// the guide (AppModel decides between first run and an existing
     /// install). Set it to [] to see the first run again.
@@ -104,6 +108,8 @@ struct SiftState: Codable, Sendable {
         xUsername = try c.decodeIfPresent(String.self, forKey: .xUsername)
         xSyndication = try c.decodeIfPresent(Bool.self, forKey: .xSyndication) ?? false
         instagramExportPath = try c.decodeIfPresent(String.self, forKey: .instagramExportPath)
+        tiktokExportPath = try c.decodeIfPresent(String.self, forKey: .tiktokExportPath)
+        tiktokLikes = try c.decodeIfPresent(Bool.self, forKey: .tiktokLikes) ?? false
         onboardingSeen = try c.decodeIfPresent([String].self, forKey: .onboardingSeen)
         localFirstPass = try c.decodeIfPresent(Bool.self, forKey: .localFirstPass) ?? true
         localSorting = try c.decodeIfPresent(Bool.self, forKey: .localSorting) ?? true

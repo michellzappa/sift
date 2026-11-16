@@ -15,7 +15,7 @@ extension AppModel {
     var isAll: Bool { state.deviceID == Self.allSourcesID }
 
     /// Sources that are lists, not open tabs: nothing to close on a phone.
-    var isSavedList: Bool { isReadingList || isInstagram || isXBookmarks || isKept || currentImport != nil }
+    var isSavedList: Bool { isReadingList || isInstagram || isTikTok || isXBookmarks || isKept || currentImport != nil }
 
     /// A source's name for titles: "Safari · MZ Air", "Instagram Saved".
     func sourceTitle(_ id: String) -> String {
@@ -23,6 +23,7 @@ extension AppModel {
         if let p = chromeProfiles.first(where: { $0.id == id }) { return [p.browser, chromeProfileName(p)].compactMap { $0 }.joined(separator: " · ") }
         if id == ReadingListReader.sourceID { return "Reading List" }
         if id == InstagramReader.sourceID { return "Instagram Saved" }
+        if id == TikTokReader.sourceID { return "TikTok" }
         if id == AppModel.xBookmarksSourceID { return "X Bookmarks" }
         if id == TodayStore.keptSourceID { return "Kept from Today" }
         if let i = state.importedSources.first(where: { LinkImporter.sourcePrefix + $0.id == id }) { return i.name }

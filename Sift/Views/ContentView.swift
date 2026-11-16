@@ -179,7 +179,7 @@ struct ContentView: View {
                 ForEach(model.chromeProfiles) { p in
                     Text("\(p.browser)\(model.chromeProfileName(p).map { ", \($0)" } ?? "") (\(p.tabs.count))").tag(p.id)
                 }
-                if model.readingListCount > 0 || model.instagramCount > 0 { Divider() }
+                if model.readingListCount > 0 || model.instagramCount > 0 || model.tiktokCount > 0 { Divider() }
                 if model.readingListCount > 0 {
                     Text("Reading List (\(model.readingListCount))").tag(ReadingListReader.sourceID)
                 }
@@ -191,6 +191,9 @@ struct ContentView: View {
                 }
                 if model.state.instagramExportPath != nil, model.instagramCount > 0 {
                     Text("Instagram Saved (\(model.instagramCount))").tag(InstagramReader.sourceID)
+                }
+                if model.tiktokCount > 0 {
+                    Text("TikTok (\(model.tiktokCount))").tag(TikTokReader.sourceID)
                 }
                 ForEach(model.state.importedSources) { source in
                     Text("\(source.name) (\(model.importCounts[source.id] ?? 0))").tag(LinkImporter.sourcePrefix + source.id)
@@ -454,6 +457,7 @@ private struct Sidebar: View {
         }
         if model.readingListCount > 0 { rows.append(.init(id: ReadingListReader.sourceID, name: "Reading List", symbol: "eyeglasses", count: model.readingListCount)) }
         if model.instagramCount > 0 { rows.append(.init(id: InstagramReader.sourceID, name: "Instagram Saved", symbol: "camera", count: model.instagramCount)) }
+        if model.tiktokCount > 0 { rows.append(.init(id: TikTokReader.sourceID, name: "TikTok", symbol: "music.note", count: model.tiktokCount)) }
         if model.xConnected { rows.append(.init(id: AppModel.xBookmarksSourceID, name: "X Bookmarks", symbol: "bookmark", count: model.xBookmarkIDs.count)) }
         if !model.state.kept.isEmpty { rows.append(.init(id: TodayStore.keptSourceID, name: "Kept from Today", symbol: "star", count: model.state.kept.count)) }
         for i in model.state.importedSources {

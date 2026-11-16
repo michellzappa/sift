@@ -22,6 +22,18 @@ enum ReelTool {
     /// The gate key for reel downloads, apart from the image embeds.
     static let gate = "reels.instagram.com"
 
+    /// The gate key for TikTok audio, apart from the caption pages.
+    static let tikTokGate = "audio.tiktok.com"
+
+    /// An Instagram reel or a TikTok video: short videos whose speech Sift
+    /// turns into text the same way.
+    static func isShortVideo(_ url: String) -> Bool { isReel(url) || TikTokReader.videoID(url) != nil }
+
+    /// The block key (`AppModel.block`) and gate for one short video.
+    static func job(for url: String) -> (block: String, gate: String) {
+        TikTokReader.videoID(url) != nil ? ("tiktok-audio", tikTokGate) : ("reels", gate)
+    }
+
     static func isReel(_ url: String) -> Bool {
         guard let u = URL(string: url), u.host()?.lowercased().hasSuffix("instagram.com") == true else { return false }
         let first = u.pathComponents.dropFirst().first ?? ""

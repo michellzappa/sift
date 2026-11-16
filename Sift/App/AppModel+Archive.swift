@@ -48,6 +48,7 @@ extension AppModel {
     var currentSourceKey: String {
         if isReadingList { return "reading-list" }
         if isInstagram { return "instagram" }
+        if isTikTok { return "tiktok" }
         if isXBookmarks { return "x" }
         if let profile = currentChrome { return profile.id }
         if let source = currentImport { return LinkImporter.sourcePrefix + source.id }
@@ -58,7 +59,7 @@ extension AppModel {
     /// from them really left (and is not just in another source).
     private var loadedSourceKeys: Set<String> {
         guard isAll else { return [currentSourceKey] }
-        var keys: Set<String> = ["reading-list", "instagram", "x"]
+        var keys: Set<String> = ["reading-list", "instagram", "tiktok", "x"]
         if let phone = devices.first { keys.insert("tabs:\(phone.id)") }
         for p in chromeProfiles { keys.insert(p.id) }
         for s in state.importedSources { keys.insert(LinkImporter.sourcePrefix + s.id) }

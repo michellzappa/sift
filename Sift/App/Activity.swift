@@ -34,6 +34,7 @@ extension AppModel {
         run("youtube", "YouTube transcripts", isTranscribing, transcriptProgress)
         run("reels", "Reel transcripts", isTranscribingReels, reelProgress)
         run("images", "Instagram images", isFetchingInstagramImages, instagramImageProgress)
+        run("tiktok", "TikTok captions", isFetchingTikTok, tiktokProgress)
         run("titles", "YouTube titles", isFetchingVideoTitles, nil)
         run("summaries", "Summaries on this Mac", isSummarizing, summaryProgress)
 
@@ -41,6 +42,8 @@ extension AppModel {
             ("youtube", "YouTube transcripts"),
             ("youtube-audio", "YouTube audio"),
             ("reels", "Reel transcripts"),
+            ("tiktok", "TikTok captions"),
+            ("tiktok-audio", "TikTok transcripts"),
         ]
         for p in paused {
             if let until = state.blockedUntil[p.key], until > .now, !out.contains(where: { $0.id == p.key }) {

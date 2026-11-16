@@ -15,7 +15,7 @@ At most one report per Mac per ISO week:
 - app version and build, macOS major version, CPU family (`arm64` or
   `x86_64`);
 - the kinds of source that have links: `safari`, `chrome`, `reading-list`,
-  `instagram`, `x`, `import`, `feed`;
+  `instagram`, `tiktok`, `x`, `import`, `feed`;
 - the kinds of Send destination you set up: `starlings`, `obsidian`,
   `markdown`, `reading-list`;
 - the sorting backend: `claude-code` or `api`;

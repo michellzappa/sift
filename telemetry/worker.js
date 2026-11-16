@@ -6,7 +6,7 @@ import { communityPage } from "./community_page.js";
 import { KNOWN_FEEDS, KNOWN_FEEDS_VERSION, KNOWN_FEED_IDS } from "./known_feeds.js";
 
 const ALLOWED_SOURCES = new Set([
-  "safari", "chrome", "reading-list", "instagram", "x", "import", "feed",
+  "safari", "chrome", "reading-list", "instagram", "tiktok", "x", "import", "feed",
 ]);
 const ALLOWED_DESTINATIONS = new Set([
   "starlings", "obsidian", "markdown", "reading-list",

@@ -8,6 +8,8 @@ extension AppModel {
     var linksToCapture: [ArchiveRecord] {
         archive.values.filter { r in
             guard r.theme != Project.errands, r.theme != Project.drop, !Errands.isErrand(r.url) else { return false }
+            // TikTok videos wait for their caption (fetchTikTokDetails).
+            if TikTokReader.videoID(r.url) != nil, (previews[r.url]?.title ?? "").isEmpty { return false }
             guard let e = library[r.url] else { return true }
             // Videos captured before Sift read their length: read the page again
             // (not when a transcript was appended to the file).
@@ -74,7 +76,7 @@ extension AppModel {
     static func isPostURL(_ url: String) -> Bool {
         if XClient.statusID(url) != nil { return true }
         let host = URL(string: url)?.host()?.lowercased() ?? ""
-        return host.hasSuffix("instagram.com")
+        return host.hasSuffix("instagram.com") || host.hasSuffix("tiktok.com")
     }
 
     // MARK: YouTube transcripts
@@ -114,6 +116,8 @@ extension AppModel {
         if !isTranscribingReels, !reelsNeedingTranscript.isEmpty { Task { await fetchReelTranscripts() } }
         // Instagram posts get their image.
         if state.instagramImages, !isFetchingInstagramImages, !instagramPostsWithoutImage.isEmpty { Task { await fetchInstagramImages() } }
+        // TikTok videos get caption, author and cover from their page.
+        if !isFetchingTikTok, !tiktokNeedingDetails.isEmpty { Task { await fetchTikTokDetails() } }
         // YouTube links with no title get one from YouTube's oEmbed.
         if !isFetchingVideoTitles, !videosWithoutTitle.isEmpty { Task { await fetchVideoTitles() } }
         // New links go into the library.
@@ -172,13 +176,13 @@ extension AppModel {
     /// relaunch never hits a service that is still blocking.
     func isBlocked(_ job: String) -> Bool { (state.blockedUntil[job] ?? .distantPast) > .now }
 
-    private func block(_ job: String) {
+    func block(_ job: String) {
         let hours = min(24, max(1, (state.backoffHours[job] ?? 0.5) * 2))
         state.backoffHours[job] = hours
         state.blockedUntil[job] = Date().addingTimeInterval(hours * 3600)
     }
 
-    private func unblock(_ job: String) {
+    func unblock(_ job: String) {
         if state.backoffHours[job] != nil { state.backoffHours[job] = nil }
         if state.blockedUntil[job] != nil { state.blockedUntil[job] = nil }
     }
@@ -264,14 +268,15 @@ extension AppModel {
 
     /// Reels without a transcript attempt, newest saves first.
     var reelsNeedingTranscript: [ArchiveRecord] {
-        guard state.reelTranscripts, ReelTool.executable != nil, !isBlocked("reels") else { return [] }
+        guard state.reelTranscripts, ReelTool.executable != nil else { return [] }
         return archive.values
-            .filter { ReelTool.isReel($0.url) && library[$0.url]?.transcript == nil && !reelTried.contains($0.url) }
+            .filter { ReelTool.isShortVideo($0.url) && !isBlocked(ReelTool.job(for: $0.url).block)
+                && library[$0.url]?.transcript == nil && !reelTried.contains($0.url) }
             .sorted { $0.firstSeen > $1.firstSeen }
     }
 
-    var reelCount: Int { archive.keys.filter(ReelTool.isReel).count }
-    var reelTranscriptCount: Int { library.filter { $0.value.transcript == true && ReelTool.isReel($0.key) }.count }
+    var reelCount: Int { archive.keys.filter(ReelTool.isShortVideo).count }
+    var reelTranscriptCount: Int { library.filter { $0.value.transcript == true && ReelTool.isShortVideo($0.key) }.count }
 
     /// One reel at a time: audio through yt-dlp, text through macOS speech
     /// recognition. Stops when Instagram throttles or speech is not allowed.
@@ -289,20 +294,24 @@ extension AppModel {
         defer { isTranscribingReels = false; Library.saveIndex(library); scheduleSearchIndex() }
         for r in todo {
             guard state.reelTranscripts else { break }
+            let job = ReelTool.job(for: r.url)
+            // One platform refusing does not stop the other.
+            if isBlocked(job.block) { continue }
             reelTried.insert(r.url)
             var text: String?
-            switch await ReelTool.audio(for: r.url) {
+            switch await ReelTool.audio(for: r.url, gate: job.gate) {
             case .throttled:
                 reelTried.remove(r.url)
-                block("reels")
-                return
+                block(job.block)
+                reelProgress.done += 1
+                continue
             case .none: text = nil
             case .audio(let file):
                 text = await ReelSpeech.transcribe(file, hint: Library.text(for: r.url) ?? r.title)
                 try? FileManager.default.removeItem(at: file.deletingLastPathComponent())
             }
             if let text, text.count > 20 {
-                unblock("reels")
+                unblock(job.block)
                 library[r.url] = Library.addTranscript(text, to: r, existing: library[r.url])
             } else {
                 var e = library[r.url] ?? Library.Entry(file: "", captured: .now, words: 0, kind: "post", status: "failed")

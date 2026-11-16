@@ -185,6 +185,7 @@ enum PaletteCatalog {
         for p in model.chromeProfiles { out.append((p.id, "globe")) }
         if model.readingListCount > 0 { out.append((ReadingListReader.sourceID, "eyeglasses")) }
         if model.instagramCount > 0 { out.append((InstagramReader.sourceID, "camera")) }
+        if model.tiktokCount > 0 { out.append((TikTokReader.sourceID, "music.note")) }
         if model.xConnected { out.append((AppModel.xBookmarksSourceID, "bookmark")) }
         if !model.state.kept.isEmpty { out.append((TodayStore.keptSourceID, "star")) }
         for i in model.state.importedSources { out.append((LinkImporter.sourcePrefix + i.id, "tray.and.arrow.down")) }

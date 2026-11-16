@@ -336,6 +336,6 @@ actor HostGate {
     }
 
     private func interval(_ host: String) -> TimeInterval {
-        ["youtube.com", "youtu.be", "instagram.com", "x.com", "twitter.com"].contains { host.hasSuffix($0) } ? 4 : 1
+        ["youtube.com", "youtu.be", "instagram.com", "tiktok.com", "x.com", "twitter.com"].contains { host.hasSuffix($0) } ? 4 : 1
     }
 }

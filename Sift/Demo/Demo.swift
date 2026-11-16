@@ -128,6 +128,7 @@ enum Demo {
         case "mac": "demo-studio-mac"
         case "reading-list": ReadingListReader.sourceID
         case "instagram": InstagramReader.sourceID
+        case "tiktok": TikTokReader.sourceID
         case "x": AppModel.xBookmarksSourceID
         case "youtube": LinkImporter.sourcePrefix + "demo-youtube"
         default: alias

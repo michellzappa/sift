@@ -52,6 +52,20 @@ The one exception is anonymous diagnostics (owner, 2026-11-15, below).
   the unpacked folder. Instagram writes UTF-8 as one `\u00XX` escape per
   byte; `InstagramReader.fix` turns it back into text. Never commit
   anything from an export.
+- TikTok (issue #25, 2026-11-16): `TikTokReader`, source id `tiktok`.
+  Reads `user_data_tiktok.json` (older: `user_data.json`) from the zip,
+  folder or JSON file in `state.tiktokExportPath`. TikTok moves sections
+  between export versions, so the reader walks the tree for the lists
+  `FavoriteVideoList` (favourites) and `ItemFavoriteList` (likes, only with
+  `state.tiktokLikes`); keys in any case. Links become
+  `https://www.tiktok.com/@/video/<id>`. TikTok's oEmbed no longer returns
+  a title or thumbnail, so `TikTokPage` (`Engine/TikTokDetails.swift`)
+  reads the video page's `__UNIVERSAL_DATA_FOR_REHYDRATION__` JSON with a
+  Safari user agent and no cookies (caption, author, cover saved in
+  Images), gate "www.tiktok.com", block key "tiktok". A page without that
+  script is a check page: pause. Capture waits until a video has its
+  caption. Speech goes through the reel job (`ReelTool.isShortVideo`,
+  gate "audio.tiktok.com", block key "tiktok-audio"). Not in demo data yet.
 - Chrome tabs (issue #1): `ChromeExtension/` (MV3, plain JS, permissions
   `tabs` + `nativeMessaging` only) talks to `sift-chrome` (target in
   project.yml, `SiftChrome/main.swift`, embedded in Contents/MacOS, signed
