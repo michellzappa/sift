@@ -22,7 +22,7 @@ and SQLite. No account, and your library never goes to a Sift server. Your
 own Claude can search it and work on it through the built-in MCP server, and
 you can open every file without Sift.
 
-**Contents:** [Sources](#sources) · [Today and feeds](#today-and-feeds) ·
+**Contents:** [How it fits together](#how-it-fits-together) · [Sources](#sources) · [Today and feeds](#today-and-feeds) ·
 [Themes](#themes) · [Graph](#graph) · [Lists and the reader](#lists-and-the-reader) ·
 [Keyboard](#keyboard) · [Send](#send) · [Library](#library) ·
 [Claude and sift-mcp](#claude-and-sift-mcp) · [iPhone](#iphone) ·
@@ -40,6 +40,20 @@ you can open every file without Sift.
 </picture>
 
 Screenshots use Sift's demo mode and made-up sample data.
+
+## How it fits together
+
+<img alt="How Sift works: saved links and offered feed items come in; Sift adds text, transcripts, summaries and themes on your Mac; you review your Library and discover in Today, in Scan, Watch or Read; then you take in, decide, organise and pass on." src="docs/images/how-sift-works.svg">
+
+Sift has two kinds of input. **Saved** links are what you chose: tabs,
+Reading List, bookmarks, Instagram, TikTok, imports. They stay until you
+remove them. **Offered** items are what your feeds post. Sift keeps them
+for 90 days unless you keep one. Keep moves an offered item into your
+saved links; Follow subscribes to the site of a saved link.
+
+You review saved links in the **Library** and discover offered items in
+**Today**. Both have the same Scan, Watch and Read switch. Settings > How
+It Works shows this diagram.
 
 ## What it does
 
@@ -229,7 +243,7 @@ style of Google Reader. Help > Keyboard Shortcuts (? or ⌘/) shows the list.
 | C | Copy the link |
 | F | Follow the item's site |
 | E | Send to the theme's destination |
-| G then T, A, U, K, R, X, D | Go to Today, Overview, Unsorted, Kept, Archive, Transcripts, Duplicates |
+| G then T, A, U, K, R, X, D | Go to Today, Overview, Unsorted, Kept, Closed or Removed, Transcripts, Duplicates |
 | Shift-J / Shift-K | Next and previous feed or theme in the sidebar |
 | 0, 1, 2, 3 | All, Scan, Watch, Read |
 | R | Reload sources and check feeds |
@@ -258,12 +272,12 @@ lists what went to each destination. Connect Starlings in Settings > Outputs:
 Sift signs in like Claude Code (OAuth, no API key) and keeps the tokens in
 the keychain. Destinations are plugins: one file per kind in `Sift/Send/`.
 
-### Archive
+### Closed or Removed
 
 Sift keeps a record of every link it has seen: title, theme, use,
 preview and dates. When a link leaves its source (a tab closed on
 the phone, an item removed from the Reading List or an export), the record
-moves to **Archive** instead of being forgotten.
+moves to **Closed or Removed** instead of being forgotten.
 
 ### Library
 
@@ -375,10 +389,12 @@ library. Settings > Intelligence > Add to Claude Code runs
 ### iPhone
 
 A prototype iPhone app, Sift Deck (`prototypes/ios-deck`), shares Sift's
-folder in iCloud Drive. It shows Today in three tabs: Scan (a list of
-headlines), Watch (full-screen video cards: swipe moves on and marks seen,
-double-tap keeps) and Read (long texts with the reading time). Tap opens
-the reader. It also shows your library as a deck, and your feeds. Follows, keeps, seen marks and reading signals from the phone go
+folder in iCloud Drive. Its tabs are Scan, Watch and Read, each with a
+Today / Library switch at the top: Today is what your feeds offer, Library
+is what you saved. Scan is a list of headlines, Watch is full-screen video
+cards (swipe moves on and marks seen, double-tap keeps), Read is articles
+with the reading time. Tap opens the reader. Lists holds the review deck,
+your feeds, themes and the log. Follows, keeps, seen marks and reading signals from the phone go
 back to the Mac through files in `iCloud Drive/Sift`; the Mac does all the
 fetching. It is not in the App Store. Build it from Xcode.
 
@@ -426,7 +442,7 @@ Apple, and carry a build provenance attestation. To check that a download
 came from this repository's release workflow:
 
 ```sh
-gh attestation verify Sift-1.6.5.zip -R michellzappa/sift
+gh attestation verify Sift-1.6.6.zip -R michellzappa/sift
 ```
 
 Each release also has a `SHA256SUMS` file.
@@ -501,7 +517,7 @@ app. Sift > Version History… shows the changelog.
 
 ### Releases
 
-Push a tag that matches `CFBundleShortVersionString`, for example `v1.6.5`.
+Push a tag that matches `CFBundleShortVersionString`, for example `v1.6.6`.
 The workflow in `.github/workflows/release.yml` builds a universal app,
 signs it with Developer ID, notarizes and staples it, attests its provenance,
 and publishes the ZIP and `SHA256SUMS`. It needs these repository secrets:

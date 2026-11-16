@@ -7,6 +7,7 @@ struct ListsView: View {
     @Environment(Store.self) private var store
     @AppStorage("lists.unseenOnly") private var unseenOnly = false
     @State private var showLog = false
+    @State private var showDeck = false
 
     var body: some View {
         NavigationStack {
@@ -20,6 +21,10 @@ struct ListsView: View {
                     }
                 }
                 Section {
+                    Button { showDeck = true } label: {
+                        row("Review Deck", symbol: "rectangle.stack", color: .purple, count: 0)
+                    }
+                    .foregroundStyle(.primary)
                     NavigationLink { FeedsView() } label: {
                         row("Feeds", symbol: "dot.radiowaves.up.forward", color: .orange, count: 0)
                     }
@@ -41,6 +46,12 @@ struct ListsView: View {
                 }
             }
             .sheet(isPresented: $showLog) { LogView() }
+            .fullScreenCover(isPresented: $showDeck) {
+                LibraryView().overlay(alignment: .topLeading) {
+                    Button { showDeck = false } label: { Image(systemName: "xmark.circle.fill").font(.title2) }
+                        .padding()
+                }
+            }
             .refreshable { store.sync() }
         }
     }

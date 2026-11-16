@@ -1,0 +1,181 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1200 760" width="1200" height="760" font-family="-apple-system, BlinkMacSystemFont, 'SF Pro Text', 'Helvetica Neue', Arial, sans-serif">
+  <title>How Sift works</title>
+  <desc>Saved links and offered feed items come in. Sift adds text, transcripts, summaries and themes on your Mac. You review your Library and discover in Today, in Scan, Watch or Read. Then you take in, decide, organise and pass on.</desc>
+  <style>
+    .bg { fill: #fbfaf7; }
+    .card { fill: #ffffff; stroke: #dedad2; }
+    .saved { fill: #eaf2ff; stroke: #8fb8f2; }
+    .offered { fill: #fff2e3; stroke: #efb878; }
+    .mac { fill: #f1eefb; stroke: #b3a8e6; }
+    .band { fill: #f4f3ef; stroke: #dedad2; }
+    .pill { fill: #1d1d1f; }
+    .pilltext { fill: #ffffff; }
+    .h { fill: #1d1d1f; font-size: 19px; font-weight: 700; }
+    .col { fill: #8a8780; font-size: 12px; font-weight: 600; letter-spacing: 0.08em; }
+    .sub { fill: #6e6b65; font-size: 13px; }
+    .t { fill: #2b2a28; font-size: 14px; }
+    .k { fill: #1d1d1f; font-size: 14px; font-weight: 600; }
+    .note { fill: #6e6b65; font-size: 12.5px; font-style: italic; }
+    .arrow { stroke: #8a8780; stroke-width: 1.6; fill: none; }
+    .head { fill: #8a8780; }
+    .keep { stroke: #c98a2b; }
+    .keephead { fill: #c98a2b; }
+    .follow { stroke: #3d7bd4; }
+    .followhead { fill: #3d7bd4; }
+    .keeptext { fill: #a86f1c; font-size: 13px; font-weight: 600; }
+    .followtext { fill: #2f68bd; font-size: 13px; font-weight: 600; }
+    @media (prefers-color-scheme: dark) {
+      .bg { fill: #1c1c1e; }
+      .card { fill: #2a2a2d; stroke: #44444a; }
+      .saved { fill: #1d2a3d; stroke: #3f6aa6; }
+      .offered { fill: #35281a; stroke: #9a6a32; }
+      .mac { fill: #29253b; stroke: #6b5fae; }
+      .band { fill: #242427; stroke: #44444a; }
+      .pill { fill: #f2f2f2; }
+      .pilltext { fill: #1c1c1e; }
+      .h, .k { fill: #f2f2f2; }
+      .t { fill: #e2e2e4; }
+      .sub, .note { fill: #a1a1a6; }
+      .col { fill: #8e8e93; }
+      .arrow { stroke: #8e8e93; }
+      .head { fill: #8e8e93; }
+      .keep { stroke: #e0a24a; }
+      .keephead { fill: #e0a24a; }
+      .keeptext { fill: #e0a24a; }
+      .follow { stroke: #6aa2f0; }
+      .followhead { fill: #6aa2f0; }
+      .followtext { fill: #6aa2f0; }
+    }
+  </style>
+  <defs>
+    <marker id="a" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="8" markerHeight="8" orient="auto-start-reverse"><path class="head" d="M0 0 L10 5 L0 10 z"/></marker>
+    <marker id="ak" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="8" markerHeight="8" orient="auto-start-reverse"><path class="keephead" d="M0 0 L10 5 L0 10 z"/></marker>
+    <marker id="af" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="8" markerHeight="8" orient="auto-start-reverse"><path class="followhead" d="M0 0 L10 5 L0 10 z"/></marker>
+  </defs>
+
+  <rect class="bg" x="0" y="0" width="1200" height="760" rx="18"/>
+
+  <!-- Column labels -->
+  <text class="col" x="30" y="44">COMES IN</text>
+  <text class="col" x="340" y="44">SIFT ADDS, ON YOUR MAC</text>
+  <text class="col" x="610" y="44">YOU REVIEW AND DISCOVER</text>
+  <text class="col" x="950" y="44">YOU ACT</text>
+
+  <!-- Saved -->
+  <rect class="saved" x="30" y="64" width="270" height="262" rx="14"/>
+  <text class="h" x="50" y="96">Saved</text>
+  <text class="sub" x="50" y="117">what you chose to keep</text>
+  <text class="t" x="50" y="152">Safari and Chrome tabs</text>
+  <text class="t" x="50" y="178">Reading List</text>
+  <text class="t" x="50" y="204">X bookmarks</text>
+  <text class="t" x="50" y="230">Instagram Saved</text>
+  <text class="t" x="50" y="256">TikTok favourites</text>
+  <text class="t" x="50" y="282">Imports, and what you keep</text>
+  <text class="t" x="50" y="304">from Today</text>
+
+  <!-- Offered -->
+  <rect class="offered" x="30" y="434" width="270" height="262" rx="14"/>
+  <text class="h" x="50" y="466">Offered</text>
+  <text class="sub" x="50" y="487">what your feeds post</text>
+  <text class="t" x="50" y="522">Blogs and newsletters</text>
+  <text class="t" x="50" y="548">YouTube channels and playlists</text>
+  <text class="t" x="50" y="574">Reddit and Hacker News</text>
+  <text class="t" x="50" y="600">Bluesky and Mastodon</text>
+  <text class="t" x="50" y="626">Podcasts</text>
+  <text class="note" x="50" y="672">Kept for 90 days unless you keep it</text>
+
+  <!-- Keep and Follow between Saved and Offered -->
+  <path class="arrow keep" d="M110 432 L110 330" marker-end="url(#ak)"/>
+  <text class="keeptext" x="58" y="385">Keep</text>
+  <path class="arrow follow" d="M220 328 L220 430" marker-end="url(#af)"/>
+  <text class="followtext" x="230" y="385">Follow</text>
+
+  <!-- Sift on your Mac -->
+  <rect class="mac" x="340" y="64" width="230" height="632" rx="14"/>
+  <text class="h" x="360" y="96">On your Mac</text>
+  <text class="sub" x="360" y="117">plain files you own</text>
+  <text class="t" x="360" y="160">Full page text</text>
+  <text class="t" x="360" y="190">Video transcripts</text>
+  <text class="t" x="360" y="220">Summaries, on device</text>
+  <text class="t" x="360" y="250">Themes, by your Claude</text>
+  <text class="t" x="360" y="280">Links between themes</text>
+  <text class="t" x="360" y="310">Search index</text>
+  <text class="t" x="360" y="340">Duplicates and broken links</text>
+  <text class="t" x="360" y="370">A mode for every item:</text>
+  <text class="t" x="360" y="392">Scan, Watch or Read</text>
+  <text class="note" x="360" y="440">Nothing goes to a Sift server.</text>
+  <text class="note" x="360" y="462">Your Claude reads it all</text>
+  <text class="note" x="360" y="480">through sift-mcp.</text>
+
+  <path class="arrow" d="M302 195 L336 195" marker-end="url(#a)"/>
+  <path class="arrow" d="M302 565 L336 565" marker-end="url(#a)"/>
+
+  <!-- Library -->
+  <rect class="card" x="610" y="64" width="300" height="262" rx="14"/>
+  <text class="h" x="630" y="96">Library</text>
+  <text class="sub" x="630" y="117">review what you saved</text>
+  <text class="t" x="630" y="152">By theme, source or site</text>
+  <text class="t" x="630" y="178">Unsorted, Transcripts,</text>
+  <text class="t" x="630" y="200">Closed or Removed</text>
+  <text class="t" x="630" y="226">Unseen until you open it</text>
+  <text class="t" x="630" y="252">Saved searches</text>
+  <text class="note" x="630" y="300">Links stay until you remove them</text>
+
+  <!-- Today -->
+  <rect class="card" x="610" y="434" width="300" height="262" rx="14"/>
+  <text class="h" x="630" y="466">Today</text>
+  <text class="sub" x="630" y="487">discover what your feeds offer</text>
+  <text class="t" x="630" y="522">Ranked by what you read</text>
+  <text class="t" x="630" y="548">and how often a feed posts</text>
+  <text class="t" x="630" y="574">The last 3 days, updated</text>
+  <text class="t" x="630" y="600">as feeds post</text>
+  <text class="t" x="630" y="626">Keep it, or let it pass</text>
+  <text class="note" x="630" y="672">Seen means finished</text>
+
+  <path class="arrow" d="M572 195 L606 195" marker-end="url(#a)"/>
+  <path class="arrow" d="M572 565 L606 565" marker-end="url(#a)"/>
+
+  <!-- Mode band across Library and Today -->
+  <rect class="band" x="600" y="340" width="320" height="80" rx="12"/>
+  <rect class="pill" x="614" y="352" width="92" height="28" rx="14"/>
+  <text class="pilltext" x="660" y="371" text-anchor="middle" font-size="14" font-weight="600">Scan</text>
+  <rect class="pill" x="714" y="352" width="92" height="28" rx="14"/>
+  <text class="pilltext" x="760" y="371" text-anchor="middle" font-size="14" font-weight="600">Watch</text>
+  <rect class="pill" x="814" y="352" width="92" height="28" rx="14"/>
+  <text class="pilltext" x="860" y="371" text-anchor="middle" font-size="14" font-weight="600">Read</text>
+  <text class="sub" x="660" y="402" text-anchor="middle">headlines</text>
+  <text class="sub" x="760" y="402" text-anchor="middle">video</text>
+  <text class="sub" x="860" y="402" text-anchor="middle">articles</text>
+
+  <!-- Actions -->
+  <rect class="card" x="950" y="64" width="220" height="104" rx="14"/>
+  <text class="k" x="968" y="94">1  Take in</text>
+  <text class="t" x="968" y="120">Open in the reader</text>
+  <text class="t" x="968" y="144">Mark seen, scroll past</text>
+
+  <rect class="card" x="950" y="190" width="220" height="104" rx="14"/>
+  <text class="k" x="968" y="220">2  Decide</text>
+  <text class="t" x="968" y="246">Keep, noise, errand</text>
+  <text class="t" x="968" y="270">Follow the site</text>
+
+  <rect class="card" x="950" y="316" width="220" height="104" rx="14"/>
+  <text class="k" x="968" y="346">3  Organise</text>
+  <text class="t" x="968" y="372">Move to a theme, merge</text>
+  <text class="t" x="968" y="396">Add a note</text>
+
+  <rect class="card" x="950" y="442" width="220" height="128" rx="14"/>
+  <text class="k" x="968" y="472">4  Pass on</text>
+  <text class="t" x="968" y="498">Send to Starlings,</text>
+  <text class="t" x="968" y="520">Obsidian, Markdown</text>
+  <text class="t" x="968" y="544">Export, close tabs</text>
+
+  <rect class="mac" x="950" y="592" width="220" height="104" rx="14"/>
+  <text class="k" x="968" y="622">Your Claude</text>
+  <text class="t" x="968" y="648">Searches, sorts, follows</text>
+  <text class="t" x="968" y="672">and sends through sift-mcp</text>
+
+  <path class="arrow" d="M1060 170 L1060 186" marker-end="url(#a)"/>
+  <path class="arrow" d="M1060 296 L1060 312" marker-end="url(#a)"/>
+  <path class="arrow" d="M1060 422 L1060 438" marker-end="url(#a)"/>
+  <path class="arrow" d="M922 380 L946 380" marker-end="url(#a)"/>
+</svg>

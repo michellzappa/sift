@@ -332,6 +332,9 @@ The one exception is anonymous diagnostics (owner, 2026-11-15, below).
   release notes. The file ships in Resources: Sift > Version History…
   (Window `version-history`) and Settings > About show it.
 - Settings layout (2026-11-15, owner): the HouseKit shell, panes General,
+  How It Works (2026-11-16: the concept diagram
+  `docs/images/how-sift-works.svg`, shipped in Resources and used by the
+  README and the site; change the diagram when the model changes),
   Inputs, Library, Outputs, Intelligence, Themes, Telemetry, About (ids are
   the lowercase names; `-demoView settings:<id>`). A new pane is one more
   `SettingsPane` in `SettingsView.panes`.
@@ -657,3 +660,10 @@ The one exception is anonymous diagnostics (owner, 2026-11-15, below).
   Scan, Watch, Read, Library, Lists (Log in Lists' toolbar); the Mac writes
   `TodayPick.mode` into today.json only (`withModes`), the phone falls
   back to its own rule for older files.
+- One name per activity (2026-11-16, owner). Today = discovery (offered
+  feed items), Library = review (saved links), on both apps. The toolbar
+  Source menu is gone: sources are sidebar rows only. Archive is shown as
+  "Closed or Removed" (links that left their source); code keeps
+  `archive`. Phone tabs: Scan, Watch, Read (each with a Today / Library
+  switch, `prototypes/ios-deck/App/Modes.swift`), then Lists (Review Deck,
+  Feeds, themes, Log).

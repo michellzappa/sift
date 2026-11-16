@@ -30,11 +30,7 @@ struct TodayPick: Codable, Hashable, Sendable, Identifiable {
     /// Watch, headlines and posts are Scan, the rest Read.
     var readingMode: ReadingMode {
         if let mode, let m = ReadingMode(rawValue: mode) { return m }
-        if vertical == true || verticalVideo != nil || Self.youTubeID(url) != nil { return .watch }
-        let host = URL(string: url)?.host()?.lowercased() ?? ""
-        let headline = ["x.com", "bsky.app", "news.ycombinator.com", "lobste.rs", "news.google.com"].contains(host)
-            || host.hasSuffix("reddit.com") || host.hasSuffix("twitter.com") || host.hasSuffix("instagram.com")
-        return headline ? .scan : .read
+        return ReadingMode.of(url: url, video: vertical == true || verticalVideo != nil || Self.youTubeID(url) != nil)
     }
 
     /// Minutes of reading at 220 words a minute, nil without text.
@@ -113,7 +109,8 @@ struct TodayView: View {
     @State private var position: String?
     /// The pick being timed and when it came on screen.
     @State private var watching: (url: String, since: Date)?
-    var goToLibrary: () -> Void
+    /// Today or Library (Modes.swift); the end card switches to Library.
+    @Binding var part: ModePart
 
     /// Watch: the videos among today's picks, as full-screen cards.
     private var picks: [TodayPick] { (store.today?.picks ?? []).filter { $0.readingMode == .watch } }
@@ -132,7 +129,7 @@ struct TodayView: View {
                         }
                         if !picks.isEmpty {
                             TodayEnd(next: store.today?.next, seen: picks.filter { store.isSeen($0.url) }.count,
-                                     kept: picks.filter { store.isKept($0.url) }.count, total: picks.count, library: goToLibrary)
+                                     kept: picks.filter { store.isKept($0.url) }.count, total: picks.count, library: { part = .library })
                                 .frame(width: geo.size.width, height: geo.size.height)
                                 .id("end")
                         }
@@ -152,8 +149,8 @@ struct TodayView: View {
                 }
             }
             .background(Color(.systemGroupedBackground))
-            .navigationTitle("Watch")
             .navigationBarTitleDisplayMode(.inline)
+            .toolbar { ToolbarItem(placement: .principal) { PartPicker(part: $part) } }
             .refreshable { store.sync() }
             .sheet(item: $browsing) { InAppBrowser(url: URL(string: $0.url)!).ignoresSafeArea() }
             .sheet(item: $reading) { ReaderView(item: $0) }
@@ -304,6 +301,7 @@ private struct TodayEnd: View {
 struct TodayListView: View {
     @Environment(Store.self) private var store
     let mode: ReadingMode
+    @Binding var part: ModePart
     @State private var reading: Item?
     @State private var past = ScrollPast()
 
@@ -348,8 +346,8 @@ struct TodayListView: View {
                                                                              : "Articles of about 3 minutes or more from your feeds show here."))
                 }
             }
-            .navigationTitle(mode.title)
             .navigationBarTitleDisplayMode(.inline)
+            .toolbar { ToolbarItem(placement: .principal) { PartPicker(part: $part) } }
             .refreshable { store.sync() }
             .sheet(item: $reading) { ReaderView(item: $0) }
             .onAppear { past.active = true }

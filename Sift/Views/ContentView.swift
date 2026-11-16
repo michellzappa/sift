@@ -171,37 +171,6 @@ struct ContentView: View {
 
     @ToolbarContentBuilder
     private var toolbar: some ToolbarContent {
-        ToolbarItem(placement: .navigation) {
-            Picker("Source", selection: .init(get: { model.state.deviceID ?? "" }, set: { model.selectDevice($0) })) {
-                Text("All Sources (\(model.allSourcesCount))").tag(AppModel.allSourcesID)
-                Divider()
-                ForEach(model.devices) { d in Text("\(d.name) (\(d.tabCount))").tag(d.id) }
-                ForEach(model.chromeProfiles) { p in
-                    Text("\(p.browser)\(model.chromeProfileName(p).map { ", \($0)" } ?? "") (\(p.tabs.count))").tag(p.id)
-                }
-                if model.readingListCount > 0 || model.instagramCount > 0 || model.tiktokCount > 0 { Divider() }
-                if model.readingListCount > 0 {
-                    Text("Reading List (\(model.readingListCount))").tag(ReadingListReader.sourceID)
-                }
-                if model.xConnected {
-                    Text("X Bookmarks (\(model.xBookmarkIDs.count))").tag(AppModel.xBookmarksSourceID)
-                }
-                if !model.state.kept.isEmpty {
-                    Text("Kept from Today (\(model.state.kept.count))").tag(TodayStore.keptSourceID)
-                }
-                if model.state.instagramExportPath != nil, model.instagramCount > 0 {
-                    Text("Instagram Saved (\(model.instagramCount))").tag(InstagramReader.sourceID)
-                }
-                if model.tiktokCount > 0 {
-                    Text("TikTok (\(model.tiktokCount))").tag(TikTokReader.sourceID)
-                }
-                ForEach(model.state.importedSources) { source in
-                    Text("\(source.name) (\(model.importCounts[source.id] ?? 0))").tag(LinkImporter.sourcePrefix + source.id)
-                }
-            }
-            .pickerStyle(.menu)
-            .disabled(!model.hasReadableSource)
-        }
         // Toolbar items keep one size: their content must not change while
         // Claude works (AppKit aborts when toolbar layout changes every
         // frame). Progress shows in the banner instead.
@@ -352,9 +321,9 @@ private struct Sidebar: View {
                 }
                 Label { HStack { Text("Unsorted"); Spacer(); count(model.unsortedCount) } } icon: { Image(systemName: "tray") }
                     .tag(SidebarItem.unsorted)
-                Label { HStack { Text("Archive"); Spacer(); count(model.archivedTabs.count) } } icon: { Image(systemName: "archivebox") }
+                Label { HStack { Text("Closed or Removed"); Spacer(); count(model.archivedTabs.count) } } icon: { Image(systemName: "archivebox") }
                     .tag(SidebarItem.archive)
-                    .help("Links that left their source. Sift keeps their theme, use and action.")
+                    .help("Tabs you closed and saves you removed. Sift keeps their text, theme and notes.")
                 let dupes = model.duplicateTabs.count
                 if dupes > 0 {
                     Label { HStack { Text("Duplicates"); Spacer(); count(dupes) } } icon: { Image(systemName: "square.on.square") }

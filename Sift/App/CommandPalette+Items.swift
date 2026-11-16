@@ -70,6 +70,7 @@ enum SettingsRoute {
     /// The panes, in SettingsView order: id, title, symbol.
     static let panes: [(id: String, title: String, symbol: String)] = [
         ("general", "General", "gearshape"),
+        ("how", "How It Works", "point.3.connected.trianglepath.dotted"),
         ("inputs", "Inputs", "tray.and.arrow.down"),
         ("library", "Library", "books.vertical"),
         ("outputs", "Outputs", "tray.and.arrow.up"),
@@ -151,7 +152,7 @@ enum PaletteCatalog {
             add("source:" + id, model.sourceTitle(id), symbol, "Source", .source(id))
         }
         add("unsorted", "Unsorted", "tray", "Library", .unsorted)
-        add("archive", "Archive", "archivebox", "Library", .archive)
+        add("archive", "Closed or Removed", "archivebox", "Library", .archive)
         if !model.transcriptTabs.isEmpty { add("transcripts", "Transcripts", "captions.bubble", "Library", .transcripts) }
         if !model.duplicateTabs.isEmpty { add("duplicates", "Duplicates", "square.on.square", "Library", .duplicates) }
         if !model.brokenTabs.isEmpty { add("broken", "Broken Links", "link.badge.plus", "Library", .broken) }

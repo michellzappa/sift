@@ -63,6 +63,9 @@ targets:
       # Version history (ChangelogView); also the GitHub release notes.
       - path: CHANGELOG.md
         buildPhase: resources
+      # The concept diagram (Settings > How It Works; also README and site).
+      - path: docs/images/how-sift-works.svg
+        buildPhase: resources
     settings:
       base:
         PRODUCT_BUNDLE_IDENTIFIER: app.sift.Sift

@@ -9,6 +9,22 @@ ships this file and shows it in Settings > About and in Sift > Version
 History. Headings are `## X.Y.Z - YYYY-MM-DD`; groups are `### Added`,
 `### Changed` and `### Fixed`.
 
+## 1.6.6 - 2026-11-16
+
+### Added
+
+- Settings > How It Works shows a diagram of Sift: what comes in, what Sift
+  adds on your Mac, Library and Today, and what you do. The README and the
+  website show the same diagram.
+- iPhone: Scan, Watch and Read tabs each have a Today / Library switch, so
+  saved links are split the same way as Today. The review deck moved to
+  Lists.
+
+### Changed
+
+- Archive is now called Closed or Removed.
+- The Source menu left the toolbar. Pick a source in the sidebar.
+
 ## 1.6.5 - 2026-11-16
 
 ### Changed

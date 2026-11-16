@@ -34,7 +34,7 @@ struct TabList: View {
         case .source(let id): model.sourceTitle(id)
         case .unsorted: "Unsorted"
         case .closeQueue: "To Close"
-        case .archive: "Archive"
+        case .archive: "Closed or Removed"
         case .duplicates: "Duplicates"
         case .broken: "Broken Links"
         case .transcripts: "Transcripts"

@@ -15,16 +15,13 @@ struct DeckApp: App {
             // Today: what your feeds offer, a digest that ends. Library: what
             // you saved, unseen first, as a deck or deeper by theme.
             TabView(selection: $tab) {
-                // Today's picks in three tabs, by how you take them in
-                // (owner, 2026-11-16): Scan, Watch, Read. Log sits in Lists.
-                TodayListView(mode: .scan)
-                    .tabItem { Label("Scan", systemImage: ReadingMode.scan.symbol) }.tag("scan")
-                TodayView(goToLibrary: { tab = "library" })
-                    .tabItem { Label("Watch", systemImage: ReadingMode.watch.symbol) }.tag("watch")
-                TodayListView(mode: .read)
-                    .tabItem { Label("Read", systemImage: ReadingMode.read.symbol) }.tag("read")
-                LibraryView()
-                    .tabItem { Label("Library", systemImage: "books.vertical") }.tag("library")
+                // Scan, Watch, Read first, each with Today (offered) and
+                // Library (saved) at the top (owner, 2026-11-16). The swipe
+                // deck and Log sit in Lists.
+                ForEach(ReadingMode.allCases) { mode in
+                    ModeTab(mode: mode)
+                        .tabItem { Label(mode.title, systemImage: mode.symbol) }.tag(mode.rawValue)
+                }
                 ListsView().tabItem { Label("Lists", systemImage: "tray.full") }.tag("lists")
             }
             .environment(store)

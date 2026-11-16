@@ -44,7 +44,7 @@ enum KeyMap {
         .init(keys: "g a", action: .go(.overview), title: "Go to all items (Overview)", group: "Go"),
         .init(keys: "g u", action: .go(.unsorted), title: "Go to Unsorted", group: "Go"),
         .init(keys: "g k", action: .go(.source(TodayStore.keptSourceID)), title: "Go to Kept from Today", group: "Go"),
-        .init(keys: "g r", action: .go(.archive), title: "Go to Archive", group: "Go"),
+        .init(keys: "g r", action: .go(.archive), title: "Go to Closed or Removed", group: "Go"),
         .init(keys: "g x", action: .go(.transcripts), title: "Go to Transcripts", group: "Go"),
         .init(keys: "g d", action: .go(.duplicates), title: "Go to Duplicates", group: "Go"),
         .init(keys: "J", action: .nextSource, title: "Next feed or theme in the sidebar", group: "Go"),
