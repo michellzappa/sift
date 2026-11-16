@@ -51,7 +51,9 @@ Sift, Starlings or any server. Delete this folder once the answers are in.
   Library in the Watch tab shows your saved videos as the same player
   cards (Instagram reels and TikTok on a tap). Each video card shows why it is
   here, the channel, age and length, and the summary. A link to a page with
-  a video in it (a YouTube or Vimeo player, og:video) plays that video.
+  a video in it (a YouTube or Vimeo player, og:video) plays that video. Instagram
+  and TikTok play in the iPhone's own video player when the app finds the
+  video file in their embed page; else the embed shows after a tap.
 - **Signals:** what you do with Today picks goes to
   `iCloud Drive/Sift/signals/iphone-<id>.json` for the Mac's ranking:
   dwell (seconds on screen, 1.5 s or more), skip, open, keep, unseen and

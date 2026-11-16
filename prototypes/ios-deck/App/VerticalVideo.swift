@@ -18,10 +18,19 @@ enum VerticalVideo: Hashable, Sendable {
     /// A player page made to be embedded (twitter:player, og:video as a page).
     case embed(String)
 
-    /// Plays muted on its own: YouTube, Vimeo and files take a mute switch.
+    /// Plays muted on its own. Instagram and TikTok only when the phone finds
+    /// their file (`ClipPlayer`); an embed page waits for a tap.
     var autoplays: Bool {
         switch self {
-        case .youTube, .vimeo, .file: true
+        case .embed: false
+        default: true
+        }
+    }
+
+    /// Instagram and TikTok: played from their file in the system player.
+    var native: Bool {
+        switch self {
+        case .instagram, .tikTok: true
         default: false
         }
     }
@@ -123,7 +132,10 @@ struct VerticalVideoCard<Accessory: View>: View {
             } else {
                 ZStack {
                     Color.black
-                    if playing {
+                    if playing, video.native {
+                        ClipPlayer(video: video, muted: muted, failed: { playing = false })
+                            .id(muted)
+                    } else if playing {
                         VerticalPlayer(video: video, muted: muted)
                             .id(muted)
                             .aspectRatio(9 / 16, contentMode: .fit)

@@ -698,3 +698,9 @@ The one exception is anonymous diagnostics (owner, 2026-11-15, below).
   page once (YouTube or Vimeo iframe, og:video, twitter:player, <video>;
   cache Documents/videos.json, "" = none) and plays what it finds, else
   the usual card. `VerticalVideo` has `vimeo`, `file` and `embed` cases.
+  Instagram and TikTok play in the system player (`App/NativeClip.swift`,
+  owner: no embed page): `ClipResolver` loads the embed off screen in a
+  non-persistent web view, takes the <video> address or `video_url` /
+  `playAddr`, and gives it with that page's cookies and referer to AVPlayer.
+  Addresses expire: memory only. Nothing found: the embed after a tap, as
+  before. They autoplay muted only when the file is found.
