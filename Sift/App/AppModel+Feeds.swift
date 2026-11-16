@@ -28,6 +28,7 @@ extension AppModel {
             switch result {
             case .items(let parsed, let etag, let modified):
                 added += FeedStore.merge(parsed.entries, into: feed.id)
+                if feed.mine == true { FeedStore.updateMembers(parsed.entries.map(\.url), for: feed.id) }
                 state.feeds[i].etag = etag
                 state.feeds[i].lastModified = modified
                 state.feeds[i].lastError = nil
@@ -120,12 +121,12 @@ extension AppModel {
     }
 
     /// Adds one feed a provider found (FeedProviders.resolve).
-    func addFeed(_ found: FeedProviders.Found, category: String? = nil, priority: FeedPriority? = nil) {
-        addFeed(url: found.url, parsed: found.parsed, provider: found.provider, title: found.label, category: category, priority: priority)
+    func addFeed(_ found: FeedProviders.Found, category: String? = nil, priority: FeedPriority? = nil, mine: Bool = false) {
+        addFeed(url: found.url, parsed: found.parsed, provider: found.provider, title: found.label, category: category, priority: priority, mine: mine)
     }
 
     /// Adds one feed found from a site or feed address.
-    func addFeed(url: String, parsed: FeedParser.Parsed, provider: String? = nil, title: String? = nil, category: String? = nil, priority: FeedPriority? = nil) {
+    func addFeed(url: String, parsed: FeedParser.Parsed, provider: String? = nil, title: String? = nil, category: String? = nil, priority: FeedPriority? = nil, mine: Bool = false) {
         guard !state.feeds.contains(where: { $0.url == url }) else { return }
         let name = !parsed.title.isEmpty ? parsed.title : (title ?? URL(string: url)?.host() ?? url)
         let feed = Feed(id: UUID().uuidString.prefix(8).lowercased(), url: url, title: name,
@@ -133,6 +134,11 @@ extension AppModel {
                         added: Date(), lastFetched: Date())
         state.feeds.append(feed)
         _ = FeedStore.merge(parsed.entries, into: feed.id)
+        if mine {
+            state.feeds[state.feeds.count - 1].mine = true
+            FeedStore.setMembers(parsed.entries.map(\.url), for: feed.id)
+            reload()
+        }
         refreshFeedCounts()
         refreshToday()
     }
@@ -275,11 +281,11 @@ extension AppModel {
 
     /// The feeds in a folder ("" = no folder), by title.
     func feeds(inFolder folder: String) -> [Feed] {
-        state.feeds.filter { ($0.category ?? "") == folder }
+        offeredFeeds.filter { ($0.category ?? "") == folder }
             .sorted { $0.title.localizedCaseInsensitiveCompare($1.title) == .orderedAscending }
     }
 
-    var feedFolders: [String] { Array(Set(state.feeds.compactMap(\.category))).sorted() }
+    var feedFolders: [String] { Array(Set(offeredFeeds.compactMap(\.category))).sorted() }
 
     /// Recent items of some feeds as Today-style picks (no reason line),
     /// newest first, for the sidebar's feed and folder lists.

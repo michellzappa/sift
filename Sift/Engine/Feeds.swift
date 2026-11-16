@@ -24,6 +24,9 @@ struct Feed: Codable, Hashable, Sendable, Identifiable {
     /// Scan, Watch or Read for every item (`ReadingMode` raw value); nil =
     /// Auto: videos Watch, headline feeds (HN, Reddit) Scan, long text Read.
     var mode: String? = nil
+    /// True for a list of your own picks (a YouTube playlist you add to):
+    /// a Library source, not part of Today (AppModel+Lists).
+    var mine: Bool? = nil
     var enabled = true
     var added: Date
     var lastFetched: Date?
@@ -89,7 +92,33 @@ enum FeedStore {
         return added
     }
 
-    static func remove(_ id: String) { try? FileManager.default.removeItem(at: file(id)) }
+    static func remove(_ id: String) {
+        try? FileManager.default.removeItem(at: file(id))
+        try? FileManager.default.removeItem(at: membersFile(id))
+    }
+
+    // MARK: Lists (a feed of your own picks)
+
+    private static func membersFile(_ id: String) -> URL { folder.appending(path: "\(id).members.json") }
+
+    /// The URLs in the list at the last read, nil before the first.
+    static func members(_ id: String) -> [String]? {
+        guard let data = try? Data(contentsOf: membersFile(id)) else { return nil }
+        return try? JSONDecoder().decode([String].self, from: data)
+    }
+
+    static func setMembers(_ urls: [String], for id: String) {
+        if let data = try? JSONEncoder().encode(urls) { try? data.write(to: membersFile(id), options: .atomic) }
+    }
+
+    /// After a read: the list is what the feed holds now. A YouTube read that
+    /// got only the playlist feed's 15 (the page failed) keeps the longer
+    /// list, so videos do not leave the Library by mistake.
+    static func updateMembers(_ urls: [String], for id: String) {
+        guard !urls.isEmpty else { return }
+        if let old = members(id), old.count > 15, urls.count <= 15 { return }
+        setMembers(urls, for: id)
+    }
 }
 
 // MARK: - Parsing

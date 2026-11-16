@@ -215,6 +215,7 @@ enum Telemetry {
         if id.hasPrefix(ChromeReader.sourcePrefix) { return "chrome" }
         if id.hasPrefix(LinkImporter.sourcePrefix) { return "import" }
         if id == TodayStore.keptSourceID { return "feed" }
+        if id.hasPrefix(AppModel.listPrefix) { return "feed" }
         switch id {
         case ReadingListReader.sourceID: return "reading-list"
         case InstagramReader.sourceID: return "instagram"

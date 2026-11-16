@@ -41,10 +41,10 @@ extension AppModel {
             return
         }
         var entries: [String: [FeedEntry]] = [:]
-        for feed in state.feeds where feed.enabled { entries[feed.id] = FeedStore.entries(feed.id) }
+        for feed in offeredFeeds where feed.enabled { entries[feed.id] = FeedStore.entries(feed.id) }
         let events = FeedSignals.loadAll()
         let input = TodayBuilder.Input(
-            feeds: state.feeds, entries: entries,
+            feeds: offeredFeeds, entries: entries,
             themes: themes.map { ($0.name, $0.summary) },
             kept: state.kept, isSeen: { [seenMarks] in seenMarks[$0]?.seen ?? false },
             affinity: FeedSignals.affinity(events), evidence: FeedSignals.evidence(events))

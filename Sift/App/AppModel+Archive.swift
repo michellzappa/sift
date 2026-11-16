@@ -50,6 +50,7 @@ extension AppModel {
         if isInstagram { return "instagram" }
         if isTikTok { return "tiktok" }
         if isXBookmarks { return "x" }
+        if let list = currentList { return Self.listPrefix + list.id }
         if let profile = currentChrome { return profile.id }
         if let source = currentImport { return LinkImporter.sourcePrefix + source.id }
         return "tabs:\(state.deviceID ?? "")"
@@ -63,6 +64,7 @@ extension AppModel {
         if let phone = devices.first { keys.insert("tabs:\(phone.id)") }
         for p in chromeProfiles { keys.insert(p.id) }
         for s in state.importedSources { keys.insert(LinkImporter.sourcePrefix + s.id) }
+        for f in myLists { keys.insert(Self.listPrefix + f.id) }
         return keys
     }
 

@@ -9,6 +9,16 @@ ships this file and shows it in Settings > About and in Sift > Version
 History. Headings are `## X.Y.Z - YYYY-MM-DD`; groups are `### Added`,
 `### Changed` and `### Fixed`.
 
+## 1.6.7 - 2026-11-16
+
+### Added
+
+- Your YouTube playlists are saved links. Follow offers Add to Library for
+  a playlist: its videos become a Library source, like Reading List, with
+  transcripts and themes, and leave Today. A video you remove from the
+  playlist moves to Closed or Removed. Any feed can switch with Move to
+  Library as My List, and back with Show in Today Instead.
+
 ## 1.6.6 - 2026-11-16
 
 ### Added

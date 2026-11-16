@@ -231,10 +231,13 @@ final class AppModel {
             let tiktok = tiktokItems()
             tiktokCount = tiktok.count
             if isTikTok && tiktok.isEmpty { state.deviceID = nil }
+            let lists = myLists.map { ($0, listTabs($0)) }
+            if state.deviceID?.hasPrefix(Self.listPrefix) == true, currentList == nil { state.deviceID = nil }
             // Unique links across every source, for the All Sources label.
             var everyURL = Set(readingItems.map(\.tab.url))
             everyURL.formUnion(instagram.map(\.tab.url))
             everyURL.formUnion(tiktok.map(\.tab.url))
+            for (_, tabs) in lists { everyURL.formUnion(tabs.map(\.url)) }
             everyURL.formUnion(xBookmarkTabs().map(\.url))
             importCounts = [:]
             for source in state.importedSources {
@@ -269,6 +272,7 @@ final class AppModel {
                 add(reading.map(\.tab), "reading-list")
                 add(instagram.map(\.tab), "instagram")
                 add(tiktok.map(\.tab), "tiktok")
+                for (feed, tabs) in lists { add(tabs, Self.listPrefix + feed.id) }
                 add(xBookmarkTabs(), "x")
                 add(keptTabs(), TodayStore.keptSourceID)
                 for source in state.importedSources {
@@ -291,6 +295,8 @@ final class AppModel {
                 tabs = xBookmarkTabs()
             } else if let profile = currentChrome {
                 tabs = profile.tabs
+            } else if let list = currentList {
+                tabs = lists.first { $0.0.id == list.id }?.1 ?? []
             } else if isTikTok {
                 tabs = tiktok.map(\.tab)
                 for item in tiktok where previews[item.tab.url] == nil {

@@ -154,14 +154,28 @@ struct AddFeedSheet: View {
                     Label("Following", systemImage: "checkmark").foregroundStyle(.secondary).font(.callout)
                     HStack(spacing: 6) {
                         Button("Undo") { model.removeFeed(feed) }.controlSize(.small)
-                        Button("Show") { model.navigationRequest = .feed(feed.id); dismiss() }.controlSize(.small)
+                        Button("Show") { model.navigationRequest = feed.mine == true ? .source(AppModel.listPrefix + feed.id) : .feed(feed.id); dismiss() }.controlSize(.small)
                     }
                 }
             } else {
-                Button("Follow") {
-                    model.addFeed(r, category: chosenFolder, priority: priority)
+                VStack(alignment: .trailing, spacing: 6) {
+                    // A playlist is usually your own picks: Library, not Today.
+                    if URL(string: r.url).flatMap(YouTubePlaylist.id(inFeed:)) != nil {
+                        Button("Add to Library") {
+                            model.addFeed(r, category: chosenFolder, priority: priority, mine: true)
+                        }
+                        .buttonStyle(.borderedProminent)
+                        .help("Your own playlist: its videos go to your Library, like Watch Later.")
+                        Button("Follow in Today") { model.addFeed(r, category: chosenFolder, priority: priority) }
+                            .controlSize(.small)
+                            .help("Someone else's playlist: new videos show in Today.")
+                    } else {
+                        Button("Follow") {
+                            model.addFeed(r, category: chosenFolder, priority: priority)
+                        }
+                        .buttonStyle(.borderedProminent)
+                    }
                 }
-                .buttonStyle(.borderedProminent)
                 .disabled(Demo.isOn)
             }
         }

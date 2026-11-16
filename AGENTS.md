@@ -667,3 +667,11 @@ The one exception is anonymous diagnostics (owner, 2026-11-15, below).
   `archive`. Phone tabs: Scan, Watch, Read (each with a Today / Library
   switch, `prototypes/ios-deck/App/Modes.swift`), then Lists (Review Deck,
   Feeds, themes, Log).
+- My lists (2026-11-16, owner: "my playlists are a saved source").
+  `App/AppModel+Lists.swift`: `Feed.mine` turns a feed of your own picks
+  (a YouTube playlist you add to) into a Library source `list:<feed id>`
+  (telemetry kind "feed"). Its members are the URLs of the last read
+  (`FeedStore.members`, `feeds/<id>.members.json`; a 15-item YouTube read
+  never shrinks a longer list). `offeredFeeds` (not mine) feeds Today and
+  the Feeds sidebar. Follow sheet: playlists offer Add to Library (mine)
+  or Follow in Today.

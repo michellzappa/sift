@@ -318,6 +318,14 @@ private struct Sidebar: View {
                     .font(.callout)
                     .padding(.leading, 18)
                     .tag(SidebarItem.source(row.id))
+                    .contextMenu {
+                        if row.id.hasPrefix(AppModel.listPrefix), let feed = model.state.feeds.first(where: { AppModel.listPrefix + $0.id == row.id }) {
+                            Button("Show in Today Instead") { model.setMine(feed, false) }
+                            Button("Copy Feed Address") { model.copy(feed.url) }
+                            Divider()
+                            Button("Remove", role: .destructive) { model.removeFeed(feed) }
+                        }
+                    }
                 }
                 Label { HStack { Text("Unsorted"); Spacer(); count(model.unsortedCount) } } icon: { Image(systemName: "tray") }
                     .tag(SidebarItem.unsorted)
@@ -429,6 +437,9 @@ private struct Sidebar: View {
         if model.tiktokCount > 0 { rows.append(.init(id: TikTokReader.sourceID, name: "TikTok", symbol: "music.note", count: model.tiktokCount)) }
         if model.xConnected { rows.append(.init(id: AppModel.xBookmarksSourceID, name: "X Bookmarks", symbol: "bookmark", count: model.xBookmarkIDs.count)) }
         if !model.state.kept.isEmpty { rows.append(.init(id: TodayStore.keptSourceID, name: "Kept from Today", symbol: "star", count: model.state.kept.count)) }
+        for f in model.myLists {
+            rows.append(.init(id: AppModel.listPrefix + f.id, name: f.title, symbol: "play.rectangle.on.rectangle", count: FeedStore.members(f.id)?.count ?? 0))
+        }
         for i in model.state.importedSources {
             rows.append(.init(id: LinkImporter.sourcePrefix + i.id, name: i.name, symbol: "tray.and.arrow.down", count: model.importCounts[i.id] ?? 0))
         }
@@ -493,6 +504,8 @@ private struct Sidebar: View {
                     }
                 }
             }
+            Button("Move to Library as My List") { model.setMine(feed, true) }
+                .help("For a list of your own picks, like a YouTube playlist you add to: it leaves Today and becomes a Library source.")
             Button(feed.enabled ? "Pause" : "Resume") { model.setFeed(feed, enabled: !feed.enabled) }
             Button("Copy Feed Address") { model.copy(feed.url) }
             Divider()

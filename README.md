@@ -46,7 +46,8 @@ Screenshots use Sift's demo mode and made-up sample data.
 <img alt="How Sift works: saved links and offered feed items come in; Sift adds text, transcripts, summaries and themes on your Mac; you review your Library and discover in Today, in Scan, Watch or Read; then you take in, decide, organise and pass on." src="docs/images/how-sift-works.svg">
 
 Sift has two kinds of input. **Saved** links are what you chose: tabs,
-Reading List, bookmarks, Instagram, TikTok, imports. They stay until you
+Reading List, bookmarks, Instagram, TikTok, your YouTube playlists,
+imports. They stay until you
 remove them. **Offered** items are what your feeds post. Sift keeps them
 for 90 days unless you keep one. Keep moves an offered item into your
 saved links; Follow subscribes to the site of a saved link.
@@ -107,13 +108,16 @@ Sift suggests sites, subreddits and repositories you save often. feed://
 and `sift://subscribe?url=` links open in Sift. Each kind of input is a
 small provider plugin ([CONTRIBUTING.md](CONTRIBUTING.md)).
 
-**A playlist as a watch list.** YouTube's Watch Later list is private, so
-no app can follow it. Make a public or unlisted playlist instead, add
-videos to it from any device, and follow its link
-(`youtube.com/playlist?list=…`). Sift reads the first 100 videos, not only
-the 15 that YouTube's playlist feed holds, and counts a video as new on the
-day you add it, whatever its publish date. Set the feed to Don't Miss so
-each new video stays in Today until you see it.
+**Your playlists are saved links.** YouTube's Watch Later list is private,
+so no app can read it. Make a public or unlisted playlist instead, add
+videos to it from any device, and paste its link
+(`youtube.com/playlist?list=…`) into Follow. Add to Library makes it a
+Library source, like Reading List: its videos get transcripts and themes,
+and a video you take out of the playlist moves to Closed or Removed. Sift
+reads the first 100 videos, not only the 15 that YouTube's playlist feed
+holds. Follow in Today is for someone else's playlist. Any feed can switch
+with Move to Library as My List in its context menu, and back with Show in
+Today Instead.
 
 In Settings > Inputs > Feeds, Import OPML shows every feed in the file by
 folder, so you can follow all of them or a subset. Export OPML takes your
@@ -442,7 +446,7 @@ Apple, and carry a build provenance attestation. To check that a download
 came from this repository's release workflow:
 
 ```sh
-gh attestation verify Sift-1.6.6.zip -R michellzappa/sift
+gh attestation verify Sift-1.6.7.zip -R michellzappa/sift
 ```
 
 Each release also has a `SHA256SUMS` file.
@@ -517,7 +521,7 @@ app. Sift > Version History… shows the changelog.
 
 ### Releases
 
-Push a tag that matches `CFBundleShortVersionString`, for example `v1.6.6`.
+Push a tag that matches `CFBundleShortVersionString`, for example `v1.6.7`.
 The workflow in `.github/workflows/release.yml` builds a universal app,
 signs it with Developer ID, notarizes and staples it, attests its provenance,
 and publishes the ZIP and `SHA256SUMS`. It needs these repository secrets:

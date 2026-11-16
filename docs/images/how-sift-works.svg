@@ -70,8 +70,8 @@
   <text class="t" x="50" y="204">X bookmarks</text>
   <text class="t" x="50" y="230">Instagram Saved</text>
   <text class="t" x="50" y="256">TikTok favourites</text>
-  <text class="t" x="50" y="282">Imports, and what you keep</text>
-  <text class="t" x="50" y="304">from Today</text>
+  <text class="t" x="50" y="282">Your YouTube playlists</text>
+  <text class="t" x="50" y="308">Imports, kept items</text>
 
   <!-- Offered -->
   <rect class="offered" x="30" y="434" width="270" height="262" rx="14"/>
