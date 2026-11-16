@@ -246,7 +246,11 @@ private struct TodayCard: View {
     @ViewBuilder private var content: some View {
         if let video = pick.verticalVideo {
             VerticalVideoCard(item: pick.item, video: video, active: current, doubleTap: keep,
-                              played: { store.signal(.play, pick) }, text: open) { keepPill }
+                              played: { store.signal(.play, pick) }, text: open, autoplay: true) { keepPill }
+        } else if let id = TodayPick.youTubeID(pick.url) {
+            // A normal YouTube video: the same full card, 16:9 player.
+            VerticalVideoCard(item: pick.item, video: .youTube(id), active: current, doubleTap: keep,
+                              played: { store.signal(.play, pick) }, text: open, wide: true, autoplay: true) { keepPill }
         } else {
             CardView(item: pick.item, tall: true, lede: true)
                 .contentShape(Rectangle())

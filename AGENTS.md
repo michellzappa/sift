@@ -675,3 +675,9 @@ The one exception is anonymous diagnostics (owner, 2026-11-15, below).
   never shrinks a longer list). `offeredFeeds` (not mine) feeds Today and
   the Feeds sidebar. Follow sheet: playlists offer Add to Library (mine)
   or Follow in Today.
+- Watch autoplay on the phone (2026-11-16, owner: "muted autoplay"). In
+  Today's Watch tab every YouTube pick (Shorts and normal videos, 16:9) uses
+  `VerticalVideoCard` with `autoplay`: the card on screen starts the player
+  muted after 0.5 s (`mute=1`), stops when it leaves; a tap plays with sound
+  and is the only "play" signal. TikTok and Instagram stay tap to play.
+  Switch: UserDefaults `watch.autoplay` (Log), on by default.

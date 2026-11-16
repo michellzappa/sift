@@ -41,8 +41,10 @@ Sift, Starlings or any server. Delete this folder once the answers are in.
 - **Vertical video:** a YouTube Short (a `/shorts/` URL or `vertical: true`
   on a Today pick), an Instagram reel and a TikTok get a full-card layout:
   the poster fills the card, the title sits at the bottom, a large play
-  button in the middle. A tap loads the player inline in the card (it
-  never autoplays; the player's own button starts the sound). Swiping on
+  button in the middle. A tap loads the player inline in the card with
+  sound. In Today's Watch tab a YouTube video (Short or normal, the normal
+  one in a 16:9 player) plays muted while its card is on screen; Log has
+  the switch "Autoplay videos, muted". TikTok and Instagram wait for a tap. Swiping on
   unloads it. The Text pill opens the transcript or summary. In Today,
   double-tap and the Keep pill still keep.
 - **Signals:** what you do with Today picks goes to

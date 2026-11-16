@@ -2,8 +2,10 @@ import SwiftUI
 import WebKit
 
 /// A vertical video (YouTube Short, Instagram reel, TikTok). Owner rule
-/// (issue #30): transcript first, tap to play, never autoplay. The card shows
-/// the poster; the player loads only after a tap.
+/// (issue #30): transcript first, tap to play. Changed 2026-11-16 (owner):
+/// in Today's Watch tab a YouTube video plays muted while its card is on
+/// screen (`autoplay`, switch in Log: "watch.autoplay"); TikTok and
+/// Instagram still wait for a tap.
 enum VerticalVideo: Hashable, Sendable {
     case youTube(String)
     /// `path` is "reel" or "p", as in the item's URL.
@@ -69,15 +71,22 @@ struct VerticalVideoCard<Accessory: View>: View {
     var played: () -> Void = {}
     /// Opens the transcript or summary in the reader.
     let text: () -> Void
+    /// A 16:9 video (a normal YouTube video) in the same full card.
+    var wide = false
+    /// Plays muted while the card is the current one (YouTube only).
+    var autoplay = false
     @ViewBuilder var accessory: () -> Accessory
     @State private var playing = false
+    /// True while the player was started by autoplay: it is muted.
+    @State private var muted = false
 
     var body: some View {
         ZStack {
             Color.black
             if playing {
-                VerticalPlayer(video: video)
-                    .aspectRatio(9 / 16, contentMode: .fit)
+                VerticalPlayer(video: video, muted: muted)
+                    .id(muted)
+                    .aspectRatio(wide ? 16 / 9 : 9 / 16, contentMode: .fit)
             } else {
                 poster
             }
@@ -109,7 +118,8 @@ struct VerticalVideoCard<Accessory: View>: View {
         .overlay(alignment: .bottomTrailing) { accessory().padding(12) }
         .clipShape(RoundedRectangle(cornerRadius: 22))
         .onDisappear { playing = false }
-        .onChange(of: active) { _, now in if !now { playing = false } }
+        .onChange(of: active) { _, now in if now { autostart() } else { playing = false } }
+        .task(id: active) { autostart() }
     }
 
     /// The poster with the play button. The gestures sit on the poster only,
@@ -151,9 +161,23 @@ struct VerticalVideoCard<Accessory: View>: View {
     }
 
     private func start() {
-        guard !playing else { return }
+        guard !playing || muted else { return }
+        muted = false
         playing = true
         played()
+    }
+
+    /// Starts the player muted when the card settles on screen. A tap on the
+    /// poster plays with sound; autoplay is not a "play" signal.
+    private func autostart() {
+        guard autoplay, active, !playing, case .youTube = video,
+              UserDefaults.standard.object(forKey: "watch.autoplay") as? Bool ?? true else { return }
+        Task { @MainActor in
+            try? await Task.sleep(for: .milliseconds(500))
+            guard active, !playing else { return }
+            muted = true
+            playing = true
+        }
     }
 }
 
@@ -204,6 +228,8 @@ private struct PosterImage: View {
 /// the sound stops at once.
 struct VerticalPlayer: UIViewRepresentable {
     let video: VerticalVideo
+    /// Autoplay: start without sound. The player's own button turns it on.
+    var muted = false
 
     func makeUIView(context: Context) -> WKWebView {
         let config = WKWebViewConfiguration()
@@ -218,7 +244,7 @@ struct VerticalPlayer: UIViewRepresentable {
         web.backgroundColor = .black
         switch video {
         case .youTube(let id):
-            let src = "https://www.youtube-nocookie.com/embed/\(id)?playsinline=1&rel=0&loop=1&playlist=\(id)&autoplay=1"
+            let src = "https://www.youtube-nocookie.com/embed/\(id)?playsinline=1&rel=0&loop=1&playlist=\(id)&autoplay=1" + (muted ? "&mute=1" : "")
             let html = """
             <html><head><meta name="viewport" content="width=device-width,initial-scale=1"><style>html,body{margin:0;background:#000}iframe{position:absolute;inset:0;width:100%;height:100%;border:0}</style></head>
             <body><iframe src="\(src)" allow="encrypted-media; picture-in-picture" allowfullscreen></iframe></body></html>

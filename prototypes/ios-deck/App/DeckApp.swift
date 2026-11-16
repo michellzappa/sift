@@ -43,6 +43,7 @@ struct LogView: View {
     @Environment(Store.self) private var store
     @State private var importing = false
     @State private var connecting = false
+    @AppStorage("watch.autoplay") private var autoplay = true
 
     var body: some View {
         NavigationStack {
@@ -55,6 +56,13 @@ struct LogView: View {
                     LabeledContent("Let go", value: "\(store.count(.letGo, since: since))")
                     LabeledContent("Later", value: "\(store.count(.later, since: since))")
                     LabeledContent("Threads opened", value: "\(Set(store.log.compactMap(\.thread)).count)")
+                }
+                Section {
+                    Toggle("Autoplay videos, muted", isOn: $autoplay)
+                } header: {
+                    Text("Watch")
+                } footer: {
+                    Text("A YouTube video in Today's Watch tab plays without sound while its card is on screen. Tap it for sound. TikTok and Instagram wait for a tap.")
                 }
                 Section {
                     LabeledContent("Folder", value: store.connectedFolder ?? "Not connected")
