@@ -17,6 +17,7 @@ targets:
     platform: iOS
     sources:
       - path: App
+      - path: ../../Sift/Views/ScrollPast.swift
     settings:
       base:
         PRODUCT_BUNDLE_IDENTIFIER: app.sift.deck-prototype

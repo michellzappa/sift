@@ -80,6 +80,7 @@ struct OfferedList<Header: View, Empty: View>: View {
     /// The picks in the current mode (Scan, Watch, Read or All).
     private var shown: [TodayPick] { model.inMode(picks) }
     @State private var gridOwner = UUID()
+    @State private var past = ScrollPast()
     let header: Header
     let empty: Empty
     @State private var selected: String?
@@ -252,11 +253,17 @@ struct OfferedList<Header: View, Empty: View>: View {
     private var list: some View {
         ScrollViewReader { proxy in
             List(selection: $selected) {
-                ForEach(shown) { pick in
+                ForEach(Array(shown.enumerated()), id: \.element.id) { i, pick in
                     TodayRow(pick: pick, mode: model.listMode)
                         .tag(pick.url)
                         .id(pick.url)
                         .contextMenu { menu(pick) }
+                        // Scan: a headline scrolled past counts as seen.
+                        .onAppear { if model.listMode == .scan { past.appear(pick.url, at: i) } }
+                        .onDisappear {
+                            guard model.listMode == .scan else { return }
+                            past.disappear(pick.url, at: i) { model.setSeen([$0], true) }
+                        }
                 }
             }
             .listStyle(.inset)
@@ -273,9 +280,10 @@ struct OfferedList<Header: View, Empty: View>: View {
             }
             .onAppear {
                 focused = true
+                past.active = true
                 KeyRouter.shared.register(keyOwner) { handleKey($0, proxy) }
             }
-            .onDisappear { KeyRouter.shared.unregister(keyOwner) }
+            .onDisappear { past.active = false; KeyRouter.shared.unregister(keyOwner) }
         }
     }
 }
@@ -328,16 +336,17 @@ private struct TodayRow: View {
             }
 
             VStack(alignment: .leading, spacing: 3) {
-                HStack(spacing: 6) {
-                    if kept {
-                        Image(systemName: "star.fill").foregroundStyle(.yellow).font(.caption)
-                    } else if !seen {
-                        Circle().fill(Color.accentColor).frame(width: 7, height: 7)
-                    }
+                // The unseen dot (or the kept star) sits after the title.
+                HStack(alignment: .top, spacing: 6) {
                     Text(pick.title)
                         .font(.body.weight(seen || kept ? .regular : .semibold))
                         .foregroundStyle(seen && !kept ? .secondary : .primary)
                         .lineLimit(2)
+                    if kept {
+                        Image(systemName: "star.fill").foregroundStyle(.yellow).font(.caption).padding(.top, 2)
+                    } else if !seen {
+                        Circle().fill(Color.accentColor).frame(width: 7, height: 7).padding(.top, 6)
+                    }
                 }
                 Text([pick.feedTitle, pick.date?.formatted(.relative(presentation: .named)), readingTime].compactMap { $0 }.joined(separator: " · "))
                     .font(.caption).foregroundStyle(.secondary)

@@ -13,6 +13,7 @@ struct TabList: View {
     @State private var siteFilter: String?
     /// This list's token for the keyboard shortcuts (KeyRouter).
     @State private var keyOwner = UUID()
+    @State private var past = ScrollPast()
     /// Only unseen links, like an unread filter in mail.
     @AppStorage("list.unseenOnly") private var unseenOnly = false
     /// A saved search's links, loaded from the search index.
@@ -103,7 +104,15 @@ struct TabList: View {
                         .padding(.horizontal, 6)
                     } else {
                         LazyVStack(spacing: 2) {
-                            ForEach(rows) { tab in cell(tab).id(tab.id) }
+                            ForEach(Array(rows.enumerated()), id: \.element.id) { i, tab in
+                                cell(tab).id(tab.id)
+                                    // Scan: a link scrolled past counts as seen.
+                                    .onAppear { if model.listMode == .scan { past.appear(tab.url, at: i) } }
+                                    .onDisappear {
+                                        guard model.listMode == .scan else { return }
+                                        past.disappear(tab.url, at: i) { model.setSeen([$0], true) }
+                                    }
+                            }
                         }
                     }
                 }
@@ -155,8 +164,8 @@ struct TabList: View {
             }
         }
         .toolbar { listToolbar }
-        .onAppear { KeyRouter.shared.register(keyOwner, handleKey) }
-        .onDisappear { KeyRouter.shared.unregister(keyOwner) }
+        .onAppear { past.active = true; KeyRouter.shared.register(keyOwner, handleKey) }
+        .onDisappear { past.active = false; KeyRouter.shared.unregister(keyOwner) }
         .sheet(isPresented: $showShortcutGuide) { ShortcutGuide() }
     }
 
@@ -432,11 +441,11 @@ struct TabCard: View {
                 // Unseen reads like unread mail: a dot and a heavier title.
                 let seen = model.isSeen(tab.url)
                 HStack(spacing: 6) {
-                    if !seen { Circle().fill(Color.accentColor).frame(width: 7, height: 7) }
                     Text(cardTitle(preview))
                         .font(.body.weight(seen ? .regular : .semibold))
                         .foregroundStyle(seen ? .secondary : .primary)
                         .lineLimit(1)
+                    if !seen { Circle().fill(Color.accentColor).frame(width: 7, height: 7) }
                 }
                     .strikethrough(closing, color: .secondary)
                 HStack(spacing: 5) {

@@ -641,8 +641,11 @@ The one exception is anonymous diagnostics (owner, 2026-11-15, below).
 - Scan, Watch, Read (2026-11-16, owner: "cards vs list"). `Engine/Modes.swift`
   (`ReadingMode`, `Modes.mode`: video URL = watch, headline providers
   (HN, Reddit, News, Bluesky, Mastodon, GitHub, arXiv) = scan, Substack and
-  Medium = read (`Modes.providerMode`), 600+ words =
-  read, else scan; posts on X are scan unless their saved text is long).
+  Medium = read (`Modes.providerMode`), aggregator pages and posts (X,
+  Bluesky, Threads, Instagram) = scan unless a post has 600+ words, all
+  else read (owner: Daring Fireball is Read). Unseen dots sit after the
+  title. In Scan a row scrolled off the top counts as seen
+  (`Views/ScrollPast.swift`, also compiled into the phone app).
   `App/AppModel+Modes.swift`: `mode(of:)` for picks and tabs (library
   transcript or duration = watch), `inMode` filters, `Feed.mode` override
   (sidebar feed menu Mode, Auto from provider or most items).

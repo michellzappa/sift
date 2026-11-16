@@ -74,12 +74,15 @@ struct LinkList: View {
                 browsing = item
             } label: {
                 HStack(alignment: .top, spacing: 10) {
-                    Circle().fill(seen ? Color.clear : Color.accentColor).frame(width: 9, height: 9).padding(.top, 6)
                     VStack(alignment: .leading, spacing: 3) {
-                        Text(item.title)
-                            .font(.body.weight(seen ? .regular : .semibold))
-                            .foregroundStyle(seen ? .secondary : .primary)
-                            .lineLimit(2)
+                        // The unseen dot sits after the title.
+                        HStack(alignment: .top, spacing: 6) {
+                            Text(item.title)
+                                .font(.body.weight(seen ? .regular : .semibold))
+                                .foregroundStyle(seen ? .secondary : .primary)
+                                .lineLimit(2)
+                            if !seen { Circle().fill(Color.accentColor).frame(width: 8, height: 8).padding(.top, 6) }
+                        }
                         Text([item.site, item.readTime].compactMap { $0?.isEmpty == false ? $0 : nil }.joined(separator: " · "))
                             .font(.caption).foregroundStyle(.secondary)
                         if !item.summary.isEmpty {

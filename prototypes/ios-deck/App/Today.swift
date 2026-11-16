@@ -27,11 +27,14 @@ struct TodayPick: Codable, Hashable, Sendable, Identifiable {
     var mode: String?
 
     /// The tab this pick shows in. Without a mode from the Mac: video is
-    /// Watch, about 600 words or more is Read, the rest Scan.
+    /// Watch, headlines and posts are Scan, the rest Read.
     var readingMode: ReadingMode {
         if let mode, let m = ReadingMode(rawValue: mode) { return m }
         if vertical == true || verticalVideo != nil || Self.youTubeID(url) != nil { return .watch }
-        return (content?.split(whereSeparator: \.isWhitespace).count ?? 0) >= 600 ? .read : .scan
+        let host = URL(string: url)?.host()?.lowercased() ?? ""
+        let headline = ["x.com", "bsky.app", "news.ycombinator.com", "lobste.rs", "news.google.com"].contains(host)
+            || host.hasSuffix("reddit.com") || host.hasSuffix("twitter.com") || host.hasSuffix("instagram.com")
+        return headline ? .scan : .read
     }
 
     /// Minutes of reading at 220 words a minute, nil without text.
@@ -302,14 +305,25 @@ struct TodayListView: View {
     @Environment(Store.self) private var store
     let mode: ReadingMode
     @State private var reading: Item?
+    @State private var past = ScrollPast()
 
     private var picks: [TodayPick] { (store.today?.picks ?? []).filter { $0.readingMode == mode } }
 
     var body: some View {
         NavigationStack {
-            List(picks) { pick in
+            List(Array(picks.enumerated()), id: \.element.id) { i, pick in
                 Button { open(pick) } label: { row(pick) }
                     .buttonStyle(.plain)
+                    // Scan: a headline scrolled past counts as seen.
+                    .onAppear { if mode == .scan { past.appear(pick.url, at: i) } }
+                    .onDisappear {
+                        guard mode == .scan else { return }
+                        past.disappear(pick.url, at: i) { url in
+                            if let p = picks.first(where: { $0.url == url }), !store.isSeen(url) {
+                                store.setSeen([p.item], true, mode: "scan")
+                            }
+                        }
+                    }
                     .swipeActions(edge: .leading) {
                         if !store.isKept(pick.url) {
                             Button { store.keep(pick); store.signal(.keep, pick) } label: { Label("Keep", systemImage: "star") }
@@ -338,6 +352,8 @@ struct TodayListView: View {
             .navigationBarTitleDisplayMode(.inline)
             .refreshable { store.sync() }
             .sheet(item: $reading) { ReaderView(item: $0) }
+            .onAppear { past.active = true }
+            .onDisappear { past.active = false }
         }
     }
 
@@ -354,17 +370,18 @@ struct TodayListView: View {
         let kept = store.isKept(pick.url)
         HStack(alignment: .top, spacing: 12) {
             VStack(alignment: .leading, spacing: 4) {
-                HStack(alignment: .firstTextBaseline, spacing: 6) {
-                    if kept {
-                        Image(systemName: "star.fill").foregroundStyle(.yellow).font(.caption)
-                    } else if !seen {
-                        Circle().fill(Color.accentColor).frame(width: 7, height: 7)
-                    }
+                // The unseen dot (or the kept star) sits after the title.
+                HStack(alignment: .top, spacing: 6) {
                     Text(pick.title)
                         .font(mode == .read ? .headline : .body)
                         .fontWeight(seen && !kept ? .regular : .semibold)
                         .foregroundStyle(seen && !kept ? .secondary : .primary)
                         .lineLimit(mode == .scan ? 3 : 2)
+                    if kept {
+                        Image(systemName: "star.fill").foregroundStyle(.yellow).font(.caption).padding(.top, 3)
+                    } else if !seen {
+                        Circle().fill(Color.accentColor).frame(width: 7, height: 7).padding(.top, 7)
+                    }
                 }
                 Text([pick.feedTitle, mode == .read ? pick.minutes.map { "\($0) min read" } : nil,
                       pick.date?.formatted(.relative(presentation: .named))].compactMap { $0 }.joined(separator: " · "))

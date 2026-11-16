@@ -64,14 +64,14 @@ struct WatchCard: View {
             .saturation(seen && !kept ? 0 : 1)
             .overlay(RoundedRectangle(cornerRadius: 10).strokeBorder(selected ? Color.accentColor : .clear, lineWidth: 3))
             HStack(alignment: .top, spacing: 6) {
-                if kept {
-                    Image(systemName: "star.fill").foregroundStyle(.yellow).font(.caption)
-                } else if !seen {
-                    Circle().fill(Color.accentColor).frame(width: 7, height: 7).padding(.top, 5)
-                }
                 Text(title).font(.callout.weight(seen && !kept ? .regular : .semibold))
                     .foregroundStyle(seen && !kept ? .secondary : .primary)
                     .lineLimit(2)
+                if kept {
+                    Image(systemName: "star.fill").foregroundStyle(.yellow).font(.caption).padding(.top, 2)
+                } else if !seen {
+                    Circle().fill(Color.accentColor).frame(width: 7, height: 7).padding(.top, 5)
+                }
             }
             Text(byline).font(.caption).foregroundStyle(.secondary).lineLimit(1)
         }

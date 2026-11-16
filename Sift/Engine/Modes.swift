@@ -37,7 +37,7 @@ enum ReadingMode: String, Codable, CaseIterable, Sendable, Identifiable {
 }
 
 enum Modes {
-    /// Text of this many words or more is a long read: about 3 minutes.
+    /// A post (a thread on X) with this many words or more is a read.
     static let readWords = 600
     static let wordsPerMinute = 220
 
@@ -78,11 +78,18 @@ enum Modes {
         return u.path.lowercased().hasPrefix("/shorts/") || host.contains("tiktok") || host.hasSuffix("instagram.com")
     }
 
-    /// Short posts: their text is the headline.
+    /// Short posts: their text is the headline. Instagram posts that are
+    /// not reels are pictures with a caption.
     static func isPost(_ url: String) -> Bool {
         guard let host = URL(string: url)?.host()?.lowercased() else { return false }
         return host == "x.com" || host.hasSuffix(".x.com") || host.hasSuffix("twitter.com") || host == "bsky.app"
-            || host.hasSuffix("threads.net") || host.hasSuffix("threads.com")
+            || host.hasSuffix("threads.net") || host.hasSuffix("threads.com") || host.hasSuffix("instagram.com")
+    }
+
+    /// Link aggregators and discussion sites: their pages are headlines.
+    static func isAggregator(_ url: String) -> Bool {
+        guard let host = URL(string: url)?.host()?.lowercased() else { return false }
+        return ["news.ycombinator.com", "lobste.rs", "news.google.com"].contains(host) || host.hasSuffix("reddit.com")
     }
 
     /// Word count without making substrings (feed texts run to 60,000
@@ -100,12 +107,17 @@ enum Modes {
     /// Minutes of reading, at least 1.
     static func minutes(_ words: Int) -> Int { max(1, Int((Double(words) / Double(wordsPerMinute)).rounded())) }
 
-    /// The mode for one item. `words`: the text Sift has for it.
-    /// `provider`: the mode its feed's provider sets (HN: Scan, Substack: Read).
+    /// The mode for one item: video is Watch; headlines and posts are Scan;
+    /// everything else (blogs, newsletters, articles) is Read, whatever its
+    /// length (owner, 2026-11-16: Daring Fireball is Read).
+    /// `words`: the text Sift has for it. `provider`: the mode its feed's
+    /// provider sets (HN: Scan, Substack: Read).
     static func mode(url: String, words: Int, provider: ReadingMode? = nil) -> ReadingMode {
         if isVideo(url) { return .watch }
         if let provider { return provider }
+        if isAggregator(url) { return .scan }
         // A thread on X with a long saved text reads like an article.
-        return words >= readWords ? .read : .scan
+        if isPost(url) { return words >= readWords ? .read : .scan }
+        return .read
     }
 }

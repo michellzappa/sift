@@ -9,6 +9,16 @@ ships this file and shows it in Settings > About and in Sift > Version
 History. Headings are `## X.Y.Z - YYYY-MM-DD`; groups are `### Added`,
 `### Changed` and `### Fixed`.
 
+## 1.6.5 - 2026-11-16
+
+### Changed
+
+- Read now holds every blog, newsletter and article, short or long, so
+  Daring Fireball and similar sites are in Read. Scan holds headline sites
+  (Hacker News, Reddit, Google News) and posts.
+- In Scan, a row you scroll past counts as seen, on the Mac and the iPhone.
+- The blue unseen dot sits after the title on every list and card.
+
 ## 1.6.4 - 2026-11-16
 
 ### Changed
