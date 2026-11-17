@@ -42,6 +42,7 @@ struct WebPane: View {
                 Text(page.url?.host() ?? tab.host)
                     .font(.callout).foregroundStyle(.secondary).lineLimit(1).truncationMode(.middle)
                     .frame(maxWidth: .infinity)
+                if reader { ReaderSettingsButton() }
                 if hasText {
                     Toggle(isOn: $reader) { Image(systemName: hasTranscript ? "captions.bubble" : "doc.plaintext") }
                         .toggleStyle(.button)
@@ -78,20 +79,15 @@ struct WebPane: View {
             if reader, let text = Library.text(for: tab.url) {
                 Divider()
                 ScrollView {
-                    VStack(alignment: .leading, spacing: 10) {
-                        Text(model.archiveRecord(for: tab.url)?.title ?? tab.displayTitle).font(.title2.weight(.semibold))
-                        if let e = model.library[tab.url] {
-                            Text("\(e.words) words · captured \(e.captured.formatted(date: .abbreviated, time: .omitted))")
-                                .font(.caption).foregroundStyle(.secondary)
-                        }
-                        ForEach(Array(text.components(separatedBy: "\n\n").enumerated()), id: \.offset) { _, block in
-                            ReaderBlock(block: block)
-                        }
+                    let e = model.library[tab.url]
+                    VStack(alignment: .leading, spacing: 0) {
+                        ReaderHeader(title: model.archiveRecord(for: tab.url)?.title ?? tab.displayTitle,
+                                     byline: [tab.host, e?.author,
+                                              e.map { "saved " + $0.captured.formatted(date: .abbreviated, time: .omitted) },
+                                              e.flatMap { ReaderStyle.readingTime(words: $0.words) }])
+                        ReaderText(markdown: text)
                     }
-                    .textSelection(.enabled)
-                    .padding(24)
-                    .frame(maxWidth: 680, alignment: .leading)
-                    .frame(maxWidth: .infinity)
+                    .readerColumn()
                 }
                 .environment(\.openURL, OpenURLAction { url in model.openInApp(url.absoluteString); return .handled })
             } else if let post = model.shownXPost(for: tab.url) {
@@ -192,33 +188,6 @@ struct WebViewHost: NSViewRepresentable {
     let webView: WKWebView
     func makeNSView(context: Context) -> WKWebView { webView }
     func updateNSView(_ view: WKWebView, context: Context) {}
-}
-
-/// One paragraph of captured Markdown: headings, quotes and list items get
-/// their own style; inline Markdown (links, emphasis) renders natively.
-struct ReaderBlock: View {
-    let block: String
-
-    var body: some View {
-        let line = block.trimmingCharacters(in: .whitespacesAndNewlines)
-        if line.hasPrefix("### ") {
-            Text(inline(String(line.dropFirst(4)))).font(.headline).padding(.top, 6)
-        } else if line.hasPrefix("## ") {
-            Text(inline(String(line.dropFirst(3)))).font(.title3.weight(.semibold)).padding(.top, 8)
-        } else if line.hasPrefix("# ") {
-            Text(inline(String(line.dropFirst(2)))).font(.title2.weight(.semibold)).padding(.top, 8)
-        } else if line.hasPrefix("> ") {
-            Text(inline(String(line.dropFirst(2)))).italic().foregroundStyle(.secondary)
-                .padding(.leading, 12)
-                .overlay(alignment: .leading) { Rectangle().fill(.quaternary).frame(width: 3) }
-        } else {
-            Text(inline(line)).font(.body).lineSpacing(3)
-        }
-    }
-
-    private func inline(_ s: String) -> AttributedString {
-        (try? AttributedString(markdown: s, options: .init(interpretedSyntax: .inlineOnlyPreservingWhitespace))) ?? AttributedString(s)
-    }
 }
 
 /// Instagram and TikTok show a login wall on their own pages. Their embed

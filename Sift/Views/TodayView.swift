@@ -117,6 +117,7 @@ struct OfferedList<Header: View, Empty: View>: View {
                             HStack {
                                 Text(pick.reason.isEmpty ? pick.feedTitle : pick.reason).font(.callout).foregroundStyle(.secondary).lineLimit(1)
                                 Spacer()
+                                if !showPage { ReaderSettingsButton().buttonStyle(.borderless) }
                                 // The reader first; the website on request.
                                 Picker("", selection: $showPage) {
                                     Text("Reader").tag(false)
@@ -399,13 +400,13 @@ struct FeedReader: View {
 
     var body: some View {
         ScrollView {
-            VStack(alignment: .leading, spacing: 12) {
-                Text(pick.title).font(.title2.weight(.semibold))
-                Text([pick.feedTitle, pick.date?.formatted(date: .abbreviated, time: .shortened)].compactMap { $0 }.joined(separator: " · "))
-                    .font(.caption).foregroundStyle(.secondary)
+            VStack(alignment: .leading, spacing: 16) {
+                ReaderHeader(title: pick.title,
+                             byline: [pick.feedTitle, pick.date?.formatted(date: .abbreviated, time: .shortened),
+                                      content.flatMap { ReaderStyle.readingTime(words: ReaderStyle.words($0)) }])
                 if let why = pick.why { PickWhyView(why: why, feedTitle: pick.feedTitle) }
                 if content == nil {
-                    if !pick.summary.isEmpty { Text(pick.summary).font(.body).lineSpacing(3) }
+                    if !pick.summary.isEmpty { ReaderBlock(block: pick.summary) }
                     if loading {
                         HStack(spacing: 6) { ProgressView().controlSize(.small); Text("Getting the full article…").foregroundStyle(.secondary) }
                     } else if pick.summary.isEmpty || pick.summary.hasSuffix("…") {
@@ -414,36 +415,9 @@ struct FeedReader: View {
                             .font(.callout).foregroundStyle(.secondary)
                     }
                 }
-                ForEach(Array(blocks.enumerated()), id: \.offset) { _, block in
-                    if block.hasPrefix("```") {
-                        Text(block.replacingOccurrences(of: "```", with: "").trimmingCharacters(in: .newlines))
-                            .font(.system(.callout, design: .monospaced))
-                            .padding(10)
-                            .frame(maxWidth: .infinity, alignment: .leading)
-                            .background(RoundedRectangle(cornerRadius: 6).fill(Color.secondary.opacity(0.1)))
-                    } else if block.hasPrefix("- ") {
-                        VStack(alignment: .leading, spacing: 4) {
-                            ForEach(Array(block.split(separator: "\n").enumerated()), id: \.offset) { _, line in
-                                HStack(alignment: .top, spacing: 6) {
-                                    Text("•").foregroundStyle(.secondary)
-                                    ReaderBlock(block: String(line.drop { $0 == "-" || $0 == " " }))
-                                }
-                            }
-                        }
-                    } else {
-                        // A quote: every line starts with "> "; ReaderBlock wants one.
-                        ReaderBlock(block: block.hasPrefix("> ")
-                            ? "> " + block.split(separator: "\n").map { line in
-                                line.hasPrefix(">") ? String(line.dropFirst().drop { $0 == " " }) : String(line)
-                            }.joined(separator: "\n")
-                            : block)
-                    }
-                }
+                if let content { ReaderText(markdown: content) }
             }
-            .textSelection(.enabled)
-            .padding(24)
-            .frame(maxWidth: 680, alignment: .leading)
-            .frame(maxWidth: .infinity)
+            .readerColumn()
         }
         // Links in the text open in Sift's browser, not Safari.
         .environment(\.openURL, OpenURLAction { url in model.openInApp(url.absoluteString); return .handled })
@@ -453,35 +427,6 @@ struct FeedReader: View {
             content = await model.fullText(for: pick)
             loading = false
         }
-    }
-
-    /// Blocks split on blank lines, keeping ``` code blocks whole.
-    private var blocks: [String] {
-        guard let content else { return [] }
-        var out: [String] = []
-        var code: String?
-        for part in content.components(separatedBy: "\n\n") {
-            if var c = code {
-                c += "\n\n" + part
-                if part.hasSuffix("```") { out.append(c); code = nil } else { code = c }
-            } else if part.hasPrefix("```"), !(part.count > 3 && part.hasSuffix("```")) {
-                code = part
-            } else {
-                out.append(part)
-            }
-        }
-        if let c = code { out.append(c) }
-        out = out.map { $0.trimmingCharacters(in: .whitespacesAndNewlines) }.filter { !$0.isEmpty }
-        // Text saved before 1.4.2 can have a lone ">" before the quoted
-        // paragraph: it quotes the next block.
-        var merged: [String] = []
-        var quoteNext = false
-        for block in out {
-            if block == ">" { quoteNext = true; continue }
-            merged.append(quoteNext && !block.hasPrefix(">") ? "> " + block : block)
-            quoteNext = false
-        }
-        return merged
     }
 }
 

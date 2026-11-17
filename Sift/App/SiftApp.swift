@@ -40,6 +40,10 @@ struct SiftApp: App {
             CommandGroup(before: .sidebar) {
                 Button("Go to…") { model.showPalette.toggle() }.keyboardShortcut("k")
             }
+            CommandGroup(after: .sidebar) {
+                Divider()
+                ReaderTextCommands()
+            }
             CommandGroup(after: .appInfo) {
                 Button("Check for Updates…") { Updates.shared.checkForUpdatesInteractively() }
                 VersionHistoryCommand()

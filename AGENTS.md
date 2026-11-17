@@ -948,3 +948,23 @@ The one exception is anonymous diagnostics (owner, 2026-11-15, below).
   searches (Bluesky starter packs, podcasts, HN Algolia), YouTube featured
   channels (HTML scrape), Podcast Index (key).
 
+- Reader style (2026-11-17, owner: "a nicer reading mode … think Reeder,
+  Instapaper, Pocket … just the basics"). `Sift/Views/ReaderStyle.swift`
+  is the one style for both apps (the phone's project.yml compiles it):
+  `ReaderStyle` (five body sizes per platform, Mac 14/15/17/19/22, phone
+  15/16/18/20/23, step 2 by default; line height about 1.5; paragraph
+  space about one line; measure = 34 x size, about 68 characters;
+  heading scale; margins Mac 32, phone 24), `.readerColumn()` (style
+  into the environment, centred column), `ReaderHeader` (large title,
+  byline: site, author, date, reading time at 230 words a minute),
+  `ReaderText` (block splitting, code kept whole, long captions broken
+  every 80 words), `ReaderBlock` (headings, quotes with a thin rule,
+  lists, code, `![](…)` images, rules, paragraphs), `ReaderSettings` /
+  `ReaderSettingsButton` (the Aa popover) and, on the Mac,
+  `ReaderTextCommands` (View > Larger Text Command-plus, Smaller Text
+  Command-minus). Settings: UserDefaults `reader.size` (step 0 to 4) and
+  `reader.serif` (true = New York, the default; false = system sans).
+  Used by `FeedReader`, the web pane's reader, the phone's `ReaderView`
+  (thin progress bar at the top) and the phone's Today card lede
+  (`ReaderStyle.card`). Light and dark follow the system; no sepia. X
+  posts keep their own cards.

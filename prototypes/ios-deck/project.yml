@@ -18,6 +18,8 @@ targets:
     sources:
       - path: App
       - path: ../../Sift/Views/ScrollPast.swift
+      # The reader's look (column, sizes, Markdown blocks), shared with the Mac.
+      - path: ../../Sift/Views/ReaderStyle.swift
       # Closeness in meaning (Apple's on-device embeddings), shared with the Mac.
       - path: ../../Sift/Engine/Meaning.swift
     settings:

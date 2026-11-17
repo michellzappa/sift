@@ -106,9 +106,10 @@ struct CardView: View {
                     // The article's opening, as far as the card goes, fading out.
                     VStack(alignment: .leading, spacing: 8) {
                         ForEach(Array(ledeBlocks.enumerated()), id: \.offset) { _, block in
-                            MarkdownBlock(block: block).font(.callout)
+                            ReaderBlock(block: block)
                         }
                     }
+                    .environment(\.readerStyle, .card)
                     .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .topLeading)
                     .clipped()
                     .mask(LinearGradient(stops: [.init(color: .black, location: 0), .init(color: .black, location: 0.8),
@@ -160,6 +161,10 @@ struct ReaderView: View {
     let item: Item
     @State private var browsing: BrowserLink?
     @State private var trailFrom: Item?
+    /// The content's frame in the scroll view and the visible height: the progress bar.
+    @State private var content: CGRect = .zero
+    @State private var viewport: CGFloat = 0
+    private static let space = "reader"
 
     var body: some View {
         NavigationStack {
@@ -186,11 +191,9 @@ struct ReaderView: View {
                     } else if item.imageFile != nil || item.image != nil {
                         ItemImage(item: item, height: 260)
                     }
-                    VStack(alignment: .leading, spacing: 14) {
+                    VStack(alignment: .leading, spacing: 16) {
                         Text(item.theme).font(.caption.weight(.semibold)).foregroundStyle(store.color(item.theme))
-                        Text(item.title).font(.title2.weight(.bold))
-                        Text([item.author, item.site, item.year, item.readTime].compactMap { $0?.isEmpty == false ? $0 : nil }.joined(separator: " · "))
-                            .font(.caption).foregroundStyle(.secondary)
+                        ReaderHeader(title: item.title, byline: [item.author, item.site, item.year, item.readTime])
                         if !item.summary.isEmpty {
                             Text(item.summary).font(.callout).padding(12)
                                 .frame(maxWidth: .infinity, alignment: .leading)
@@ -209,9 +212,7 @@ struct ReaderView: View {
                         if !item.transcript.isEmpty {
                             Text("Transcript").font(.headline).padding(.top, 6)
                         }
-                        ForEach(Array(paragraphs.enumerated()), id: \.offset) { _, p in
-                            MarkdownBlock(block: p)
-                        }
+                        ReaderText(markdown: source)
                         if let url = URL(string: item.url) {
                             // Safari inside the app, never the Safari app: a page
                             // opened there becomes a tab and comes back to Sift.
@@ -221,13 +222,28 @@ struct ReaderView: View {
                         // A trail: more like this, from your saves and Today (Trail.swift).
                         Button { trailFrom = item } label: { Label("More like this", systemImage: "point.topleft.down.to.point.bottomright.curvepath") }
                     }
-                    .padding(20)
-                    .textSelection(.enabled)
+                    .readerColumn()
                 }
+                .onGeometryChange(for: CGRect.self) { $0.frame(in: .named(Self.space)) } action: { content = $0 }
                 }
             }
+            .coordinateSpace(.named(Self.space))
+            .onGeometryChange(for: CGFloat.self) { $0.size.height } action: { viewport = $0 }
             .ignoresSafeArea(edges: .top)
-            .toolbar { ToolbarItem(placement: .confirmationAction) { Button("Done") { dismiss() } } }
+            // A thin bar: how far through the text you are.
+            .overlay(alignment: .top) {
+                if !item.isXPost {
+                    GeometryReader { g in
+                        Rectangle().fill(Color.accentColor).frame(width: g.size.width * progress, height: 2)
+                    }
+                    .frame(height: 2)
+                    .allowsHitTesting(false)
+                }
+            }
+            .toolbar {
+                if !item.isXPost { ToolbarItem(placement: .topBarLeading) { ReaderSettingsButton() } }
+                ToolbarItem(placement: .confirmationAction) { Button("Done") { dismiss() } }
+            }
             // Links in the text open inside the app too.
             .environment(\.openURL, OpenURLAction { url in browsing = BrowserLink(url: url); return .handled })
             .sheet(item: $browsing) { InAppBrowser(url: $0.url).ignoresSafeArea() }
@@ -235,21 +251,16 @@ struct ReaderView: View {
         }
     }
 
-    private var paragraphs: [String] {
-        let source = !item.transcript.isEmpty ? item.text : (item.text.isEmpty ? item.passage : item.text)
-        // Captions come as one block: break them every few sentences or 80 words.
-        var out: [String] = []
-        for block in source.components(separatedBy: "\n\n") {
-            let b = block.trimmingCharacters(in: .whitespacesAndNewlines)
-            guard !b.isEmpty else { continue }
-            let words = b.split(separator: " ")
-            if words.count > 160 {
-                stride(from: 0, to: words.count, by: 80).forEach { out.append(words[$0..<min($0 + 80, words.count)].joined(separator: " ")) }
-            } else {
-                out.append(b)
-            }
-        }
-        return out
+    /// The saved text or the transcript; else the passage the deck had.
+    private var source: String {
+        !item.transcript.isEmpty ? item.text : (item.text.isEmpty ? item.passage : item.text)
+    }
+
+    /// 0 at the top, 1 when the end of the text is on screen.
+    private var progress: CGFloat {
+        let room = content.height - viewport
+        guard room > 1 else { return 0 }
+        return min(max(-content.minY / room, 0), 1)
     }
 }
 
@@ -347,53 +358,6 @@ struct YouTubePlayer: UIViewRepresentable {
     static func dismantleUIView(_ view: WKWebView, coordinator: ()) {
         view.pauseAllMediaPlayback()
         view.loadHTMLString("", baseURL: nil)
-    }
-}
-
-/// One Markdown block from a feed or the library: a heading, a quote, a list,
-/// a code block or a paragraph with inline emphasis and links. Single line
-/// breaks inside a block stay.
-struct MarkdownBlock: View {
-    let block: String
-
-    var body: some View {
-        let b = block.trimmingCharacters(in: .whitespacesAndNewlines)
-        if b.hasPrefix("```") {
-            Text(b.replacingOccurrences(of: "```", with: "").trimmingCharacters(in: .newlines))
-                .font(.system(.footnote, design: .monospaced))
-                .padding(10)
-                .frame(maxWidth: .infinity, alignment: .leading)
-                .background(RoundedRectangle(cornerRadius: 8).fill(Color(.tertiarySystemFill)))
-        } else if let level = headingLevel(b) {
-            Text(inline(String(b.drop { $0 == "#" }).trimmingCharacters(in: .whitespaces)))
-                .font(level <= 2 ? .title3.weight(.semibold) : .headline)
-                .padding(.top, 6)
-        } else if b.hasPrefix(">") {
-            Text(inline(b.split(separator: "\n").map { $0.drop { $0 == ">" || $0 == " " } }.joined(separator: "\n")))
-                .italic().foregroundStyle(.secondary)
-                .padding(.leading, 12)
-                .overlay(alignment: .leading) { Rectangle().fill(.quaternary).frame(width: 3) }
-        } else if b.hasPrefix("- ") {
-            VStack(alignment: .leading, spacing: 4) {
-                ForEach(Array(b.split(separator: "\n").enumerated()), id: \.offset) { _, line in
-                    HStack(alignment: .top, spacing: 6) {
-                        Text("•").foregroundStyle(.secondary)
-                        Text(inline(String(line.drop { $0 == "-" || $0 == " " })))
-                    }
-                }
-            }
-        } else {
-            Text(inline(b)).font(.body).lineSpacing(4)
-        }
-    }
-
-    private func headingLevel(_ s: String) -> Int? {
-        let hashes = s.prefix { $0 == "#" }.count
-        return (1...4).contains(hashes) && s.dropFirst(hashes).hasPrefix(" ") ? hashes : nil
-    }
-
-    private func inline(_ s: String) -> AttributedString {
-        (try? AttributedString(markdown: s, options: .init(interpretedSyntax: .inlineOnlyPreservingWhitespace))) ?? AttributedString(s)
     }
 }
 
