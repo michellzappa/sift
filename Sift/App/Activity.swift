@@ -37,6 +37,7 @@ extension AppModel {
         run("tiktok", "TikTok captions", isFetchingTikTok, tiktokProgress)
         run("titles", "YouTube titles", isFetchingVideoTitles, nil)
         run("nextdoor", "Finding who your creators link to", isFindingNeighbors, nil)
+        for theme in fartherAsking.sorted() { run("farther:" + theme, "Asking Claude about \(theme)", true, nil) }
         run("summaries", "Summaries on this Mac", isSummarizing, summaryProgress)
 
         let paused: [(key: String, title: String)] = [

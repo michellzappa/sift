@@ -28,11 +28,12 @@ struct CreatorsView: View {
             Picker("", selection: $tab) {
                 Text("Your Graph").tag("yours")
                 Text("Next Door").tag("nextdoor")
+                Text("Farther").tag("farther")
             }
             .pickerStyle(.segmented).labelsHidden().fixedSize()
             .padding(.vertical, 8)
             Divider()
-            if tab == "nextdoor" { NextDoorView() } else { yours }
+            if tab == "nextdoor" { NextDoorView() } else if tab == "farther" { FartherView() } else { yours }
         }
         .navigationTitle("Your Graph")
         .onAppear { if model.creators.isEmpty { model.refreshCreators() } }
@@ -350,6 +351,124 @@ private struct NeighborPane: View {
             }
             .padding(20)
             .frame(maxWidth: .infinity, alignment: .leading)
+        }
+    }
+}
+
+/// Farther: Claude's suggestions for one theme, each checked for a feed.
+private struct FartherView: View {
+    @Environment(AppModel.self) private var model
+    @AppStorage("farther.theme") private var themeName = ""
+
+    private var theme: Project? { model.themes.first { $0.name == themeName } ?? model.themes.first }
+
+    var body: some View {
+        ScrollView {
+            VStack(alignment: .leading, spacing: 16) {
+                Text("Your own Claude reads where a theme is going and names sources one step beyond it: deeper in the same direction, a neighbouring field your newest saves lean toward, and one serious opposing view. Sift then looks for each one's feed. Claude gets the theme's name, summary and history, your newest saved titles in it and the names of what you already follow, through your Claude login or API key, the same way sorting does. Nothing goes to a Sift server.")
+                    .font(.callout).foregroundStyle(.secondary).fixedSize(horizontal: false, vertical: true)
+                if let theme {
+                    HStack {
+                        Picker("Theme", selection: Binding(get: { theme.name }, set: { themeName = $0 })) {
+                            ForEach(model.themes.map(\.name), id: \.self) { Text($0).tag($0) }
+                        }
+                        .fixedSize()
+                        Spacer()
+                        if model.fartherAsking.contains(theme.name) {
+                            ProgressView().controlSize(.small)
+                            Text("Asking Claude…").foregroundStyle(.secondary)
+                        } else {
+                            Button(model.farther[theme.name] == nil ? "Ask Claude" : "Ask Again") {
+                                Task { await model.askFarther(theme) }
+                            }
+                            .buttonStyle(.borderedProminent)
+                        }
+                    }
+                    if let result = model.farther[theme.name] {
+                        answer(result, theme: theme.name)
+                    } else {
+                        DisclosureGroup("What Claude will see") {
+                            Text(model.fartherPrompt(theme)).font(.system(.caption, design: .monospaced)).textSelection(.enabled)
+                                .frame(maxWidth: .infinity, alignment: .leading)
+                        }
+                    }
+                } else {
+                    ContentUnavailableView("No themes yet", systemImage: "circle.hexagongrid", description: Text("Farther works per theme. Find themes first."))
+                }
+            }
+            .padding(16)
+            .frame(maxWidth: 820, alignment: .leading)
+        }
+    }
+
+    @ViewBuilder private func answer(_ r: FartherResult, theme: String) -> some View {
+        VStack(alignment: .leading, spacing: 4) {
+            Text("Where it is going").font(.headline)
+            Text(r.direction).fixedSize(horizontal: false, vertical: true)
+            Text("Asked " + r.asked.formatted(.relative(presentation: .named))).font(.caption).foregroundStyle(.secondary)
+        }
+        ForEach(["deeper", "adjacent", "counter"], id: \.self) { step in
+            let list = r.suggestions.filter { $0.step == step }
+            if !list.isEmpty {
+                VStack(alignment: .leading, spacing: 10) {
+                    Text(stepTitle(step)).font(.headline)
+                    ForEach(list) { s in row(s, theme: theme) }
+                }
+            }
+        }
+        if r.suggestions.isEmpty { Text("All suggestions are followed or dismissed. Ask again for more.").foregroundStyle(.secondary) }
+        DisclosureGroup("What Claude saw") {
+            Text(r.prompt).font(.system(.caption, design: .monospaced)).textSelection(.enabled)
+                .frame(maxWidth: .infinity, alignment: .leading)
+        }
+    }
+
+    private func stepTitle(_ step: String) -> String {
+        switch step {
+        case "deeper": "Deeper: the same direction, further"
+        case "adjacent": "Adjacent: where your newest saves lean"
+        default: "Counterpoint: a serious different view"
+        }
+    }
+
+    private func row(_ s: FartherSuggestion, theme: String) -> some View {
+        HStack(alignment: .top, spacing: 12) {
+            Image(systemName: symbol(s.kind)).foregroundStyle(.secondary).frame(width: 18)
+            VStack(alignment: .leading, spacing: 3) {
+                HStack(spacing: 6) {
+                    Text(s.name).fontWeight(.medium)
+                    Text(s.input).font(.caption).foregroundStyle(.secondary)
+                }
+                Text(s.why).font(.callout).foregroundStyle(.secondary).fixedSize(horizontal: false, vertical: true)
+                Text(feedLine(s)).font(.caption).foregroundStyle(s.hasFeed == false ? .orange : .secondary)
+            }
+            Spacer()
+            VStack(alignment: .trailing, spacing: 6) {
+                Button("Follow") { model.followFarther(s, theme: theme) }
+                    .buttonStyle(.borderedProminent).controlSize(.small).disabled(s.hasFeed != true)
+                Button("Dismiss") { model.dropFarther(s, theme: theme) }.controlSize(.small)
+            }
+        }
+        .padding(10)
+        .background(RoundedRectangle(cornerRadius: 8).fill(Color.secondary.opacity(0.07)))
+    }
+
+    private func feedLine(_ s: FartherSuggestion) -> String {
+        switch s.hasFeed {
+        case nil: return "Looking for its feed…"
+        case false?: return "No feed found: it may not exist, or it does not publish one"
+        default:
+            let last = s.lastPost.map { " · last post " + $0.formatted(.relative(presentation: .named)) } ?? ""
+            return "Feed: \(s.feedTitle ?? s.input)\(last)"
+        }
+    }
+
+    private func symbol(_ kind: String) -> String {
+        switch kind {
+        case "video": "play.rectangle"
+        case "podcast": "mic"
+        case "community": "bubble.left.and.bubble.right"
+        default: "doc.text"
         }
     }
 }

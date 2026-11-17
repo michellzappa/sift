@@ -82,7 +82,15 @@ extension AppModel {
                             addFeed(found, category: r.folder, priority: r.priority.flatMap(FeedPriority.init(rawValue:)))
                             noteFollowed(found.label ?? found.parsed.title)
                         }
-                        if let creator = r.creator, let i = state.feeds.firstIndex(where: { $0.url == found.url }) {
+                        if let creator = r.creator, creator.hasPrefix("farther:") {
+                            // "farther:<theme>:<input>": take it off that theme's list.
+                            let parts = creator.split(separator: ":", maxSplits: 2).map(String.init)
+                            if parts.count == 3 {
+                                farther[parts[1]]?.suggestions.removeAll { $0.id == parts[2] }
+                                Farther.save(farther)
+                                writeCreatorsForPhone()
+                            }
+                        } else if let creator = r.creator, let i = state.feeds.firstIndex(where: { $0.url == found.url }) {
                             state.feeds[i].creator = creator
                             refreshCreators()
                         }
@@ -102,6 +110,11 @@ extension AppModel {
                 state.phoneRequests[r.id] = "done"
             case "folder":
                 if let id = r.feedID { moveFeed(id, to: r.folder) }
+                state.phoneRequests[r.id] = "done"
+            case "farther":
+                if let theme = r.input, let project = themes.first(where: { $0.name == theme }) {
+                    Task { await askFarther(project) }
+                }
                 state.phoneRequests[r.id] = "done"
             case "hide", "show":
                 if let id = r.creator {
@@ -149,6 +162,8 @@ extension AppModel {
             var minSaves = Creators.minSaves
             var creators: [Row]
             var nextDoor: [Near]
+            var farther: [String: FartherResult]
+            var fartherAsking: [String]
         }
         let hidden = Set(state.hiddenCreators)
         let rows = creators.map { c in
@@ -165,7 +180,7 @@ extension AppModel {
                  themes: Dictionary(n.themes.map { ($0.name, $0.count) }, uniquingKeysWith: { a, _ in a }),
                  evidence: n.evidence.prefix(6).map { Evidence(from: $0.from, item: $0.item, itemURL: $0.itemURL, link: $0.link) })
         }
-        guard let data = try? e.encode(File(creators: rows, nextDoor: near)) else { return }
+        guard let data = try? e.encode(File(creators: rows, nextDoor: near, farther: farther, fartherAsking: fartherAsking.sorted())) else { return }
         let dir = CloseList.folder.appending(path: "Deck", directoryHint: .isDirectory)
         try? FileManager.default.createDirectory(at: dir, withIntermediateDirectories: true)
         let url = dir.appending(path: "creators.json")

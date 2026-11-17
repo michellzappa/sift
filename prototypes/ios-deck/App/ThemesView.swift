@@ -163,6 +163,7 @@ struct ThemePage: View {
                 listShelf(.scan, show: 5)
                 people
                 nextDoor
+                fartherShelf
                 linked
             }
             .padding(16)
@@ -252,6 +253,48 @@ struct ThemePage: View {
                 }
                 Text("Following a creator brings its new posts into Today.").font(.caption).foregroundStyle(.tertiary)
             }
+        }
+    }
+
+    /// Farther: Claude's suggestions one step beyond the theme, asked on
+    /// the Mac (from here with "Ask Claude").
+    @ViewBuilder private var fartherShelf: some View {
+        let result = store.farther(theme: theme.name)
+        let list = store.fartherShown(theme: theme.name)
+        VStack(alignment: .leading, spacing: 10) {
+            HStack {
+                Label("Farther", systemImage: "arrow.up.right").font(.headline)
+                Spacer()
+                if let s = store.fartherStatus(theme: theme.name) {
+                    Text(s).font(.caption).foregroundStyle(.secondary)
+                } else {
+                    Button(result == nil ? "Ask Claude" : "Ask Again") { store.askFarther(theme: theme.name) }.font(.subheadline)
+                }
+            }
+            if let result {
+                Text(result.direction).font(.callout).foregroundStyle(.secondary)
+                ForEach(list) { s in
+                    HStack(alignment: .top, spacing: 10) {
+                        VStack(alignment: .leading, spacing: 2) {
+                            Text(s.name).font(.subheadline.weight(.medium))
+                            Text("\(stepLabel(s.step)) · \(s.why)").font(.caption).foregroundStyle(.secondary).lineLimit(3)
+                        }
+                        Spacer()
+                        Button("Follow") { store.follow(s, theme: theme.name) }.buttonStyle(.bordered).controlSize(.small)
+                    }
+                }
+            } else {
+                Text("Your Mac asks your own Claude where this theme is going and for sources one step beyond it, then checks each for a feed.")
+                    .font(.caption).foregroundStyle(.tertiary)
+            }
+        }
+    }
+
+    private func stepLabel(_ step: String) -> String {
+        switch step {
+        case "deeper": "Deeper"
+        case "adjacent": "Adjacent"
+        default: "Counterpoint"
         }
     }
 

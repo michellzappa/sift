@@ -52,6 +52,46 @@ struct CreatorsFile: Codable {
     var minSaves: Int
     var creators: [Row]
     var nextDoor: [Near]?
+    /// Farther: Claude's suggestions per theme (the Mac's Feeds/Farther.swift).
+    var farther: [String: FartherResult]?
+    var fartherAsking: [String]?
+}
+
+struct FartherSuggestion: Codable, Hashable, Identifiable {
+    var id: String { input.lowercased() }
+    var name, input, kind, why, step: String
+    var hasFeed: Bool?
+    var feedTitle: String?
+    var lastPost: Date?
+}
+
+struct FartherResult: Codable, Hashable {
+    var theme: String
+    var asked: Date
+    var direction: String
+    var suggestions: [FartherSuggestion]
+    var prompt: String
+}
+
+extension Store {
+    func farther(theme: String) -> FartherResult? { creators?.farther?[theme] }
+
+    /// Suggestions with a feed, not followed from this phone yet.
+    func fartherShown(theme: String) -> [FartherSuggestion] {
+        let asked = Set(feedRequests.compactMap(\.creator))
+        return (farther(theme: theme)?.suggestions ?? []).filter { $0.hasFeed == true && !asked.contains("farther:\(theme):\($0.id)") }
+    }
+
+    func follow(_ s: FartherSuggestion, theme: String) { request("follow", input: s.input, creator: "farther:\(theme):\(s.id)") }
+
+    /// "Your Mac is asking Claude" or "Waiting for your Mac" while a request runs.
+    func fartherStatus(theme: String) -> String? {
+        if creators?.fartherAsking?.contains(theme) == true { return "Your Mac is asking Claude…" }
+        if feedRequests.contains(where: { $0.kind == "farther" && $0.input == theme && macFeeds?.requests[$0.id] == nil }) { return "Waiting for your Mac" }
+        return nil
+    }
+
+    func askFarther(theme: String) { request("farther", input: theme) }
 }
 
 /// The Mac's `PickWhy`: how a Today pick got its place.

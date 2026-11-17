@@ -168,3 +168,58 @@ extension AppModel {
         writeCreatorsForPhone()
     }
 }
+
+/// Farther (Feeds/Farther.swift): Claude's suggestions per theme.
+extension AppModel {
+    /// The text Farther would send for a theme: the newest saved titles, the
+    /// creators of the theme, and everything already followed.
+    func fartherPrompt(_ theme: Project) -> String {
+        let links = state.assignments.filter { $0.value.project == theme.name }.keys
+        let titled: [(Date, String)] = links.compactMap { url in
+            let r = archive[url]
+            let title = [r?.title, previews[url]?.title].compactMap { $0 }.first { !$0.isEmpty && !$0.hasPrefix("http") }
+            guard let title else { return nil }
+            return (r?.firstSeen ?? .distantPast, String(title.prefix(140)))
+        }
+        let titles = titled.sorted { $0.0 > $1.0 }.map(\.1)
+        let inTheme = creators.filter { c in c.themes.contains { $0.name == theme.name } }
+            .sorted { ($0.themes.first { $0.name == theme.name }?.count ?? 0) > ($1.themes.first { $0.name == theme.name }?.count ?? 0) }
+        let names = inTheme.prefix(12).map(\.name)
+        let already = Array(Set(state.feeds.map(\.title) + inTheme.prefix(40).map(\.name))).sorted()
+        return Farther.prompt(theme: theme, titles: titles, creators: names, already: already)
+    }
+
+    /// Asks the user's Claude for sources one step beyond the theme, then
+    /// checks each for a feed. Replaces the theme's earlier answer.
+    func askFarther(_ theme: Project) async {
+        guard !Demo.isOn else { exportMessage = Demo.offMessage; return }
+        guard !fartherAsking.contains(theme.name) else { return }
+        fartherAsking.insert(theme.name)
+        defer { fartherAsking.remove(theme.name); writeCreatorsForPhone() }
+        do {
+            var result = try await Farther.ask(backend: state.backend, prompt: fartherPrompt(theme), theme: theme.name)
+            farther[theme.name] = result
+            for i in result.suggestions.indices {
+                result.suggestions[i] = await Farther.check(result.suggestions[i])
+                farther[theme.name] = result
+            }
+            Farther.save(farther)
+        } catch {
+            if ClaudeCodeRunner.needsLogin(error.localizedDescription) { exportMessage = ClaudeCodeRunner.loginMessage }
+            else { exportMessage = "Farther: \(error.localizedDescription)" }
+        }
+    }
+
+    func followFarther(_ s: FartherSuggestion, theme: String) {
+        guard !Demo.isOn else { exportMessage = Demo.offMessage; return }
+        followQuick(s.input)
+        dropFarther(s, theme: theme)
+    }
+
+    /// Takes a suggestion off the theme's list (followed or not wanted).
+    func dropFarther(_ s: FartherSuggestion, theme: String) {
+        farther[theme]?.suggestions.removeAll { $0.id == s.id }
+        Farther.save(farther)
+        writeCreatorsForPhone()
+    }
+}

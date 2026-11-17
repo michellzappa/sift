@@ -9,6 +9,11 @@ ships this file and shows it in Settings > About and in Sift > Version
 History. Headings are `## X.Y.Z - YYYY-MM-DD`; groups are `### Added`,
 `### Changed` and `### Fixed`.
 
+## 1.7.6 - 2026-11-17
+
+### Added
+- Farther, a third tab in Your Graph. Pick a theme and ask your own Claude where the theme is going. It names sources one step beyond what you follow: deeper in the same direction, a neighbouring field your newest saves lean toward, and one serious different view. Sift checks each one for a feed, and only those with a feed can be followed. "What Claude saw" shows the exact text sent. On the iPhone, Farther is on each theme page, and Ask Claude there asks your Mac.
+
 ## 1.7.5 - 2026-11-17
 
 ### Added

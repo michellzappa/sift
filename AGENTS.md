@@ -795,3 +795,16 @@ The one exception is anonymous diagnostics (owner, 2026-11-15, below).
   Tuned on the owner's library 2026-11-17: sponsors (workos, ramp,
   intercom) can still slip through when the description has no sponsor
   words; add hosts to `noise` when they show up.
+- Farther (2026-11-17, owner: "claude suggestions per theme").
+  `Feeds/Farther.swift`: on request only, one theme at a time, through
+  `Sorter.ask` (the user's backend). Input (`AppModel.fartherPrompt`):
+  theme name, summary, last 5 history lines, 30 newest saved titles,
+  top creators in the theme, and an "already" list (followed feed titles
+  + theme creators). Output: a one-sentence direction and 8 sources with
+  step deeper/adjacent/counter. Each is checked with
+  `FeedProviders.resolve`; Follow only when a feed was found. Answers
+  live in `Application Support/Sift/farther.json` (theme → result, with
+  the exact prompt shown as "What Claude saw"). creators.json carries
+  `farther` and `fartherAsking`; the phone asks with request kind
+  "farther" (input = theme) and follows with creator
+  "farther:<theme>:<input>", which the Mac takes off the list.

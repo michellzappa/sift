@@ -165,6 +165,10 @@ final class AppModel {
     var neighbors: [Neighbor] = []
     var isFindingNeighbors = false
     @ObservationIgnored var neighborsBuilt: Date?
+    /// Farther: Claude's suggestions per theme (Feeds/Farther.swift).
+    var farther: [String: FartherResult] = Farther.load()
+    /// Themes whose suggestions are being asked for or checked.
+    var fartherAsking: Set<String> = []
 
     // MARK: Seen (AppModel+Seen.swift, Storage/Seen.swift)
     /// Newest seen or unseen mark per URL, from every device.

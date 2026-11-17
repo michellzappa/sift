@@ -126,13 +126,15 @@ struct AlgorithmSettings: View {
                 .font(.callout)
             Text("Next Door: creators outside your graph that \(NextDoor.minLinkers) or more of yours link to, in the pages, video descriptions and feed items Sift already has. Each creator who links adds 1 + log(1 + its own score). Sponsor links, shops, tip jars and a creator's own site do not count. \(model.visibleNeighbors.count) found.")
                 .font(.callout).foregroundStyle(.secondary).fixedSize(horizontal: false, vertical: true)
+            Text("Farther: on request, per theme, your own Claude reads the theme's newest saved titles and history and names sources one step beyond: deeper, adjacent and one counterpoint. Sift checks each for a feed; only those with one can be followed. Each answer keeps the exact text Claude saw.")
+                .font(.callout).foregroundStyle(.secondary).fixedSize(horizontal: false, vertical: true)
             Button("Open Your Graph") { model.navigationRequest = .creators }
         }
     }
 
     private var ai: some View {
         VStack(alignment: .leading, spacing: 6) {
-            Text("Claude (your own login or key): finding themes, sorting links that the on-device model is not sure of, and connections between themes. It gets titles, addresses and previews, never full pages.")
+            Text("Claude (your own login or key): finding themes, sorting links that the on-device model is not sure of, connections between themes, and Farther suggestions when you ask. It gets titles, addresses and previews, never full pages.")
             Text("Apple's on-device model: the first sorting pass and summaries, on this Mac.")
             Text("No AI: Today, Your Graph, Scan / Watch / Read, duplicates, search.")
         }
