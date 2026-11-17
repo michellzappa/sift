@@ -51,6 +51,7 @@ struct ThemesView: View {
                         Button { showDeck = true } label: { Label("Review Deck", systemImage: "rectangle.stack") }
                         NavigationLink { CreatorGraphView() } label: { Label("Your Graph", systemImage: "person.2") }
                         NavigationLink { PeopleListView() } label: { Label("People", systemImage: "person.crop.rectangle.stack") }
+                        NavigationLink { DirectoryView() } label: { Label("Directory", systemImage: "books.vertical") }
                         NavigationLink { FeedsView() } label: { Label("Feeds", systemImage: "dot.radiowaves.up.forward") }
                         Button { showLog = true } label: { Label("Settings", systemImage: "gearshape") }
                     } label: { Image(systemName: "ellipsis.circle") }

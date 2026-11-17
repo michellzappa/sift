@@ -31,6 +31,10 @@ struct Feed: Codable, Hashable, Sendable, Identifiable {
     var creator: String? = nil
     /// The `Place.id` this feed is, when followed from a person (People).
     var place: String? = nil
+    /// Followed from the directory: who vouched, and when (Today lifts it
+    /// a little for `TodayBuilder.vouchDays`).
+    var vouchedBy: [String]? = nil
+    var vouchedAt: Date? = nil
     var enabled = true
     var added: Date
     var lastFetched: Date?

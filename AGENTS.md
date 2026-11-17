@@ -925,3 +925,26 @@ The one exception is anonymous diagnostics (owner, 2026-11-15, below).
   item; `ReaderView` shows `XPostCard` for X status links. export-deck.py
   has `is_junk` (same rules as `ShellText`: change both together) and
   sends X items with `post`, no key lines and no summary.
+- Directory (2026-11-17, owner: "dynamic directory … to feed our algo",
+  "graph walks" only, "think smallweb first, bloggers"). Research and live
+  endpoint checks: owner's session, 2026-11-17. `Feeds/Directory.swift`:
+  walks out from followed feeds only (ids leave the Mac, never theme words
+  or titles): blogroll pages/OPML on followed sites (`blogroll`), Substack
+  `<site>/api/v1/archive` → publication_id →
+  substack.com/api/v1/recommendations/from/<id> (only feeds ending /feed),
+  Bluesky `getSuggestedFollowsByActor` kept only for domain handles,
+  Mastodon `accounts/lookup` + `endorsements`; Kagi Small Web
+  (smallweb.txt, monthly, `Application Support/Sift/smallweb.txt`) matched
+  locally against saved hosts and hosts your feeds link to. Score = sum
+  over vouchers of 1 + voucher affinity, × 1.3 small web, × (1 + cos) to
+  the nearest theme by meaning. Per group (blog, newsletter, mastodon) the
+  best are resolved and kept only with a post in 30 days; 12 each; weekly
+  (`directory.json`, dismissed ids). `AppModel+Directory`: 80 vouchers
+  max, `followDirectory` sets `Feed.vouchedBy/vouchedAt`; Today
+  `vouchBonus` 0.1 × log2(1 + n), max 0.3, 30 days (`PickWhy.vouchedBy`).
+  UI: `DirectoryList` first in the Follow sheet; phone `DirectoryView`
+  (creators.json `directory`, follow with creator "directory:<id>",
+  request kind "dismiss"). Not built (owner's call needed): theme-word
+  searches (Bluesky starter packs, podcasts, HN Algolia), YouTube featured
+  channels (HTML scrape), Podcast Index (key).
+

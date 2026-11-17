@@ -44,7 +44,7 @@ struct AlgorithmSettings: View {
 
     private var formula: some View {
         VStack(alignment: .leading, spacing: 8) {
-            Text("score = fresh × volume × reading + graph + theme + linked + hot")
+            Text("score = fresh × volume × reading + graph + theme + linked + vouched + hot")
                 .font(.system(.body, design: .monospaced))
                 .padding(8)
                 .background(RoundedRectangle(cornerRadius: 6).fill(Color.secondary.opacity(0.1)))
@@ -56,6 +56,7 @@ struct AlgorithmSettings: View {
                 line("theme", "0.15 × shared words, max 0.6", "needs 3 or more words in common with a theme")
                 line("", "or 2 × (meaning − 0.35), max 0.6", "closeness in meaning to the theme's centre, at least \(String(format: "%.2f", Meaning.themeMin)) and clearly ahead of the next theme; the larger of the two counts")
                 line("linked", "0.3 × feeds, max 0.9", "your other feeds link to it in their posts this week")
+                line("vouched", "0.1 × log2(1 + vouchers), max 0.3", "a feed you followed from the directory, for its first \(Int(TodayBuilder.vouchDays)) days")
                 line("hot", "0.6 × (feeds − 1)", "the same link in 2 or more of your feeds")
             }
             .font(.callout)

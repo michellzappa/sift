@@ -164,6 +164,9 @@ final class AppModel {
     /// Meaning on this Mac: link vectors and theme centres (Engine/Embeddings.swift).
     @ObservationIgnored var embedSpace = Meaning.Space()
     var isEmbedding = false
+    /// The directory in Follow (Feeds/Directory.swift).
+    var directory = Directory.load()
+    var isBuildingDirectory = false
     /// People: one person's places across platforms (Feeds/People.swift).
     var people: [Person] = []
     @ObservationIgnored var peopleFile = People.load()

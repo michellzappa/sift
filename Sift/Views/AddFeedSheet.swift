@@ -54,6 +54,7 @@ struct AddFeedSheet: View {
             } else {
                 ScrollView {
                     VStack(alignment: .leading, spacing: 14) {
+                        DirectoryList()
                         suggestions
                         popular
                         providerHints

@@ -28,6 +28,9 @@ struct PickWhyView: View {
                                 row("Theme", String(format: "+ %.2f", why.themeBonus), "\(why.themeWords) words shared with \(t)")
                             }
                         }
+                        if let by = why.vouchedBy, !by.isEmpty {
+                            row("Vouched", String(format: "+ %.2f", why.vouchBonus ?? 0), by.joined(separator: ", ") + " (directory, first \(Int(TodayBuilder.vouchDays)) days)")
+                        }
                         if let names = why.linkedBy, !names.isEmpty {
                             row("Linked", String(format: "+ %.2f", why.linkedBonus ?? 0), "posts in \(names.joined(separator: ", ")) link here")
                         }

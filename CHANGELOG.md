@@ -9,6 +9,12 @@ ships this file and shows it in Settings > About and in Sift > Version
 History. Headings are `## X.Y.Z - YYYY-MM-DD`; groups are `### Added`,
 `### Changed` and `### Fixed`.
 
+## 1.8.1 - 2026-11-17
+
+### Added
+- A directory in Follow: who the people you follow vouch for, small web first. Sift reads the blogrolls on the sites you follow, Substack recommendations from your newsletters, Bluesky's suggestions for the accounts you follow (only people with their own site), and Mastodon featured profiles. It also matches Kagi's Small Web list of personal blogs against the sites you save from or your feeds link to, on your Mac. Only the public addresses of what you already follow leave your Mac. Each name shows who vouches for it, and the list ends: at most 12 per group, once a week, only feeds that posted in the last 30 days. On the iPhone it is in the Themes menu.
+- A feed you follow from the directory gets a small lift in Today for its first 30 days. "Why this is here" says who vouched.
+
 ## 1.8.0 - 2026-11-17
 
 ### Fixed

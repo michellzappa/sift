@@ -83,6 +83,9 @@ struct PickWhy: Codable, Hashable, Sendable {
     var score: Double
     /// Theme fit by meaning (Embeddings): cosine to the theme's centre.
     var themeSimilarity: Double? = nil
+    /// Directory: who vouched for this feed when you followed it.
+    var vouchedBy: [String]? = nil
+    var vouchBonus: Double? = nil
     /// Social proof: your feeds whose posts link to this item.
     var linkedBy: [String]? = nil
     var linkedBonus: Double? = nil
@@ -160,6 +163,11 @@ enum TodayBuilder {
         /// for their own items.
         var personOf: [String: String] = [:]
     }
+
+    /// Directory: a feed followed because people you follow vouch for it gets
+    /// 0.1 × log2(1 + vouchers), at most 0.3, for its first `vouchDays`.
+    static let vouchDays: Double = 30
+    static func vouchBonus(_ n: Int) -> Double { min(0.1 * log2(1 + Double(n)), 0.3) }
 
     /// Markdown and bare links in an item's text.
     static func outLinks(_ e: FeedEntry) -> Set<String> {
@@ -362,6 +370,12 @@ enum TodayBuilder {
                 }
 
                 var score = why.freshness * damping * (1 + 0.8 * affinity) + why.creatorBonus
+                if let by = feed.vouchedBy, !by.isEmpty, let at = feed.vouchedAt, now.timeIntervalSince(at) < vouchDays * 86_400 {
+                    why.vouchedBy = by
+                    why.vouchBonus = vouchBonus(by.count)
+                    score += vouchBonus(by.count)
+                    pick.reason = by.count == 1 ? by[0] : "\(by[0]) and \(by.count - 1) more"
+                }
                 var strong = false
                 let keeps = keptPerFeed[feed.id] ?? 0
                 if affinity > 0.4 || keeps >= 2 { pick.reason = "You often read \(feed.title)" }

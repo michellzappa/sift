@@ -86,6 +86,26 @@ struct CreatorsFile: Codable {
     var farther: [String: FartherResult]?
     var fartherAsking: [String]?
     var people: [PersonRow]?
+    var directory: [DirectoryEntry]?
+    var directoryBuilt: Date?
+
+    /// The directory (the Mac's Feeds/Directory.swift): who the people you
+    /// follow vouch for, small web first, built once a week.
+    struct DirectoryEntry: Codable, Identifiable, Hashable {
+        var id, name, input, group: String
+        var via: [String]
+        var description: String
+        var smallWeb: Bool
+        var theme: String?
+        var score: Double
+        var lastPost: Date?
+        var reason: String {
+            var parts = [via.prefix(2).joined(separator: ", ") + (via.count > 2 ? " and \(via.count - 2) more" : "")]
+            if smallWeb { parts.append("Small web") }
+            if let theme { parts.append("Fits \(theme)") }
+            return parts.filter { !$0.isEmpty }.joined(separator: " · ")
+        }
+    }
 }
 
 struct FartherSuggestion: Codable, Hashable, Identifiable {
