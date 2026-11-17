@@ -37,7 +37,7 @@ extension Store {
 
 /// One mode tab (owner, 2026-11-17: no Today / Library switch): one stream
 /// that ends. Today's picks in this mode first, then "From your Library",
-/// your unseen saved items in this mode. Lists is where you browse the
+/// your unseen saved items in this mode. Themes is where you browse the
 /// library on purpose.
 struct ModeTab: View {
     let mode: ReadingMode

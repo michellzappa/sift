@@ -30,7 +30,10 @@ Sift, Starlings or any server. Delete this folder once the answers are in.
   reading time. Tap opens the reader and counts as seen, swipe right
   keeps, swipe left switches seen. Each tab is one stream that ends:
   Today first, then "From your Library", your unseen saved items in that
-  mode. Lists follows; Log is the button at the top right of Lists.
+  mode. Themes follows: the interest graph on top (tap a hub), your
+  themes with what waits in each mode, and a page per theme with a shelf
+  per mode and its linked themes. Review Deck, Feeds and Log are in the
+  Themes menu.
 - **Deck:** seven cards across themes (or one theme from the top-right menu).
   Right keep, left let go, up send, down later (two per deck), tap to read.
   The end card counts what you did; another deck is a quiet button.

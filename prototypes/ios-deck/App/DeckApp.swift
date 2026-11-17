@@ -17,12 +17,12 @@ struct DeckApp: App {
             TabView(selection: $tab) {
                 // Scan, Watch, Read first, each with Today (offered) and
                 // Library (saved) at the top (owner, 2026-11-16). The swipe
-                // deck and Log sit in Lists.
+                // deck, Feeds and Log sit in the Themes tab's menu.
                 ForEach(ReadingMode.allCases) { mode in
                     ModeTab(mode: mode)
                         .tabItem { Label(mode.title, systemImage: mode.symbol) }.tag(mode.rawValue)
                 }
-                ListsView().tabItem { Label("Lists", systemImage: "tray.full") }.tag("lists")
+                ThemesView().tabItem { Label("Themes", systemImage: "circle.hexagongrid") }.tag("themes")
             }
             .environment(store)
             // Seen marks from the Mac, and a newer Deck, whenever the app comes back.

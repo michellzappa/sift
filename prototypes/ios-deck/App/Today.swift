@@ -211,7 +211,7 @@ struct TodayView: View {
                     if picks.isEmpty && savedVideos.isEmpty {
                         ContentUnavailableView("Nothing to watch", systemImage: "play.rectangle",
                                                description: Text(store.connectedFolder == nil
-                                                                 ? "Connect the Sift folder: Lists, then Log. Today comes from your Mac."
+                                                                 ? "Connect the Sift folder: Themes, then Log in the menu. Today comes from your Mac."
                                                                  : "Videos from your feeds show here: YouTube channels and playlists, Shorts, TikTok."))
                     }
                 }
@@ -388,7 +388,7 @@ private struct StreamEnd: View {
         VStack(spacing: 12) {
             Image(systemName: "checkmark.circle").font(.system(size: 40)).foregroundStyle(.green)
             Text("You're through").font(.title3.weight(.semibold))
-            Text("Your themes and sources are in Lists.").font(.callout).foregroundStyle(.secondary)
+            Text("Your themes are in Themes.").font(.callout).foregroundStyle(.secondary)
         }
         .padding(24)
         .frame(maxWidth: .infinity, maxHeight: .infinity)
@@ -442,7 +442,7 @@ struct TodayListView: View {
                                 }
                         }
                     } header: { Text("From your Library") } footer: {
-                        Text("You're through. Your themes and sources are in Lists.")
+                        Text("You're through. Your themes are in Themes.")
                             .frame(maxWidth: .infinity).padding(.vertical, 24)
                     }
                 }
@@ -452,7 +452,7 @@ struct TodayListView: View {
                 if picks.isEmpty && saved.isEmpty {
                     ContentUnavailableView(mode == .scan ? "No headlines" : "Nothing to read", systemImage: mode.symbol,
                                            description: Text(store.connectedFolder == nil
-                                                             ? "Connect the Sift folder: Lists, then Log. Today comes from your Mac."
+                                                             ? "Connect the Sift folder: Themes, then Log in the menu. Today comes from your Mac."
                                                              : mode == .scan ? "Headlines and posts from your feeds show here: Hacker News, Reddit, Bluesky."
                                                                              : "Articles of about 3 minutes or more from your feeds show here."))
                 }
