@@ -35,6 +35,18 @@ extension AppModel {
     /// The cached post behind an X status URL, if any.
     func xPost(for url: String) -> XPost? { XClient.statusID(url).flatMap { xPosts[$0] } }
 
+    /// The post to show for an X status URL: from the X API when connected,
+    /// else built from the preview (oEmbed or syndication). Nil: no post text yet.
+    func shownXPost(for url: String) -> XPost? {
+        if let p = xPost(for: url), !p.removed, !p.text.isEmpty { return p }
+        return previews[url].flatMap { XPostText.post(url: url, preview: $0) }
+    }
+
+    /// The library capture for an X post from what Sift has, no fetch.
+    func xCapture(for url: String) -> Capture? {
+        shownXPost(for: url).map { XPostText.capture($0, url: url) }
+    }
+
     /// Fetches posts that are missing or older than `XStore.maxAge`, in
     /// batches of 100, and turns them into previews. Posts the API no longer
     /// returns lose their content.

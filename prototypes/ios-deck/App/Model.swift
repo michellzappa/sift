@@ -44,10 +44,38 @@ struct Item: Codable, Sendable, Identifiable, Hashable {
     var published: String?
     var words: Int?
     var keyLines: [String]?
+    /// X posts: the post itself (export-deck.py), shown as a post, never
+    /// as an article. Older decks have none: see `xPost`.
+    var post: XPostInfo? = nil
 
     struct Video: Codable, Sendable, Hashable {
         var provider: String
         var id: String
+    }
+
+    struct XPostInfo: Codable, Sendable, Hashable {
+        var name: String?
+        var handle: String?
+        var avatar: String?
+        /// ISO 8601.
+        var date: String?
+        var text: String
+        var images: [String]?
+    }
+
+    /// An x.com or twitter.com status link.
+    var isXPost: Bool {
+        url.range(of: #"^https?://(www\.|mobile\.)?(x|twitter)\.com/[^/]+/status/\d+"#, options: .regularExpression) != nil
+    }
+
+    /// The post to show for an X link: the deck's, else made from the item.
+    var xPost: XPostInfo {
+        if let post { return post }
+        let parts = URL(string: url)?.pathComponents ?? []
+        let handle = parts.firstIndex(of: "status").flatMap { $0 >= 2 ? parts[$0 - 1] : nil }.flatMap { ["i", "web"].contains($0) ? nil : $0 }
+        return XPostInfo(name: author, handle: handle, avatar: nil, date: published,
+                         text: text.isEmpty ? (passage.isEmpty ? summary : passage) : text,
+                         images: image.map { [$0] })
     }
 
     /// "8 min read" from the word count, or the video length.

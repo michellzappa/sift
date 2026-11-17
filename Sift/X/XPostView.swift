@@ -129,7 +129,7 @@ struct XPostView: View {
     /// The post text with links, mentions and hashtags linked. Entity offsets
     /// count Unicode code points. Links show their display URL and point at
     /// the t.co URL; links to the post's own media are removed.
-    static func attributed(_ post: XPost) -> AttributedString {
+    nonisolated static func attributed(_ post: XPost) -> AttributedString {
         let scalars = Array(post.text.unicodeScalars)
         enum Kind { case link(XPost.Link), mention(String), tag(String) }
         var spans: [(start: Int, end: Int, kind: Kind)] = []
@@ -169,7 +169,7 @@ struct XPostView: View {
         return out
     }
 
-    private static func unescape(_ s: String) -> String {
+    nonisolated private static func unescape(_ s: String) -> String {
         s.replacingOccurrences(of: "&amp;", with: "&").replacingOccurrences(of: "&lt;", with: "<").replacingOccurrences(of: "&gt;", with: ">")
     }
 }

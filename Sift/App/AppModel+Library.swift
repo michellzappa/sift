@@ -33,17 +33,21 @@ extension AppModel {
         captureProgress = (0, todo.count)
         defer { isCapturing = false; Library.saveIndex(library); PreviewFetcher.saveCache(previews); scheduleSearchIndex() }
         // Posts (X, Instagram) are captured from the text Sift already has:
-        // their pages need a login or JavaScript.
-        let jobs: [(ArchiveRecord, String?)] = todo.map { r in
+        // their pages need a login or JavaScript. An X post without text yet
+        // is asked from oEmbed (syndication when on), never from x.com.
+        let xSyndication = state.xSyndication
+        let jobs: [(ArchiveRecord, Capture?)] = todo.map { r in
             guard Self.isPostURL(r.url) else { return (r, nil) }
-            let text = xPost(for: r.url).map { XPostView.attributed($0).characters.map(String.init).joined() } ?? previews[r.url]?.text
-            return (r, text?.isEmpty == false ? text : nil)
+            if XClient.statusID(r.url) != nil { return (r, xCapture(for: r.url)) }
+            guard let text = previews[r.url]?.text, !text.isEmpty else { return (r, nil) }
+            let site = URL(string: r.url)?.host() ?? ""
+            return (r, Capture(url: r.url, title: "", author: nil, site: site, published: nil, kind: "post", text: text))
         }
         await withTaskGroup(of: (ArchiveRecord, Capturer.Outcome).self) { group in
             var iterator = jobs.makeIterator()
-            func next(_ job: (ArchiveRecord, String?)) {
+            func next(_ job: (ArchiveRecord, Capture?)) {
                 let (r, known) = job
-                group.addTask { (r, await Capturer.capture(r.url, knownText: known)) }
+                group.addTask { (r, await Capturer.capture(r.url, known: known, xSyndication: xSyndication)) }
             }
             for _ in 0..<4 { if let j = iterator.next() { next(j) } }
             for await (r, outcome) in group {
@@ -71,6 +75,51 @@ extension AppModel {
             }
         }
         Task { await summarizeLibrary() }
+    }
+
+    /// Repairs the library once (1.7.9): X posts captured from x.com's page
+    /// kept its no-JavaScript shell ("enable JavaScript", then CSS), and the
+    /// on-device model summarized it. Every X post is written again from its
+    /// post text (X API or preview); without post text a junk X file is
+    /// cleared and the post goes back in the capture queue (oEmbed). Any
+    /// other file whose text fails `ShellText` becomes title only. The new
+    /// or cleared files have no summary, so the summary is made again where
+    /// there is text. Files with a transcript are left alone.
+    func repairCapturedText() async {
+        let key = "library.shellTextV1"
+        guard !Demo.isOn, !UserDefaults.standard.bool(forKey: key) else { return }
+        let todo = library.filter { !$0.value.file.isEmpty && $0.value.transcript != true }.map(\.key)
+        // Read the files off the main actor; only plain values go in and out.
+        let checked: [(url: String, junk: Bool)] = await Task.detached(priority: .utility) {
+            todo.compactMap { url in
+                let isX = XClient.statusID(url) != nil
+                let junk = ShellText.isJunk(Library.text(for: url) ?? "")
+                return isX || junk ? (url, junk) : nil
+            }
+        }.value
+        for (url, junk) in checked {
+            guard let old = library[url] else { continue }
+            // A preview made from the shell page is dropped and fetched again.
+            if let p = previews[url], ShellText.isJunk(p.text) { previews[url] = nil }
+            if XClient.statusID(url) != nil, let c = xCapture(for: url) {
+                let r = archive[url]
+                library[url] = Library.write(c, title: r?.title ?? "", theme: r?.theme, source: r?.source ?? "x")
+            } else if junk {
+                Library.clearText(file: old.file)
+                if XClient.statusID(url) != nil {
+                    // Not captured: the next capture asks oEmbed for the post.
+                    library[url] = nil
+                } else {
+                    var e = old
+                    e.status = "failed"; e.words = 0; e.summary = nil; e.captured = .now
+                    library[url] = e
+                }
+            }
+        }
+        Library.saveIndex(library)
+        PreviewFetcher.saveCache(previews)
+        UserDefaults.standard.set(true, forKey: key)
+        scheduleSearchIndex()
     }
 
     static func isPostURL(_ url: String) -> Bool {
@@ -122,8 +171,12 @@ extension AppModel {
         if !isFetchingTikTok, !tiktokNeedingDetails.isEmpty { Task { await fetchTikTokDetails() } }
         // YouTube links with no title get one from YouTube's oEmbed.
         if !isFetchingVideoTitles, !videosWithoutTitle.isEmpty { Task { await fetchVideoTitles() } }
-        // New links go into the library.
-        if state.autoCapture, !isCapturing, !linksToCapture.isEmpty { Task { await captureAll() } }
+        // New links go into the library, after the one-time repair of
+        // shell pages (X posts and other no-JavaScript pages).
+        Task {
+            await repairCapturedText()
+            if state.autoCapture, !isCapturing, !linksToCapture.isEmpty { await captureAll() }
+        }
         // Older library entries get their author (Your Graph), once; then
         // Next door reads who your creators link to (at most hourly).
         Task {

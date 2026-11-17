@@ -77,6 +77,53 @@ def youtube_id(url):
 def image_name(url):
     return hashlib.sha1(url.encode()).hexdigest()[:16] + ".jpg"
 
+# The same check as the Mac's ShellText.isJunk (Sift/Engine/Capture.swift):
+# a no-JavaScript shell, a bot check or a CSS/script dump is no text.
+SHELL_PHRASES = ("enable javascript", "javascript is disabled", "javascript disabled", "javascript is not available",
+                 "javascript is required", "turn on javascript", "javascript must be enabled", "supported browser",
+                 "browser is not supported", "unsupported browser", "checking your browser", "verify you are human",
+                 "please wait while we verify")
+
+def is_junk(text):
+    t = (text or "").strip()
+    if not t:
+        return False
+    if len(t) < 4000 and any(p in t[:1200].lower() for p in SHELL_PHRASES):
+        return True
+    if len(t) > 80 and sum(t.count(c) for c in "{};") / len(t) > 0.02:
+        return True
+    lines = [l for l in t.split("\n") if l.strip()]
+    rules = sum(1 for l in lines if "{" in l and ("}" in l or ":" in l))
+    return rules >= 3 and rules / max(len(lines), 1) > 0.2
+
+X_STATUS = re.compile(r"^https?://(?:www\.|mobile\.)?(?:x|twitter)\.com/([^/]+)/status/(\d+)")
+
+def x_post(url, preview, body):
+    """An X post for the phone's post card: name, @handle, avatar, date,
+    text and pictures. Text from the preview (oEmbed or syndication), else
+    the library's post text without its header line and image lines."""
+    m = X_STATUS.match(url)
+    if not m:
+        return None
+    handle = None if m.group(1) in ("i", "web") else m.group(1)
+    sid = int(m.group(2))
+    date = None
+    if sid > 30_000_000_000:
+        from datetime import datetime, timezone
+        date = datetime.fromtimestamp(((sid >> 22) + 1288834974657) / 1000, tz=timezone.utc).strftime("%Y-%m-%dT%H:%M:%SZ")
+    text = preview.get("text") or ""
+    if preview.get("failed") or is_junk(text):
+        text = ""
+    if not text and not is_junk(body):
+        blocks = [b for b in re.split(r"\n\s*\n", body) if b.strip() and not b.startswith(("**", "![")) ]
+        text = "\n\n".join(blocks)
+    name = preview.get("title") or None
+    if name == "X":
+        name = None
+    image = preview.get("imageURL")
+    return {"name": name or handle, "handle": handle, "avatar": preview.get("avatarURL"), "date": date,
+            "text": text, "images": [image] if str(image or "").startswith("http") else []}
+
 def hue(index, count):
     n = max(count, 1)
     stride = max(1, round(n * 0.382))
@@ -123,6 +170,15 @@ def main():
             # Demo ids are made up: YouTube would answer with its grey placeholder.
             if vid and not web_image and not DEMO:
                 web_image = f"https://i.ytimg.com/vi/{vid}/hqdefault.jpg"
+            # Shell pages carry no text, and their summary is of the shell.
+            if is_junk(text):
+                text, summary = "", ""
+            if is_junk(summary or meta.get("summary")):
+                summary, meta["summary"] = "", ""
+            post = x_post(url, p, text)
+            if post:
+                # An X post is the post: no key lines, no summary of a page.
+                text, summary, meta["summary"] = post["text"], "", ""
             words = len(text.split()) + len(transcript.split())
             items.append({
                 "id": url, "url": url, "title": title or p.get("title") or url,
@@ -130,7 +186,7 @@ def main():
                 "author": meta.get("author"), "saved": saved,
                 "duration": int(meta["duration"]) if meta.get("duration", "").isdigit() else None,
                 "summary": summary or meta.get("summary") or "",
-                "passage": passage(text) or (p.get("text") or "")[:420],
+                "passage": passage(text) or ("" if is_junk(p.get("text")) else (p.get("text") or "")[:420]),
                 "transcript": transcript[:1200],
                 "text": (transcript if transcript and len(text) < 400 else text)[:FULL_TEXT],
                 # Only web images: a file URL is a Mac path the phone cannot read.
@@ -139,7 +195,8 @@ def main():
                 "video": {"provider": "youtube", "id": vid} if vid else None,
                 "published": meta.get("published"),
                 "words": words or None,
-                "keyLines": key_lines(transcript or text),
+                "keyLines": [] if post else key_lines(transcript or text),
+                "post": post,
                 "also": json.loads(also) if also and also.startswith("[") else [],
                 "neighbours": [],
             })

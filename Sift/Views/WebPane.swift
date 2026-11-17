@@ -94,15 +94,22 @@ struct WebPane: View {
                     .frame(maxWidth: .infinity)
                 }
                 .environment(\.openURL, OpenURLAction { url in model.openInApp(url.absoluteString); return .handled })
-            } else if let post = model.xConnected ? model.xPost(for: tab.url) : nil {
-                // X posts render natively when the X API is connected.
+            } else if let post = model.shownXPost(for: tab.url) {
+                // X posts render natively, from the X API when connected,
+                // else from the preview: x.com's page needs JavaScript and a login.
                 Divider()
                 ScrollView {
-                    XPostView(post: post, quoted: post.quotedID.flatMap { model.xPosts[$0] })
-                        .frame(maxWidth: 640, alignment: .leading)
-                        .frame(maxWidth: .infinity)
+                    VStack(alignment: .leading, spacing: 4) {
+                        XPostView(post: post, quoted: post.quotedID.flatMap { model.xPosts[$0] })
+                        Button { model.openInApp(tab.url) } label: { Label("Open on X", systemImage: "arrow.up.forward.square") }
+                            .padding(.horizontal, 16)
+                    }
+                    .frame(maxWidth: 640, alignment: .leading)
+                    .frame(maxWidth: .infinity)
                 }
-                .task(id: tab.url) { await model.refreshXPosts(urls: [tab.url]) }
+                // Links in the post open in Sift's browser window, not Safari.
+                .environment(\.openURL, OpenURLAction { url in model.openInApp(url.absoluteString); return .handled })
+                .task(id: tab.url) { if model.xConnected { await model.refreshXPosts(urls: [tab.url]) } }
             } else if Demo.isOn {
                 Divider()
                 ContentUnavailableView("Pages do not load in demo mode", systemImage: "wifi.slash",
@@ -117,7 +124,8 @@ struct WebPane: View {
                     .onAppear { page.load(Embeds.page(for: tab.url)) }
                     .onDisappear { page.stop() }
                     .onChange(of: tab.url) { page.load(Embeds.page(for: tab.url)) }
-                    .task(id: tab.url) { if model.xConnected, XClient.statusID(tab.url) != nil { await model.refreshXPosts(urls: [tab.url]) } }
+                    // An X post without its text yet: ask for it, then the post shows.
+                    .task(id: tab.url) { if XClient.statusID(tab.url) != nil { await model.preview(for: tab) } }
             }
         }
     }
