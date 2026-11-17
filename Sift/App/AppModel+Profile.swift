@@ -44,6 +44,7 @@ extension AppModel {
 
         let paths = Self.profileFiles()
         let base = input
+        let feedModes0 = feedModes
 
         // Off the main actor: device files, feed items and file sizes.
         return await Task.detached(priority: .utility) {
@@ -87,7 +88,7 @@ extension AppModel {
                     for entry in FeedStore.entries(id) where wanted.contains(entry.url) && input.modeOf[entry.url] == nil {
                         let words = Modes.words(entry.content ?? entry.summary)
                         if words > 0 { input.wordsOf[entry.url] = words }
-                        let modes = feedModes[id]
+                        let modes = feedModes0[id]
                         input.modeOf[entry.url] = Modes.isVideo(entry.url) ? .watch
                             : modes?.set ?? Modes.mode(url: entry.url, words: words, provider: modes?.provider)
                     }

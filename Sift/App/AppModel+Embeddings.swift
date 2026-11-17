@@ -21,8 +21,19 @@ extension AppModel {
         for (url, a) in state.assignments where names.contains(a.project) { themeOf[url] = a.project }
         let battery = LocalModel.onBattery
         isEmbedding = true
+        let texts0 = texts, themes0 = themeOf
         Task { [weak self] in
-            let (space, changed) = await Task.detached(priority: .utility) { () -> (Meaning.Space, Bool) in
+            let (space, changed) = await Self.makeSpace(texts: texts0, themeOf: themes0, battery: battery)
+            guard let self else { return }
+            self.embedSpace = space
+            self.isEmbedding = false
+            if changed { self.refreshToday() }
+        }
+    }
+
+    /// Off the main actor: vectors for what changed, then the space.
+    nonisolated private static func makeSpace(texts: [String: String], themeOf: [String: String], battery: Bool) async -> (Meaning.Space, Bool) {
+            await Task.detached(priority: .utility) { () -> (Meaning.Space, Bool) in
                 var raw = Embeddings.load()
                 let hashes = texts.mapValues(Meaning.hash)
                 let todo = battery ? [] : Array(texts.filter { raw.hashes[$0.key] != hashes[$0.key] }.prefix(Embeddings.perRound))
@@ -42,11 +53,6 @@ extension AppModel {
                 if changed || !gone.isEmpty { Embeddings.save(raw) }
                 return (Meaning.Space(raw.vectors, themeOf: themeOf), changed)
             }.value
-            guard let self else { return }
-            self.embedSpace = space
-            self.isEmbedding = false
-            if changed { self.refreshToday() }
-        }
     }
 
     /// The best theme by meaning for an address, if one clearly leads.

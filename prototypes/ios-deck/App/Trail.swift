@@ -97,8 +97,17 @@ extension Store {
         for item in deck.items where names.contains(item.theme) { themeOf[item.url] = item.theme }
         let folder = Self.meaningFolder
         meaningRunning = true
+        let texts0 = texts, themes0 = themeOf
         Task { [weak self] in
-            let space = await Task.detached(priority: .utility) { () -> Meaning.Space in
+            let space = await Self.makeSpace(texts: texts0, themeOf: themes0, folder: folder)
+            self?.meaningSpace = space
+            self?.meaningRunning = false
+        }
+    }
+
+    /// Off the main actor: vectors for what changed, then the space.
+    nonisolated private static func makeSpace(texts: [String: String], themeOf: [String: String], folder: URL) async -> Meaning.Space {
+            await Task.detached(priority: .utility) { () -> Meaning.Space in
                 var raw = Meaning.load(from: folder)
                 let hashes = texts.mapValues(Meaning.hash)
                 let todo = texts.filter { raw.hashes[$0.key] != hashes[$0.key] }
@@ -117,9 +126,6 @@ extension Store {
                 if changed || !gone.isEmpty { Meaning.save(raw, to: folder) }
                 return Meaning.Space(raw.vectors, themeOf: themeOf)
             }.value
-            self?.meaningSpace = space
-            self?.meaningRunning = false
-        }
     }
 
     func trail(from item: Item) -> [(Item, String)] {
