@@ -255,7 +255,7 @@ The one exception is anonymous diagnostics (owner, 2026-11-15, below).
   shell (`HouseSettingsView`, `SettingsPane`, `GeneralSettingsPane`,
   `AboutSettingsPane`, `UpdatesSection` through `UpdateChecker:
   UpdateChecking`) and the changelog (`Changelog`, `ChangelogView`). It is a
-  URL package pinned to a commit in project.yml, so CI and the mini resolve
+  URL package pinned to a release tag (`exactVersion`) in project.yml, so CI and the mini resolve
   it without a sibling checkout; move the pin on purpose. The icon is
   Sift's own (owner, 2026-11-15: a card deck, not the HouseKit glyph):
   `scripts/icon/make-icon.swift` writes `Sift/Resources/AppIcon.icns` and
