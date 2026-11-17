@@ -769,3 +769,13 @@ The one exception is anonymous diagnostics (owner, 2026-11-15, below).
   it with `build`. `Library.Entry.author` is new; older entries are filled
   once from front matter (`library.authorsV1`). Mac only for now; Instagram,
   TikTok and X authors are not in the graph (no feeds).
+- Your Graph on the phone (2026-11-17). The Mac writes
+  `iCloud Drive/Sift/Deck/creators.json` (`writeCreatorsForPhone`, after
+  each `refreshCreators` and hide): creators with score, bonus, themes,
+  feed id, hidden, last 8 saves. The phone (`prototypes/ios-deck/App/Graph.swift`)
+  asks through `follows/`: kind "follow" with `creator` (the Mac sets
+  `Feed.creator`), "unfollow", "hide", "show". Phone screens: Your Graph
+  (Themes menu and Settings), a creator page, "Who you save from" on each
+  theme page, and How Today Works (`AlgorithmView`: formula, signal
+  weights, today's picks by `PickWhy.score`). The phone's Log sheet is now
+  Settings. Keep `CreatorsFile` and `PickWhy` in step with the Mac.

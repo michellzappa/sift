@@ -162,6 +162,8 @@ final class Store {
     var macFeeds: FeedsFile?
     /// Feed requests made on this phone; written to follows/iphone-<id>.json.
     var feedRequests: [PhoneFeedRequest] = []
+    /// Your Graph from the Mac (Deck/creators.json, Graph.swift).
+    var creators: CreatorsFile?
     /// What this phone did with Today picks; written to signals/iphone-<id>.json (Signals.swift).
     @ObservationIgnored var signals: [Signal] = []
     @ObservationIgnored var signalTask: Task<Void, Never>?
@@ -189,6 +191,7 @@ final class Store {
         signals = Store.loadSignalsHere()
         feedRequests = Store.loadFeedRequests()
         macFeeds = Store.loadMacFeeds()
+        creators = Store.loadCreators()
         sync()
     }
 

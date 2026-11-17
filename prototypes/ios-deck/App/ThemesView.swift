@@ -39,7 +39,7 @@ struct ThemesView: View {
             .overlay {
                 if store.deck.themes.isEmpty {
                     ContentUnavailableView("No themes yet", systemImage: "circle.hexagongrid",
-                                           description: Text("Themes come from your Mac. Import the library: the menu at the top right, then Log."))
+                                           description: Text("Themes come from your Mac. Import the library: the menu at the top right, then Settings."))
                 }
             }
             .toolbar {
@@ -49,8 +49,9 @@ struct ThemesView: View {
                             LinkList(title: "All Unseen", items: store.deck.items, unseenOnly: true)
                         } label: { Label("All Unseen", systemImage: "circle.inset.filled") }
                         Button { showDeck = true } label: { Label("Review Deck", systemImage: "rectangle.stack") }
+                        NavigationLink { CreatorGraphView() } label: { Label("Your Graph", systemImage: "person.2") }
                         NavigationLink { FeedsView() } label: { Label("Feeds", systemImage: "dot.radiowaves.up.forward") }
-                        Button { showLog = true } label: { Label("Log", systemImage: "list.bullet.rectangle") }
+                        Button { showLog = true } label: { Label("Settings", systemImage: "gearshape") }
                     } label: { Image(systemName: "ellipsis.circle") }
                 }
             }
@@ -160,6 +161,7 @@ struct ThemePage: View {
                 watchShelf
                 listShelf(.read, show: 3)
                 listShelf(.scan, show: 5)
+                people
                 linked
             }
             .padding(16)
@@ -216,6 +218,38 @@ struct ThemePage: View {
                     Button { open(item) } label: { LibraryRow(item: item, mode: mode) }.buttonStyle(.plain)
                     if item.id != list.prefix(show).last?.id { Divider() }
                 }
+            }
+        }
+    }
+
+    /// Your Graph inside the theme: who you save from about it, with Follow.
+    @ViewBuilder private var people: some View {
+        let list = store.creators(theme: theme.name)
+        if !list.isEmpty {
+            VStack(alignment: .leading, spacing: 10) {
+                HStack {
+                    Label("Who you save from", systemImage: "person.2").font(.headline)
+                    Spacer()
+                    NavigationLink("Your Graph") { CreatorGraphView() }.font(.subheadline)
+                }
+                ForEach(list.prefix(6)) { c in
+                    HStack(spacing: 10) {
+                        NavigationLink { CreatorPage(creator: c) } label: {
+                            VStack(alignment: .leading, spacing: 2) {
+                                Text(c.name).font(.subheadline.weight(.medium)).lineLimit(1).foregroundStyle(.primary)
+                                Text("\(c.themes[theme.name] ?? 0) here · \(c.count) saved in all").font(.caption).foregroundStyle(.secondary)
+                            }
+                        }
+                        .buttonStyle(.plain)
+                        Spacer()
+                        if store.isFollowing(c) {
+                            Text("Following").font(.caption.weight(.semibold)).foregroundStyle(.tint)
+                        } else {
+                            Button("Follow") { store.follow(c) }.buttonStyle(.bordered).controlSize(.small)
+                        }
+                    }
+                }
+                Text("Following a creator brings its new posts into Today.").font(.caption).foregroundStyle(.tertiary)
             }
         }
     }

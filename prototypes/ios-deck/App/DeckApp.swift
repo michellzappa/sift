@@ -48,6 +48,13 @@ struct LogView: View {
     var body: some View {
         NavigationStack {
             List {
+                Section {
+                    NavigationLink { CreatorGraphView() } label: { Label("Your Graph", systemImage: "person.2") }
+                    NavigationLink { FeedsView() } label: { Label("Feeds", systemImage: "dot.radiowaves.up.forward") }
+                    NavigationLink { AlgorithmView() } label: { Label("How Today Works", systemImage: "function") }
+                } footer: {
+                    Text("How Today Works shows the formula, what each action teaches Sift, and today's picks with their scores.")
+                }
                 Section("This week") {
                     let since = store.weekStart
                     LabeledContent("Read", value: "\(store.count(.read, since: since))")
@@ -103,7 +110,7 @@ struct LogView: View {
                     }
                 }
             }
-            .navigationTitle("Log")
+            .navigationTitle("Settings")
             .fileImporter(isPresented: $importing, allowedContentTypes: [.folder, .json]) { result in
                 if case .success(let url) = result { store.importDeck(from: url) }
             }

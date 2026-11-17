@@ -28,6 +28,8 @@ struct TodayPick: Codable, Hashable, Sendable, Identifiable {
     /// Top comments on a Hacker News or Reddit post, from the Mac
     /// (Sift/Feeds/Discussion.swift).
     var discussion: Discussion?
+    /// The numbers that placed it (the Mac's `PickWhy`).
+    var why: PickWhy?
 
     /// The tab this pick shows in. Without a mode from the Mac: video is
     /// Watch, headlines and posts are Scan, the rest Read.
@@ -211,7 +213,7 @@ struct TodayView: View {
                     if picks.isEmpty && savedVideos.isEmpty {
                         ContentUnavailableView("Nothing to watch", systemImage: "play.rectangle",
                                                description: Text(store.connectedFolder == nil
-                                                                 ? "Connect the Sift folder: Themes, then Log in the menu. Today comes from your Mac."
+                                                                 ? "Connect the Sift folder: Themes, then Settings in the menu. Today comes from your Mac."
                                                                  : "Videos from your feeds show here: YouTube channels and playlists, Shorts, TikTok."))
                     }
                 }
@@ -452,7 +454,7 @@ struct TodayListView: View {
                 if picks.isEmpty && saved.isEmpty {
                     ContentUnavailableView(mode == .scan ? "No headlines" : "Nothing to read", systemImage: mode.symbol,
                                            description: Text(store.connectedFolder == nil
-                                                             ? "Connect the Sift folder: Themes, then Log in the menu. Today comes from your Mac."
+                                                             ? "Connect the Sift folder: Themes, then Settings in the menu. Today comes from your Mac."
                                                              : mode == .scan ? "Headlines and posts from your feeds show here: Hacker News, Reddit, Bluesky."
                                                                              : "Articles of about 3 minutes or more from your feeds show here."))
                 }

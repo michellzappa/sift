@@ -24,6 +24,9 @@ struct PhoneFeedRequest: Codable, Sendable, Hashable {
     var folder: String?
     /// `FeedPriority` raw value, or nil for Auto.
     var priority: String?
+    /// Your Graph: the `Creator.id` a follow comes from, or the creator to
+    /// hide or show (kinds "hide", "show").
+    var creator: String? = nil
     var at: Date
 }
 
@@ -79,6 +82,10 @@ extension AppModel {
                             addFeed(found, category: r.folder, priority: r.priority.flatMap(FeedPriority.init(rawValue:)))
                             noteFollowed(found.label ?? found.parsed.title)
                         }
+                        if let creator = r.creator, let i = state.feeds.firstIndex(where: { $0.url == found.url }) {
+                            state.feeds[i].creator = creator
+                            refreshCreators()
+                        }
                         state.phoneRequests[r.id] = "followed"
                     } else {
                         state.phoneRequests[r.id] = "failed"
@@ -96,10 +103,57 @@ extension AppModel {
             case "folder":
                 if let id = r.feedID { moveFeed(id, to: r.folder) }
                 state.phoneRequests[r.id] = "done"
+            case "hide", "show":
+                if let id = r.creator {
+                    state.hiddenCreators.removeAll { $0 == id }
+                    if r.kind == "hide" { state.hiddenCreators.append(id) }
+                    writeCreatorsForPhone()
+                }
+                state.phoneRequests[r.id] = "done"
             default:
                 state.phoneRequests[r.id] = "failed"
             }
         }
         writeFeedsForPhone()
+    }
+}
+
+extension AppModel {
+    /// Your Graph for the phone: iCloud Drive/Sift/Deck/creators.json. The
+    /// phone shows it and asks for follows and hides through follows/.
+    func writeCreatorsForPhone() {
+        guard !Demo.isOn, CloseList.iCloudDriveAvailable else { return }
+        struct Save: Encodable { var url, title: String; var date: Date; var theme: String? }
+        struct Row: Encodable {
+            var id, kind, name, input: String
+            var count, recent: Int
+            var score, bonus: Double
+            var lastSaved: Date?
+            var themes: [String: Int]
+            var feedID: String?
+            var hidden: Bool
+            var saves: [Save]
+        }
+        struct File: Encodable {
+            var schema = 1
+            var halfLifeDays = Creators.halfLifeDays
+            var minSaves = Creators.minSaves
+            var creators: [Row]
+        }
+        let hidden = Set(state.hiddenCreators)
+        let rows = creators.map { c in
+            Row(id: c.id, kind: c.kind.rawValue, name: c.name, input: c.input, count: c.count, recent: c.recent,
+                score: (c.score * 100).rounded() / 100, bonus: (TodayBuilder.creatorBonus(c.count) * 100).rounded() / 100,
+                lastSaved: c.lastSaved, themes: Dictionary(c.themes.map { ($0.name, $0.count) }, uniquingKeysWith: { a, _ in a }),
+                feedID: c.feedID, hidden: hidden.contains(c.id),
+                saves: c.saves.prefix(8).map { Save(url: $0.url, title: $0.title, date: $0.date, theme: $0.theme) })
+        }
+        let e = JSONEncoder(); e.outputFormatting = [.sortedKeys]; e.dateEncodingStrategy = .iso8601
+        guard let data = try? e.encode(File(creators: rows)) else { return }
+        let dir = CloseList.folder.appending(path: "Deck", directoryHint: .isDirectory)
+        try? FileManager.default.createDirectory(at: dir, withIntermediateDirectories: true)
+        let url = dir.appending(path: "creators.json")
+        if (try? Data(contentsOf: url)) == data { return }
+        try? data.write(to: url, options: .atomic)
     }
 }

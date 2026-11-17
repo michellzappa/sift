@@ -43,6 +43,7 @@ extension AppModel {
         var byFeed: [String: Creator] = [:]
         for c in creators { if let f = c.feedID { byFeed[f] = c } }
         creatorOfFeed = byFeed
+        writeCreatorsForPhone()
     }
 
     /// Follows a creator: the matching provider finds the feed, and the feed
@@ -76,6 +77,7 @@ extension AppModel {
     func setCreatorHidden(_ creator: Creator, _ hidden: Bool) {
         state.hiddenCreators.removeAll { $0 == creator.id }
         if hidden { state.hiddenCreators.append(creator.id) }
+        writeCreatorsForPhone()
     }
 
     /// Fills `Library.Entry.author` from each file's front matter, once, for

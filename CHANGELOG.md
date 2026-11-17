@@ -9,6 +9,11 @@ ships this file and shows it in Settings > About and in Sift > Version
 History. Headings are `## X.Y.Z - YYYY-MM-DD`; groups are `### Added`,
 `### Changed` and `### Fixed`.
 
+## 1.7.4 - 2026-11-17
+
+### Added
+- Your Graph reaches the iPhone. The Mac shares it through iCloud Drive, and the phone can follow or hide a creator. The Mac does the following.
+
 ## 1.7.3 - 2026-11-17
 
 ### Added

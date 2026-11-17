@@ -26,6 +26,8 @@ struct PhoneFeedRequest: Codable, Hashable, Identifiable {
     var feedID: String?
     var folder: String?
     var priority: String?
+    /// Your Graph: the creator a follow comes from, or the one to hide or show.
+    var creator: String? = nil
     var at: Date
 }
 
@@ -68,6 +70,7 @@ extension Store {
             macFeeds = file
             try? data.write(to: Self.macFeedsURL, options: .atomic)
         }
+        syncCreators(folder)
         writeRequests(folder)
     }
 
@@ -78,9 +81,9 @@ extension Store {
         try? data.write(to: dir.appending(path: Self.deviceFile), options: .atomic)
     }
 
-    func request(_ kind: String, input: String? = nil, feedID: String? = nil, folder: String? = nil, priority: String? = nil) {
+    func request(_ kind: String, input: String? = nil, feedID: String? = nil, folder: String? = nil, priority: String? = nil, creator: String? = nil) {
         feedRequests.append(PhoneFeedRequest(id: UUID().uuidString.lowercased(), kind: kind, input: input,
-                                             feedID: feedID, folder: folder, priority: priority, at: Date()))
+                                             feedID: feedID, folder: folder, priority: priority, creator: creator, at: Date()))
         // Keep the file short: requests the Mac handled more than 30 days ago go.
         let cutoff = Date().addingTimeInterval(-30 * 86_400)
         feedRequests.removeAll { $0.at < cutoff && macFeeds?.requests[$0.id] != nil }
