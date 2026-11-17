@@ -1,15 +1,23 @@
 name: Release
 
-# Push a tag that matches CFBundleShortVersionString (for example v0.2.0).
-# The workflow builds a universal app, signs it with Developer ID, notarizes
-# and staples it, publishes a ZIP and SHA256SUMS to the GitHub Release, and
-# attests the build provenance so anyone can verify where the ZIP came from:
-#   gh attestation verify Sift-0.2.0.zip -R michellzappa/sift
+# The shared Mac release (michellzappa/housekit, docs/releasing.md): build,
+# Developer ID, notarize, GitHub Release, Sparkle appcast.
+#
+#   gh workflow run release.yml -R michellzappa/sift -f publish=true
+#
+# tags main as v<version> and publishes. Pushing a v* tag does the same.
+# Without publish it builds and checks only. Verify a download:
+#   gh attestation verify Sift-<version>.zip -R michellzappa/sift
 
 on:
   push:
-    tags:
-      - "v*"
+    tags: ["v*"]
+  workflow_dispatch:
+    inputs:
+      publish:
+        description: Tag v<version> and publish the release
+        type: boolean
+        default: false
 
 permissions:
   contents: write
@@ -18,147 +26,25 @@ permissions:
 
 jobs:
   release:
-    runs-on: macos-15
-
-    env:
+    uses: michellzappa/housekit/.github/workflows/release-mac.yml@main
+    with:
+      app-name: Sift
+      # The embedded MCP server and Chrome host need Developer ID, hardened
+      # runtime and a timestamp, or notarization rejects the app.
+      verify-command: |
+        for helper in sift-mcp sift-chrome; do
+          codesign -dvv "$APP_PATH/Contents/MacOS/$helper" 2>&1 | tee "$RUNNER_TEMP/$helper-sign.txt"
+          grep -q "Authority=Developer ID Application" "$RUNNER_TEMP/$helper-sign.txt"
+          grep -q "flags=.*runtime" "$RUNNER_TEMP/$helper-sign.txt"
+          grep -q "^Timestamp=" "$RUNNER_TEMP/$helper-sign.txt"
+        done
+        test -f "$APP_PATH/Contents/Resources/CHANGELOG.md"
+      publish: ${{ github.event_name == 'push' || inputs.publish }}
+    secrets:
       APPLE_TEAM_ID: ${{ secrets.APPLE_TEAM_ID }}
       APPLE_DEVELOPER_CERTIFICATE_P12_BASE64: ${{ secrets.APPLE_DEVELOPER_CERTIFICATE_P12_BASE64 }}
       APPLE_DEVELOPER_CERTIFICATE_PASSWORD: ${{ secrets.APPLE_DEVELOPER_CERTIFICATE_PASSWORD }}
       APPLE_API_KEY_ID: ${{ secrets.APPLE_API_KEY_ID }}
       APPLE_API_ISSUER_ID: ${{ secrets.APPLE_API_ISSUER_ID }}
       APPLE_API_PRIVATE_KEY_BASE64: ${{ secrets.APPLE_API_PRIVATE_KEY_BASE64 }}
-
-    steps:
-      - name: Check out source (full history for the build number)
-        uses: actions/checkout@v4
-        with:
-          fetch-depth: 0
-
-      - name: Select Xcode 26 or later
-        # The on-device model code (FoundationModels) needs the macOS 26 SDK.
-        shell: bash
-        run: |
-          set -euo pipefail
-          ls -d /Applications/Xcode*.app || true
-          XCODE=$(ls -d /Applications/Xcode_2[6-9]*.app 2>/dev/null | sort -V | tail -1 || true)
-          if [ -z "$XCODE" ]; then echo "No Xcode 26 or later on this runner." >&2; exit 1; fi
-          sudo xcode-select -s "$XCODE/Contents/Developer"
-          xcodebuild -version
-
-      - name: Install XcodeGen
-        run: brew install xcodegen
-
-      - name: Generate Xcode project
-        run: xcodegen generate
-
-      - name: Validate tag, set version and build number
-        shell: bash
-        run: |
-          version=$(/usr/libexec/PlistBuddy -c 'Print :CFBundleShortVersionString' Sift/Resources/Info.plist)
-          tag_version="${GITHUB_REF_NAME#v}"
-          if [[ "$version" != "$tag_version" ]]; then
-            echo "Tag $GITHUB_REF_NAME does not match CFBundleShortVersionString $version"
-            exit 1
-          fi
-          # The release notes come from CHANGELOG.md; no section, no release.
-          ./scripts/changelog-section.sh "$version" > /dev/null
-          build=$(git rev-list --count HEAD)
-          echo "APP_VERSION=$version" >> "$GITHUB_ENV"
-          echo "APP_BUILD=$build" >> "$GITHUB_ENV"
-
-      - name: Import Developer ID certificate
-        shell: bash
-        run: |
-          certificate_path="$RUNNER_TEMP/developer-id.p12"
-          keychain_path="$RUNNER_TEMP/sift-build.keychain-db"
-          keychain_password=$(openssl rand -hex 20)
-          echo "$APPLE_DEVELOPER_CERTIFICATE_P12_BASE64" | base64 --decode > "$certificate_path"
-          security create-keychain -p "$keychain_password" "$keychain_path"
-          security set-keychain-settings -lut 21600 "$keychain_path"
-          security unlock-keychain -p "$keychain_password" "$keychain_path"
-          security import "$certificate_path" -P "$APPLE_DEVELOPER_CERTIFICATE_PASSWORD" -A -t cert -f pkcs12 -k "$keychain_path"
-          security list-keychains -d user -s "$keychain_path" login.keychain-db
-          security default-keychain -s "$keychain_path"
-          security set-key-partition-list -S apple-tool:,apple: -s -k "$keychain_password" "$keychain_path"
-
-      - name: Archive universal app
-        shell: bash
-        run: |
-          xcodebuild \
-            -project Sift.xcodeproj \
-            -scheme Sift \
-            -configuration Release \
-            -derivedDataPath "$RUNNER_TEMP/DerivedData" \
-            -archivePath "$RUNNER_TEMP/Sift.xcarchive" \
-            ARCHS="arm64 x86_64" \
-            ONLY_ACTIVE_ARCH=NO \
-            CURRENT_PROJECT_VERSION="$APP_BUILD" \
-            CODE_SIGN_STYLE=Manual \
-            CODE_SIGN_IDENTITY="Developer ID Application" \
-            DEVELOPMENT_TEAM="$APPLE_TEAM_ID" \
-            OTHER_CODE_SIGN_FLAGS="--timestamp" \
-            archive
-
-      - name: Verify app signature and build number
-        shell: bash
-        run: |
-          app_path="$RUNNER_TEMP/Sift.xcarchive/Products/Applications/Sift.app"
-          codesign --verify --deep --strict --verbose=2 "$app_path"
-          # The embedded MCP server must carry Developer ID, hardened runtime
-          # and a secure timestamp, or notarization rejects the app.
-          codesign -dvv "$app_path/Contents/MacOS/sift-mcp" 2>&1 | tee "$RUNNER_TEMP/sift-mcp-sign.txt"
-          grep -q "Authority=Developer ID Application" "$RUNNER_TEMP/sift-mcp-sign.txt"
-          grep -q "flags=.*runtime" "$RUNNER_TEMP/sift-mcp-sign.txt"
-          grep -q "^Timestamp=" "$RUNNER_TEMP/sift-mcp-sign.txt"
-          # The same for the Chrome native messaging host.
-          codesign -dvv "$app_path/Contents/MacOS/sift-chrome" 2>&1 | tee "$RUNNER_TEMP/sift-chrome-sign.txt"
-          grep -q "Authority=Developer ID Application" "$RUNNER_TEMP/sift-chrome-sign.txt"
-          grep -q "flags=.*runtime" "$RUNNER_TEMP/sift-chrome-sign.txt"
-          grep -q "^Timestamp=" "$RUNNER_TEMP/sift-chrome-sign.txt"
-          # Without the updater script, this release could never update itself.
-          test -f "$app_path/Contents/Resources/update-app.sh"
-          test -f "$app_path/Contents/Resources/CHANGELOG.md"
-          /usr/libexec/PlistBuddy -c 'Print :CFBundleVersion' "$app_path/Contents/Info.plist"
-
-      - name: Notarize
-        shell: bash
-        run: |
-          app_path="$RUNNER_TEMP/Sift.xcarchive/Products/Applications/Sift.app"
-          zip="$RUNNER_TEMP/Sift-notarization.zip"
-          key="$RUNNER_TEMP/AuthKey_$APPLE_API_KEY_ID.p8"
-          ditto -c -k --sequesterRsrc --keepParent "$app_path" "$zip"
-          echo "$APPLE_API_PRIVATE_KEY_BASE64" | base64 --decode > "$key"
-          xcrun notarytool submit "$zip" --key "$key" --key-id "$APPLE_API_KEY_ID" --issuer "$APPLE_API_ISSUER_ID" --wait
-
-      - name: Staple notarization ticket
-        shell: bash
-        run: |
-          app_path="$RUNNER_TEMP/Sift.xcarchive/Products/Applications/Sift.app"
-          xcrun stapler staple "$app_path"
-          xcrun stapler validate "$app_path"
-
-      - name: Package release assets
-        shell: bash
-        run: |
-          app_path="$RUNNER_TEMP/Sift.xcarchive/Products/Applications/Sift.app"
-          mkdir -p "$RUNNER_TEMP/release"
-          ditto -c -k --sequesterRsrc --keepParent "$app_path" "$RUNNER_TEMP/release/Sift-$APP_VERSION.zip"
-          (cd "$RUNNER_TEMP/release" && shasum -a 256 "Sift-$APP_VERSION.zip" > SHA256SUMS)
-
-      - name: Attest build provenance
-        uses: actions/attest-build-provenance@v2
-        with:
-          subject-path: ${{ runner.temp }}/release/Sift-${{ env.APP_VERSION }}.zip
-
-      - name: Publish GitHub Release
-        env:
-          GH_TOKEN: ${{ github.token }}
-        run: |
-          notes="$RUNNER_TEMP/notes.md"
-          ./scripts/changelog-section.sh "$APP_VERSION" > "$notes"
-          printf '\n## Verify the download\n\n```\nshasum -a 256 -c SHA256SUMS\ngh attestation verify Sift-%s.zip -R michellzappa/sift\n```\n' "$APP_VERSION" >> "$notes"
-          gh release create "$GITHUB_REF_NAME" \
-            "$RUNNER_TEMP/release/Sift-$APP_VERSION.zip" \
-            "$RUNNER_TEMP/release/SHA256SUMS" \
-            --title "Sift $APP_VERSION (build $APP_BUILD)" \
-            --notes-file "$notes"
+      SPARKLE_PRIVATE_ED_KEY: ${{ secrets.SPARKLE_PRIVATE_ED_KEY }}

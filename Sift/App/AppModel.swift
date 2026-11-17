@@ -201,10 +201,11 @@ final class AppModel {
         }
         reload()
         settleOnboardingForExistingInstall()
+        // Starts Sparkle's daily check (off in demo mode).
+        _ = Updates.shared
         // Demo mode has no background jobs and no Chrome.
         if !Demo.isOn {
             TelemetryCoordinator.shared.start(self)
-            UpdateChecker.shared.start()
             startLibraryWorker()
             startChromeWatcher()
             startAgentWatcher()

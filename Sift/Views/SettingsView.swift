@@ -50,7 +50,7 @@ private struct GeneralSettings: View {
     @Environment(\.openWindow) private var openWindow
 
     var body: some View {
-        GeneralSettingsPane(updates: UpdateChecker.shared) {
+        GeneralSettingsPane(updates: Updates.shared) {
             Section {
                 HStack {
                     Button("Open Setup Guide") {

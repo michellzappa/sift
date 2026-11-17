@@ -14,7 +14,7 @@ packages:
   # laptop build the same code; move the pin on purpose.
   HouseKit:
     url: https://github.com/michellzappa/housekit
-    exactVersion: 0.1.0
+    exactVersion: 0.2.0
 settings:
   base:
     SWIFT_VERSION: "6.0"
@@ -23,6 +23,9 @@ settings:
     # The release workflow and scripts/build-app.sh set this to the git
     # commit count.
     CURRENT_PROJECT_VERSION: "1"
+    # Sparkle's EdDSA public key (Info.plist SUPublicEDKey). Empty keeps
+    # the updater off. housekit/scripts/sparkle-key.sh makes the pair.
+    SPARKLE_PUBLIC_ED_KEY: ""
     # Real identity, not ad-hoc: TCC keys the Full Disk Access grant to the
     # code signature, so an ad-hoc build loses the grant on every rebuild.
     CODE_SIGN_STYLE: Manual
@@ -57,9 +60,6 @@ targets:
       - path: Demo
         type: folder
         buildPhase: resources
-      # The updater (Sift/App/Updates.swift runs it from Contents/Resources).
-      - path: scripts/update-app.sh
-        buildPhase: resources
       # Version history (ChangelogView); also the GitHub release notes.
       - path: CHANGELOG.md
         buildPhase: resources
@@ -80,6 +80,9 @@ targets:
         OTHER_LDFLAGS: "$(inherited) -weak_framework FoundationModels"
     dependencies:
       - package: HouseKit
+        product: HouseKit
+      - package: HouseKit
+        product: HouseKitSparkle
       # The MCP server ships inside the app at Contents/MacOS/sift-mcp,
       # signed on copy with the app's identity.
       - target: sift-mcp

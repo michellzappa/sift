@@ -307,21 +307,19 @@ The one exception is anonymous diagnostics (owner, 2026-11-15, below).
   Pulse floor 5). Never report a feed that is not on that list. Add only
   large public feeds to it; never rename an id.
 
-- Updates (2026-11-15, ported from Headroom's updater, owner's request).
-  `Sift/App/Updates.swift`: `UpdateChecker` asks GitHub's
-  `releases/latest` for michellzappa/sift once a day (first check 60 s
-  after launch; off in demo mode and for copies outside /Applications),
-  shows "Update to X" in the toolbar and in Settings > General, and
-  File-menu "Check for Updates…" in the app menu. The install is
-  `scripts/update-app.sh`, shipped in Contents/Resources (project.yml;
-  release.yml fails without it), run detached with `--yes --version X`,
-  log in `Application Support/Sift/logs/update.log`. Before it touches
-  anything it checks SHA256SUMS, `spctl`, `codesign --deep --strict`, team
-  992N457T8D (compiled into the script, never read from the release) and
-  that the bundle version equals the tag; then it quits Sift, keeps the old
-  bundle until `ditto` succeeds, strips quarantine and opens Sift. No
-  Sparkle. The zip name `Sift-<version>.zip` and `SHA256SUMS` are part of
-  the contract: release.yml and the script must agree.
+- Updates (2026-11-17, owner: Sparkle is the one updater for all Mac
+  apps). `Sift/App/Updates.swift`: `Updates.shared` is HouseKit's
+  `SparkleUpdater` (product `HouseKitSparkle`). Feed: Info.plist
+  `SUFeedURL`, the `appcast.xml` on the latest GitHub Release; key:
+  `SUPublicEDKey` from the build setting `SPARKLE_PUBLIC_ED_KEY` in
+  project.yml (empty keeps the updater off). Off in demo mode and for
+  copies outside /Applications. "Update to X" in the toolbar and Settings
+  > General, "Check for Updates…" in the app menu and the palette.
+  Releases go through the shared workflow (housekit `release-mac.yml`,
+  docs/releasing.md there); `.github/workflows/release.yml` only calls it.
+  Sift up to 1.7.6 still updates with `scripts/update-app.sh` (GitHub
+  `releases/latest`, `Sift-<version>.zip`, `SHA256SUMS`, team 992N457T8D),
+  so those asset names stay a contract until nobody runs 1.7.6.
 - Transcripts (2026-11-15): sidebar "Transcripts" lists links whose
   library entry has `transcript == true`. The web pane opens such a link on
   its transcript (reader view); the toggle switches to the video. The pane

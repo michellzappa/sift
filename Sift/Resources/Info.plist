@@ -45,5 +45,11 @@
 	<string></string>
 	<key>NSSpeechRecognitionUsageDescription</key>
 	<string>Sift turns what saved Instagram reels say into text for your library.</string>
+	<key>SUFeedURL</key>
+	<string>https://github.com/michellzappa/sift/releases/latest/download/appcast.xml</string>
+	<key>SUPublicEDKey</key>
+	<string>$(SPARKLE_PUBLIC_ED_KEY)</string>
+	<key>SUEnableAutomaticChecks</key>
+	<true/>
 </dict>
 </plist>
