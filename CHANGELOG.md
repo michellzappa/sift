@@ -9,6 +9,11 @@ ships this file and shows it in Settings > About and in Sift > Version
 History. Headings are `## X.Y.Z - YYYY-MM-DD`; groups are `### Added`,
 `### Changed` and `### Fixed`.
 
+## 1.7.3 - 2026-11-17
+
+### Added
+- Settings > Algorithm shows everything Sift ranks by, with live numbers: the Today score formula, today's picks sorted by score, what each signal (keep, open, reading time, skip) adds, each feed's standing, Your Graph, and which features use Claude, Apple's on-device model or no AI at all.
+
 ## 1.7.2 - 2026-11-17
 
 ### Added

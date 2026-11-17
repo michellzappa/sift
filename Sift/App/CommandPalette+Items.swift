@@ -71,6 +71,7 @@ enum SettingsRoute {
     static let panes: [(id: String, title: String, symbol: String)] = [
         ("general", "General", "gearshape"),
         ("how", "How It Works", "point.3.connected.trianglepath.dotted"),
+        ("algorithm", "Algorithm", "function"),
         ("inputs", "Inputs", "tray.and.arrow.down"),
         ("library", "Library", "books.vertical"),
         ("outputs", "Outputs", "tray.and.arrow.up"),

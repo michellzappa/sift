@@ -351,7 +351,11 @@ The one exception is anonymous diagnostics (owner, 2026-11-15, below).
   How It Works (2026-11-16: the concept diagram
   `docs/images/how-sift-works.svg`, shipped in Resources and used by the
   README and the site; change the diagram when the model changes),
-  Inputs, Library, Outputs, Intelligence, Themes, Telemetry, About (ids are
+  Algorithm (2026-11-17, owner: "algo visibility": the Today formula from
+  the same constants, today's picks by score, signal weights, feed
+  standings, Your Graph, where AI is used; `Views/AlgorithmSettings.swift`,
+  change it with the ranking), Inputs, Library, Outputs, Intelligence,
+  Themes, Telemetry, About (ids are
   the lowercase names; `-demoView settings:<id>`). A new pane is one more
   `SettingsPane` in `SettingsView.panes`.
 - Seen and unseen (2026-11-15, owner: "swipe = seen", email-style).

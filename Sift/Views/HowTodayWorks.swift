@@ -46,9 +46,7 @@ struct FeedStanding: Identifiable {
 /// from Today's toolbar (?) and Help > How Today Works. The text must match
 /// `TodayBuilder.build`; change both together.
 struct HowTodayWorks: View {
-    @Environment(AppModel.self) private var model
     @Environment(\.dismiss) private var dismiss
-    @State private var rows: [FeedStanding] = []
 
     var body: some View {
         VStack(alignment: .leading, spacing: 0) {
@@ -61,16 +59,21 @@ struct HowTodayWorks: View {
             Divider()
             ScrollView {
                 VStack(alignment: .leading, spacing: 18) {
-                    rules
+                    TodayRules()
                     Divider()
-                    feedTable
+                    FeedStandingsList()
                 }
                 .padding(20)
             }
         }
         .frame(width: 640, height: 640)
-        .onAppear { rows = model.standings().sorted { $0.feed.title.localizedCaseInsensitiveCompare($1.feed.title) == .orderedAscending } }
     }
+}
+
+/// The Today rules in plain words. Shared by the sheet and Settings >
+/// Algorithm.
+struct TodayRules: View {
+    var body: some View { rules }
 
     private var rules: some View {
         VStack(alignment: .leading, spacing: 12) {
@@ -99,6 +102,18 @@ struct HowTodayWorks: View {
                 Text(text).foregroundStyle(.secondary).fixedSize(horizontal: false, vertical: true)
             }
         }
+    }
+
+}
+
+/// Every followed feed with its place in Today and what Sift learned.
+struct FeedStandingsList: View {
+    @Environment(AppModel.self) private var model
+    @State private var rows: [FeedStanding] = []
+
+    var body: some View {
+        feedTable
+            .onAppear { rows = model.standings().sorted { $0.feed.title.localizedCaseInsensitiveCompare($1.feed.title) == .orderedAscending } }
     }
 
     private var feedTable: some View {
