@@ -124,6 +124,8 @@ struct AlgorithmSettings: View {
                 .font(.callout).foregroundStyle(.secondary).fixedSize(horizontal: false, vertical: true)
             Text("\(model.visibleCreators.count) creators · \(followed) followed · \(model.state.hiddenCreators.count) hidden")
                 .font(.callout)
+            Text("Next Door: creators outside your graph that \(NextDoor.minLinkers) or more of yours link to, in the pages, video descriptions and feed items Sift already has. Each creator who links adds 1 + log(1 + its own score). Sponsor links, shops, tip jars and a creator's own site do not count. \(model.visibleNeighbors.count) found.")
+                .font(.callout).foregroundStyle(.secondary).fixedSize(horizontal: false, vertical: true)
             Button("Open Your Graph") { model.navigationRequest = .creators }
         }
     }

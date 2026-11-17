@@ -9,6 +9,11 @@ ships this file and shows it in Settings > About and in Sift > Version
 History. Headings are `## X.Y.Z - YYYY-MM-DD`; groups are `### Added`,
 `### Changed` and `### Fixed`.
 
+## 1.7.5 - 2026-11-17
+
+### Added
+- Next Door, a second tab in Your Graph. It lists creators outside your graph that two or more of yours link to, found in the pages, video descriptions and feed items Sift already has on your Mac. Each one shows who linked it and the links themselves. Sponsor links, shops, tip jars and a creator's own site do not count. Follow or hide from there. On the iPhone, Next Door shows on each theme page and in Your Graph.
+
 ## 1.7.4 - 2026-11-17
 
 ### Added

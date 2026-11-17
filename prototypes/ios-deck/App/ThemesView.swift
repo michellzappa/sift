@@ -162,6 +162,7 @@ struct ThemePage: View {
                 listShelf(.read, show: 3)
                 listShelf(.scan, show: 5)
                 people
+                nextDoor
                 linked
             }
             .padding(16)
@@ -250,6 +251,30 @@ struct ThemePage: View {
                     }
                 }
                 Text("Following a creator brings its new posts into Today.").font(.caption).foregroundStyle(.tertiary)
+            }
+        }
+    }
+
+    /// Next Door inside the theme: who your creators here link to.
+    @ViewBuilder private var nextDoor: some View {
+        let list = store.nextDoor(theme: theme.name)
+        if !list.isEmpty {
+            VStack(alignment: .leading, spacing: 10) {
+                Label("Next door", systemImage: "person.2.wave.2").font(.headline)
+                ForEach(list.prefix(4)) { n in
+                    HStack(spacing: 10) {
+                        NavigationLink { NeighborPage(neighbor: n) } label: {
+                            VStack(alignment: .leading, spacing: 2) {
+                                Text(n.name).font(.subheadline.weight(.medium)).lineLimit(1).foregroundStyle(.primary)
+                                Text(n.linkedText).font(.caption).foregroundStyle(.secondary).lineLimit(1)
+                            }
+                        }
+                        .buttonStyle(.plain)
+                        Spacer()
+                        Button("Follow") { store.follow(n) }.buttonStyle(.bordered).controlSize(.small)
+                    }
+                }
+                Text("Not in your graph yet: creators you save from link to them.").font(.caption).foregroundStyle(.tertiary)
             }
         }
     }

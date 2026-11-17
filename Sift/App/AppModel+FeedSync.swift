@@ -134,11 +134,21 @@ extension AppModel {
             var hidden: Bool
             var saves: [Save]
         }
+        struct Evidence: Encodable { var from, item, itemURL, link: String }
+        struct Near: Encodable {
+            var id, kind, name, input: String
+            var linkedBy: [String]
+            var mentions: Int
+            var score: Double
+            var themes: [String: Int]
+            var evidence: [Evidence]
+        }
         struct File: Encodable {
             var schema = 1
             var halfLifeDays = Creators.halfLifeDays
             var minSaves = Creators.minSaves
             var creators: [Row]
+            var nextDoor: [Near]
         }
         let hidden = Set(state.hiddenCreators)
         let rows = creators.map { c in
@@ -149,7 +159,13 @@ extension AppModel {
                 saves: c.saves.prefix(8).map { Save(url: $0.url, title: $0.title, date: $0.date, theme: $0.theme) })
         }
         let e = JSONEncoder(); e.outputFormatting = [.sortedKeys]; e.dateEncodingStrategy = .iso8601
-        guard let data = try? e.encode(File(creators: rows)) else { return }
+        let near = visibleNeighbors.map { n in
+            Near(id: n.id, kind: n.kind.rawValue, name: n.name, input: n.input, linkedBy: n.linkedBy, mentions: n.mentions,
+                 score: (n.score * 100).rounded() / 100,
+                 themes: Dictionary(n.themes.map { ($0.name, $0.count) }, uniquingKeysWith: { a, _ in a }),
+                 evidence: n.evidence.prefix(6).map { Evidence(from: $0.from, item: $0.item, itemURL: $0.itemURL, link: $0.link) })
+        }
+        guard let data = try? e.encode(File(creators: rows, nextDoor: near)) else { return }
         let dir = CloseList.folder.appending(path: "Deck", directoryHint: .isDirectory)
         try? FileManager.default.createDirectory(at: dir, withIntermediateDirectories: true)
         let url = dir.appending(path: "creators.json")

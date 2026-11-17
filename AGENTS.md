@@ -779,3 +779,19 @@ The one exception is anonymous diagnostics (owner, 2026-11-15, below).
   theme page, and How Today Works (`AlgorithmView`: formula, signal
   weights, today's picks by `PickWhy.score`). The phone's Log sheet is now
   Settings. Keep `CreatorsFile` and `PickWhy` in step with the Mac.
+- Next Door (2026-11-17, owner: extend reading along the interest
+  vectors; first step). `NextDoor` in `Feeds/Creators.swift`: for the top
+  300 creators (their saved library text, up to 40 each) and every
+  followed feed (its items), collect outbound links, map them with
+  `NextDoor.key` (YouTube only as @handle or /channel pages, Bluesky
+  profiles, else `Creators.key`), and keep targets outside the graph that
+  2+ creators link to. Score = sum over linkers of 1 + log(1 + linker
+  score). Out: `NextDoor.noise` hosts, promo query or path, a line with
+  sponsor words, the source's own host, a creator's own site (`isOwn`,
+  name vs host label). `AppModel.refreshNeighbors` runs detached after the
+  author backfill, at most hourly (activity "nextdoor"). Hidden and
+  followed use the same `hiddenCreators` and `Feed.creator` ids.
+  creators.json carries `nextDoor` (last 6 links each) for the phone.
+  Tuned on the owner's library 2026-11-17: sponsors (workos, ramp,
+  intercom) can still slip through when the description has no sponsor
+  words; add hosts to `noise` when they show up.

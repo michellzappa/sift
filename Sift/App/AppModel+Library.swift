@@ -124,8 +124,12 @@ extension AppModel {
         if !isFetchingVideoTitles, !videosWithoutTitle.isEmpty { Task { await fetchVideoTitles() } }
         // New links go into the library.
         if state.autoCapture, !isCapturing, !linksToCapture.isEmpty { Task { await captureAll() } }
-        // Older library entries get their author (Your Graph), once.
-        Task { await backfillAuthors() }
+        // Older library entries get their author (Your Graph), once; then
+        // Next door reads who your creators link to (at most hourly).
+        Task {
+            await backfillAuthors()
+            await refreshNeighbors()
+        }
         // Saved pages and transcripts get a short summary on this Mac.
         Task { await summarizeLibrary() }
     }

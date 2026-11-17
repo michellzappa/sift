@@ -110,3 +110,61 @@ extension AppModel {
         refreshCreators()
     }
 }
+
+/// Next door (Feeds/Creators.swift, `NextDoor`).
+extension AppModel {
+    var visibleNeighbors: [Neighbor] {
+        let hidden = Set(state.hiddenCreators)
+        let followed = Set(state.feeds.compactMap(\.creator))
+        return neighbors.filter { !hidden.contains($0.id) && !followed.contains($0.id) }
+    }
+
+    /// Reads the saved text of every creator in Your Graph and the items of
+    /// every followed feed, and counts who they link to. At most once an
+    /// hour unless `force`.
+    func refreshNeighbors(force: Bool = false) async {
+        guard !Demo.isOn, !isFindingNeighbors else { return }
+        if !force, let built = neighborsBuilt, Date().timeIntervalSince(built) < 3600 { return }
+        isFindingNeighbors = true
+        defer { isFindingNeighbors = false; neighborsBuilt = Date() }
+        struct Plan: Sendable { var id, name: String; var score: Double; var themes: [String]; var urls: [(String, String)]; var feedID: String? }
+        var plans: [Plan] = creators.prefix(300).map { c in
+            Plan(id: c.id, name: c.name, score: c.score, themes: c.themes.prefix(3).map(\.name),
+                 urls: c.saves.prefix(NextDoor.perCreator).map { ($0.title, $0.url) }, feedID: c.feedID)
+        }
+        let mapped = Set(creators.compactMap(\.feedID))
+        for f in offeredFeeds where !mapped.contains(f.id) {
+            plans.append(Plan(id: "feed:" + f.id, name: f.title, score: 1, themes: [], urls: [], feedID: f.id))
+        }
+        let known = Set(creators.map(\.id)).union(state.feeds.compactMap(\.creator))
+        let result: [Neighbor] = await Task.detached(priority: .utility) {
+            var sources: [NextDoor.Source] = []
+            for p in plans {
+                var texts: [(title: String, url: String, text: String)] = []
+                for (title, url) in p.urls {
+                    if let t = Library.text(for: url) { texts.append((title, url, t)) }
+                }
+                if let id = p.feedID {
+                    for e in FeedStore.entries(id).prefix(NextDoor.perCreator) {
+                        texts.append((e.title, e.url, e.content ?? e.summary))
+                    }
+                }
+                if !texts.isEmpty { sources.append(NextDoor.Source(id: p.id, name: p.name, score: p.score, themes: p.themes, texts: texts)) }
+            }
+            return NextDoor.build(sources, known: known)
+        }.value
+        neighbors = result
+        writeCreatorsForPhone()
+    }
+
+    func followNeighbor(_ n: Neighbor) {
+        followCreator(Creator(id: n.id, kind: n.kind, name: n.name, input: n.input, saves: [], themes: n.themes,
+                              score: n.score, recent: 0, feedID: nil))
+    }
+
+    func setNeighborHidden(_ n: Neighbor, _ hidden: Bool) {
+        state.hiddenCreators.removeAll { $0 == n.id }
+        if hidden { state.hiddenCreators.append(n.id) }
+        writeCreatorsForPhone()
+    }
+}

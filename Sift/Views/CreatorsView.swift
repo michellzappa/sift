@@ -11,6 +11,7 @@ struct CreatorsView: View {
     @State private var showHidden = false
     @State private var filter = ""
     @State private var selected: String?
+    @AppStorage("graph.tab") private var tab = "yours"
 
     private var shown: [Creator] {
         let base = showHidden ? model.hiddenCreatorList : model.visibleCreators
@@ -23,6 +24,21 @@ struct CreatorsView: View {
     }
 
     var body: some View {
+        VStack(spacing: 0) {
+            Picker("", selection: $tab) {
+                Text("Your Graph").tag("yours")
+                Text("Next Door").tag("nextdoor")
+            }
+            .pickerStyle(.segmented).labelsHidden().fixedSize()
+            .padding(.vertical, 8)
+            Divider()
+            if tab == "nextdoor" { NextDoorView() } else { yours }
+        }
+        .navigationTitle("Your Graph")
+        .onAppear { if model.creators.isEmpty { model.refreshCreators() } }
+    }
+
+    private var yours: some View {
         ReaderSplit(showing: shown.contains { $0.id == selected }) {
             VStack(spacing: 0) {
                 header
@@ -46,8 +62,6 @@ struct CreatorsView: View {
                 CreatorPane(creator: c).id(c.id)
             }
         }
-        .navigationTitle("Your Graph")
-        .onAppear { if model.creators.isEmpty { model.refreshCreators() } }
     }
 
     private var header: some View {
@@ -204,6 +218,138 @@ private struct CreatorPane: View {
             if creator.count > 40 {
                 Text("and \(creator.count - 40) more").font(.caption).foregroundStyle(.secondary)
             }
+        }
+    }
+}
+
+/// Next Door: creators outside your graph that two or more of yours link
+/// to, with every link as evidence.
+private struct NextDoorView: View {
+    @Environment(AppModel.self) private var model
+    @State private var selected: String?
+    @State private var theme: String?
+
+    private var shown: [Neighbor] {
+        model.visibleNeighbors.filter { theme == nil || $0.themes.contains { $0.name == theme } }
+    }
+
+    var body: some View {
+        ReaderSplit(showing: shown.contains { $0.id == selected }) {
+            VStack(spacing: 0) {
+                VStack(alignment: .leading, spacing: 8) {
+                    Text("Creators outside your graph that \(NextDoor.minLinkers) or more of yours link to: in pages and video descriptions you saved, and in the feeds you follow. Each creator who links adds 1 + log(1 + its own score), so a link from someone high in your graph counts more. Sponsor links, shops, tip jars and a creator's own site do not count. Sift reads only what is already on this Mac.")
+                        .font(.callout).foregroundStyle(.secondary).fixedSize(horizontal: false, vertical: true)
+                    HStack {
+                        Picker("", selection: $theme) {
+                            Text("All Themes").tag(String?.none)
+                            ForEach(model.themes.map(\.name), id: \.self) { Text($0).tag(String?.some($0)) }
+                        }
+                        .labelsHidden().fixedSize()
+                        Spacer()
+                        if model.isFindingNeighbors {
+                            ProgressView().controlSize(.small)
+                        } else {
+                            Button("Look Again") { Task { await model.refreshNeighbors(force: true) } }
+                        }
+                    }
+                    .controlSize(.small)
+                }
+                .padding(12)
+                Divider()
+                if shown.isEmpty {
+                    ContentUnavailableView(model.isFindingNeighbors ? "Reading your library…" : "Nobody next door yet",
+                                           systemImage: "person.2.wave.2",
+                                           description: Text("Next Door needs creators in your graph whose saved pages, descriptions or feed items link out."))
+                } else {
+                    List(shown, selection: $selected) { n in
+                        NeighborRow(neighbor: n).tag(n.id)
+                            .contextMenu {
+                                Button("Follow \(n.name)") { model.followNeighbor(n) }
+                                Button("Hide") { model.setNeighborHidden(n, true) }
+                            }
+                    }
+                    .listStyle(.inset)
+                }
+            }
+        } pane: {
+            if let n = shown.first(where: { $0.id == selected }) { NeighborPane(neighbor: n).id(n.id) }
+        }
+        .task { if model.neighbors.isEmpty { await model.refreshNeighbors() } }
+    }
+}
+
+private struct NeighborRow: View {
+    let neighbor: Neighbor
+
+    var body: some View {
+        HStack(alignment: .firstTextBaseline, spacing: 8) {
+            Image(systemName: neighbor.kind.symbol).foregroundStyle(.secondary).frame(width: 18)
+            VStack(alignment: .leading, spacing: 2) {
+                Text(neighbor.name).fontWeight(.medium).lineLimit(1)
+                Text(NextDoorText.linkedBy(neighbor)).font(.caption).foregroundStyle(.secondary).lineLimit(1)
+            }
+            Spacer()
+            Text(String(format: "%.1f", neighbor.score)).font(.callout.monospacedDigit()).foregroundStyle(.secondary)
+        }
+        .padding(.vertical, 2)
+    }
+}
+
+enum NextDoorText {
+    /// "Linked by Dwarkesh Patel, Lenny's Podcast and 2 more · 9 links"
+    static func linkedBy(_ n: Neighbor) -> String {
+        let names = n.linkedBy
+        let head = names.prefix(2).joined(separator: ", ")
+        let rest = names.count > 2 ? " and \(names.count - 2) more" : ""
+        return "Linked by \(head)\(rest) · \(n.mentions) links"
+    }
+}
+
+private struct NeighborPane: View {
+    @Environment(AppModel.self) private var model
+    let neighbor: Neighbor
+
+    var body: some View {
+        ScrollView {
+            VStack(alignment: .leading, spacing: 16) {
+                VStack(alignment: .leading, spacing: 4) {
+                    Label("Next Door · \(neighbor.kind.label)", systemImage: neighbor.kind.symbol).font(.caption).foregroundStyle(.secondary)
+                    Text(neighbor.name).font(.title2.weight(.semibold))
+                }
+                HStack {
+                    Button("Follow") { model.followNeighbor(neighbor) }.buttonStyle(.borderedProminent)
+                    Button("Hide") { model.setNeighborHidden(neighbor, true) }
+                    Button("Open Site") { model.openInApp(neighbor.input.hasPrefix("http") ? neighbor.input : "https://" + neighbor.input) }
+                }
+                VStack(alignment: .leading, spacing: 4) {
+                    Text("Why it is here").font(.headline)
+                    Text(String(format: "Score %.2f: %d creators in your graph link to it, %d times in all. Each adds 1 + log(1 + its own score).",
+                                neighbor.score, neighbor.linkedBy.count, neighbor.mentions))
+                        .font(.callout).foregroundStyle(.secondary).fixedSize(horizontal: false, vertical: true)
+                    Text("Linked by: " + neighbor.linkedBy.joined(separator: ", ")).font(.callout).foregroundStyle(.secondary)
+                    if !neighbor.themes.isEmpty {
+                        Text("Through your themes: " + neighbor.themes.prefix(4).map { "\($0.name) (\($0.count))" }.joined(separator: ", "))
+                            .font(.callout).foregroundStyle(.secondary)
+                    }
+                }
+                VStack(alignment: .leading, spacing: 8) {
+                    Text("The links").font(.headline)
+                    ForEach(neighbor.evidence, id: \.self) { e in
+                        VStack(alignment: .leading, spacing: 2) {
+                            Button { model.openInApp(e.itemURL) } label: {
+                                Text("\(e.from): \(e.item.isEmpty ? e.itemURL : e.item)").lineLimit(2).multilineTextAlignment(.leading)
+                            }
+                            .buttonStyle(.plain)
+                            Button { model.openInApp(e.link) } label: {
+                                Text(e.link).font(.caption).foregroundStyle(.tint).lineLimit(1).truncationMode(.middle)
+                            }
+                            .buttonStyle(.plain)
+                        }
+                    }
+                }
+            }
+            .padding(20)
+            .frame(maxWidth: .infinity, alignment: .leading)
         }
     }
 }

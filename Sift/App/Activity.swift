@@ -36,6 +36,7 @@ extension AppModel {
         run("images", "Instagram images", isFetchingInstagramImages, instagramImageProgress)
         run("tiktok", "TikTok captions", isFetchingTikTok, tiktokProgress)
         run("titles", "YouTube titles", isFetchingVideoTitles, nil)
+        run("nextdoor", "Finding who your creators link to", isFindingNeighbors, nil)
         run("summaries", "Summaries on this Mac", isSummarizing, summaryProgress)
 
         let paused: [(key: String, title: String)] = [

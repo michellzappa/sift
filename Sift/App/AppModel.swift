@@ -161,6 +161,10 @@ final class AppModel {
     var creators: [Creator] = []
     /// Creator id per followed feed, for Today's ranking.
     @ObservationIgnored var creatorOfFeed: [String: Creator] = [:]
+    /// Next door: creators your creators link to (Feeds/Creators.swift).
+    var neighbors: [Neighbor] = []
+    var isFindingNeighbors = false
+    @ObservationIgnored var neighborsBuilt: Date?
 
     // MARK: Seen (AppModel+Seen.swift, Storage/Seen.swift)
     /// Newest seen or unseen mark per URL, from every device.

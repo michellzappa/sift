@@ -31,10 +31,27 @@ struct CreatorsFile: Codable {
             themes.map { ($0.key, $0.value) }.sorted { $0.1 == $1.1 ? $0.0 < $1.0 : $0.1 > $1.1 }
         }
     }
+    /// Next Door: creators outside your graph that two or more of yours link to.
+    struct Near: Codable, Identifiable, Hashable {
+        struct Evidence: Codable, Hashable { var from, item, itemURL, link: String }
+        var id, kind, name, input: String
+        var linkedBy: [String]
+        var mentions: Int
+        var score: Double
+        var themes: [String: Int]
+        var evidence: [Evidence]
+
+        /// "Linked by Dwarkesh Patel, Lenny's Podcast and 2 more · 9 links"
+        var linkedText: String {
+            let rest = linkedBy.count > 2 ? " and \(linkedBy.count - 2) more" : ""
+            return "Linked by \(linkedBy.prefix(2).joined(separator: ", "))\(rest) · \(mentions) links"
+        }
+    }
     var schema: Int
     var halfLifeDays: Double
     var minSaves: Int
     var creators: [Row]
+    var nextDoor: [Near]?
 }
 
 /// The Mac's `PickWhy`: how a Today pick got its place.
@@ -109,6 +126,19 @@ extension Store {
     }
     func setHidden(_ c: CreatorsFile.Row, _ hidden: Bool) { request(hidden ? "hide" : "show", creator: c.id) }
 
+    /// Next Door not followed or hidden from this phone yet.
+    var nextDoor: [CreatorsFile.Near] {
+        let asked = Set(feedRequests.compactMap(\.creator))
+        return (creators?.nextDoor ?? []).filter { !asked.contains($0.id) }
+    }
+
+    func nextDoor(theme: String) -> [CreatorsFile.Near] {
+        nextDoor.filter { ($0.themes[theme] ?? 0) > 0 }.sorted { ($0.themes[theme] ?? 0, $0.score) > ($1.themes[theme] ?? 0, $1.score) }
+    }
+
+    func follow(_ n: CreatorsFile.Near) { request("follow", input: n.input, creator: n.id) }
+    func hide(_ n: CreatorsFile.Near) { request("hide", creator: n.id) }
+
     func creators(theme: String) -> [CreatorsFile.Row] {
         (creators?.creators ?? []).filter { !isHidden($0) && ($0.themes[theme] ?? 0) > 0 }
             .sorted { ($0.themes[theme] ?? 0, $0.score) > ($1.themes[theme] ?? 0, $1.score) }
@@ -133,15 +163,28 @@ struct CreatorGraphView: View {
                 Picker("", selection: $kind) {
                     Text("All").tag("all")
                     Text("Following").tag("following")
+                    Text("Next Door").tag("nextdoor")
                     Text("Video").tag("video")
-                    Text("Writing").tag("writing")
                 }
                 .pickerStyle(.segmented)
                 .listRowBackground(Color.clear)
             } footer: {
                 Text("The channels, writers and communities behind what you saved. Score = your saves from them, each counted by age: a save counts half after \(Int(store.creators?.halfLifeDays ?? 90)) days. Sift only proposes. A creator reaches Today only after you follow it.")
             }
-            ForEach(rows) { c in
+            if kind == "nextdoor" {
+                Section {
+                    ForEach(store.nextDoor) { n in
+                        NavigationLink { NeighborPage(neighbor: n) } label: { NeighborRow(neighbor: n) }
+                            .swipeActions {
+                                Button("Hide") { store.hide(n) }.tint(.gray)
+                                Button("Follow") { store.follow(n) }.tint(.accentColor)
+                            }
+                    }
+                } footer: {
+                    Text("Creators outside your graph that 2 or more of yours link to, in the pages, video descriptions and feed items your Mac has. Each creator who links adds 1 + log(1 + its own score). Sponsor links, shops and a creator's own site do not count.")
+                }
+            }
+            ForEach(kind == "nextdoor" ? [] : rows) { c in
                 NavigationLink { CreatorPage(creator: c) } label: { CreatorRow(creator: c) }
                     .swipeActions {
                         Button(hidden ? "Show" : "Hide") { store.setHidden(c, !hidden) }.tint(.gray)
@@ -303,4 +346,56 @@ struct AlgorithmView: View {
         default: ""
         }
     }
+}
+
+struct NeighborRow: View {
+    let neighbor: CreatorsFile.Near
+
+    var body: some View {
+        HStack(alignment: .firstTextBaseline, spacing: 10) {
+            Image(systemName: "person.2.wave.2").foregroundStyle(.secondary).frame(width: 20)
+            VStack(alignment: .leading, spacing: 2) {
+                Text(neighbor.name).font(.body.weight(.medium)).lineLimit(1)
+                Text(neighbor.linkedText).font(.caption).foregroundStyle(.secondary).lineLimit(2)
+            }
+            Spacer()
+            Text(String(format: "%.1f", neighbor.score)).font(.caption.monospacedDigit()).foregroundStyle(.secondary)
+        }
+    }
+}
+
+struct NeighborPage: View {
+    @Environment(Store.self) private var store
+    @Environment(\.dismiss) private var dismiss
+    let neighbor: CreatorsFile.Near
+    @State private var browsing: BrowserLink?
+
+    var body: some View {
+        List {
+            Section {
+                Button("Follow") { store.follow(neighbor); dismiss() }.bold()
+                Button("Hide") { store.hide(neighbor); dismiss() }
+                Button("Open Site") { open(neighbor.input.hasPrefix("http") ? neighbor.input : "https://" + neighbor.input) }
+            } footer: { Text("Your Mac finds the feed and follows it.") }
+            Section("Why it is here") {
+                Text(String(format: "Score %.2f: %d creators in your graph link to it, %d times in all.", neighbor.score, neighbor.linkedBy.count, neighbor.mentions))
+                Text("Linked by " + neighbor.linkedBy.joined(separator: ", "))
+            }
+            .font(.callout)
+            Section("The links") {
+                ForEach(neighbor.evidence, id: \.self) { e in
+                    Button { open(e.itemURL) } label: {
+                        VStack(alignment: .leading, spacing: 2) {
+                            Text("\(e.from): \(e.item.isEmpty ? e.itemURL : e.item)").lineLimit(2).foregroundStyle(.primary)
+                            Text(e.link).font(.caption).foregroundStyle(.tint).lineLimit(1).truncationMode(.middle)
+                        }
+                    }
+                }
+            }
+        }
+        .navigationTitle(neighbor.name)
+        .sheet(item: $browsing) { InAppBrowser(url: $0.url).ignoresSafeArea() }
+    }
+
+    private func open(_ s: String) { if let u = URL(string: s) { browsing = BrowserLink(url: u) } }
 }
