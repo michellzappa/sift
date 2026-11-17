@@ -320,6 +320,14 @@ The one exception is anonymous diagnostics (owner, 2026-11-15, below).
   Sift up to 1.7.6 still updates with `scripts/update-app.sh` (GitHub
   `releases/latest`, `Sift-<version>.zip`, `SHA256SUMS`, team 992N457T8D),
   so those asset names stay a contract until nobody runs 1.7.6.
+  Signing timestamps (2026-11-17): 1.7.7 failed four archives with
+  "A timestamp was expected but was not found" on sift-chrome or
+  Sparkle.framework, on macos-15 and macos-26 alike. Apple's timestamp
+  server refused some requests from the runners; one refusal inside
+  xcodebuild fails the archive. housekit #6: the archive signs with
+  `--timestamp=none`, then one step signs every piece again with a
+  timestamp (retries each codesign 6 times) and checks that each
+  executable has one. Not a runner or Xcode problem: no runner pin.
 - Transcripts (2026-11-15): sidebar "Transcripts" lists links whose
   library entry has `transcript == true`. The web pane opens such a link on
   its transcript (reader view); the toggle switches to the video. The pane
