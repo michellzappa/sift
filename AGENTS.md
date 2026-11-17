@@ -806,3 +806,24 @@ The one exception is anonymous diagnostics (owner, 2026-11-15, below).
   `farther` and `fartherAsking`; the phone asks with request kind
   "farther" (input = theme) and follows with creator
   "farther:<theme>:<input>", which the Mac takes off the list.
+- Trails (2026-11-17, owner: TikTok's sound pages, finite).
+  `Engine/Trail.swift` (`Trail.build`): from a seed, unseen saved links
+  (`AppModel.savedLinks`, shared with Your Graph) and feed items of the
+  last 14 days, scored same creator 3 + same theme 1.5 + 0.6 per shared
+  word (`TodayBuilder.words`, max 5), at least 1.8 to join, 4 per creator,
+  20 in all. `AppModel+Trail.swift` opens it (`model.trail`, sidebar row
+  `SidebarItem.trail`, `Views/TrailView.swift` on `OfferedList`); saved
+  links carry feed id `Trail.savedFeedID` (no Keep; `fullText` reads
+  `Library.text`). Entry points: More Like This in TabCard and
+  OfferedList menus, key t. Phone: `prototypes/ios-deck/App/Trail.swift`
+  (`PhoneTrail`, same numbers, deck items + Today picks), `TrailSheet`
+  from the reader and row menus. Change both together.
+- Linked by your feeds (2026-11-17, owner: social proof).
+  `TodayBuilder.linked` reads markdown links in the last 7 days of
+  followed feed items (not aggregators, not the post's own site, not
+  `NextDoor.noise`, promo or sponsor lines). A candidate linked by other
+  feeds gets +0.3 per feed (max 0.9, `PickWhy.linkedBy/linkedBonus`) and
+  the reason "Linked by …". A link 2+ feeds point to that no feed
+  carries becomes its own pick (slot "linked", feed id = the newest
+  linker's feed, summary = the linking line), at most 3, outside the
+  per-feed caps, exploration and wildcard.

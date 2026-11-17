@@ -405,6 +405,7 @@ struct TodayListView: View {
     @State private var reading: Item?
     @State private var past = ScrollPast()
     @State private var library: [String] = []
+    @State private var trailFrom: Item?
 
     private var picks: [TodayPick] { (store.today?.picks ?? []).filter { $0.readingMode == mode } }
 
@@ -426,6 +427,7 @@ struct TodayListView: View {
                         ForEach(Array(saved.enumerated()), id: \.element.url) { i, item in
                             Button { openSaved(item) } label: { LibraryRow(item: item, mode: mode) }
                                 .buttonStyle(.plain)
+                                .contextMenu { Button { trailFrom = item } label: { Label("More Like This", systemImage: "point.topleft.down.to.point.bottomright.curvepath") } }
                                 .onAppear { if mode == .scan { past.appear(item.url, at: picks.count + i) } }
                                 .onDisappear {
                                     guard mode == .scan else { return }
@@ -463,6 +465,7 @@ struct TodayListView: View {
             .navigationBarTitleDisplayMode(.inline)
             .refreshable { store.sync() }
             .sheet(item: $reading) { ReaderView(item: $0) }
+            .background { Color.clear.sheet(item: $trailFrom) { TrailSheet(seed: $0) } }
             .onAppear { past.active = true; fillLibrary() }
             .onDisappear { past.active = false }
             .onChange(of: store.deck.items.count) { _, _ in fillLibrary() }
@@ -485,6 +488,7 @@ struct TodayListView: View {
             ForEach(Array(picks.enumerated()), id: \.element.id) { i, pick in
                 Button { open(pick) } label: { row(pick) }
                     .buttonStyle(.plain)
+                    .contextMenu { Button { trailFrom = store.trailNode(pick).item } label: { Label("More Like This", systemImage: "point.topleft.down.to.point.bottomright.curvepath") } }
                     // Scan: a headline scrolled past counts as seen.
                     .onAppear { if mode == .scan { past.appear(pick.url, at: i) } }
                     .onDisappear {

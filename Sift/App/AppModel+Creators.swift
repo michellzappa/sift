@@ -13,31 +13,9 @@ extension AppModel {
         return creators.filter { hidden.contains($0.id) }
     }
 
-    /// Builds the graph from every saved link: the archive and the links of
-    /// the current source. Errands, dropped and merged links do not count.
+    /// Builds the graph from every saved link (`savedLinks`).
     func refreshCreators() {
-        var links: [String: Creators.Link] = [:]
-        let themeNames = Set(themes.map(\.name))
-        func theme(_ url: String, fallback: String?) -> String? {
-            if let p = state.assignments[url]?.project { return themeNames.contains(p) ? p : nil }
-            return fallback.flatMap { themeNames.contains($0) ? $0 : nil }
-        }
-        func author(_ url: String) -> String? {
-            if let a = library[url]?.author { return a }
-            // Videos not captured yet: oEmbed's "By <channel>" preview.
-            if let t = previews[url]?.text, t.hasPrefix("By ") { return String(t.dropFirst(3)) }
-            return nil
-        }
-        for r in archive.values {
-            links[r.url] = Creators.Link(url: r.url, title: r.title, date: r.firstSeen, theme: theme(r.url, fallback: r.theme), author: author(r.url))
-        }
-        for t in tabs where links[t.url] == nil {
-            links[t.url] = Creators.Link(url: t.url, title: t.title, date: t.lastViewed ?? Date(), theme: theme(t.url, fallback: nil), author: author(t.url))
-        }
-        let hiddenProjects: Set<String> = [Project.errands, Project.drop]
-        let kept = links.values.filter { l in
-            state.mergedInto[l.url] == nil && !hiddenProjects.contains(state.assignments[l.url]?.project ?? "")
-        }
+        let kept = savedLinks()
         let followed = Creators.followed(state.feeds)
         creators = Creators.build(Array(kept), followed: followed)
         var byFeed: [String: Creator] = [:]
@@ -108,6 +86,36 @@ extension AppModel {
         Library.saveIndex(library)
         UserDefaults.standard.set(true, forKey: key)
         refreshCreators()
+    }
+}
+
+/// Every saved link with its theme and author: the archive and the links of
+/// the current source. Errands, dropped and merged links do not count. Your
+/// Graph and trails read the same list.
+extension AppModel {
+    func savedLinks() -> [Creators.Link] {
+        var links: [String: Creators.Link] = [:]
+        let themeNames = Set(themes.map(\.name))
+        func theme(_ url: String, fallback: String?) -> String? {
+            if let p = state.assignments[url]?.project { return themeNames.contains(p) ? p : nil }
+            return fallback.flatMap { themeNames.contains($0) ? $0 : nil }
+        }
+        func author(_ url: String) -> String? {
+            if let a = library[url]?.author { return a }
+            // Videos not captured yet: oEmbed's "By <channel>" preview.
+            if let t = previews[url]?.text, t.hasPrefix("By ") { return String(t.dropFirst(3)) }
+            return nil
+        }
+        for r in archive.values {
+            links[r.url] = Creators.Link(url: r.url, title: r.title, date: r.firstSeen, theme: theme(r.url, fallback: r.theme), author: author(r.url))
+        }
+        for t in tabs where links[t.url] == nil {
+            links[t.url] = Creators.Link(url: t.url, title: t.title, date: t.lastViewed ?? Date(), theme: theme(t.url, fallback: nil), author: author(t.url))
+        }
+        let hiddenProjects: Set<String> = [Project.errands, Project.drop]
+        return links.values.filter { l in
+            state.mergedInto[l.url] == nil && !hiddenProjects.contains(state.assignments[l.url]?.project ?? "")
+        }
     }
 }
 

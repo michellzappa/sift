@@ -24,6 +24,9 @@ struct PickWhyView: View {
                         if let t = why.theme {
                             row("Theme", String(format: "+ %.2f", why.themeBonus), "\(why.themeWords) words shared with \(t)")
                         }
+                        if let names = why.linkedBy, !names.isEmpty {
+                            row("Linked", String(format: "+ %.2f", why.linkedBonus ?? 0), "posts in \(names.joined(separator: ", ")) link here")
+                        }
                         if why.mentions > 1 {
                             row("Hot", String(format: "+ %.2f", why.hotBonus), "in \(why.mentions) of your feeds")
                         }
@@ -67,6 +70,7 @@ struct PickWhyView: View {
         case "dontMiss": "Your feed \(feedTitle) is set to Don't Miss: every new item comes in first, newest first."
         case "fill": "This mode had fewer than \(TodayBuilder.perMode) picks, so Sift added an unseen item from the last \(Int(TodayBuilder.fillWindowDays)) days, best score first."
         case "explore": "New to you: Sift knows little about this feed yet, so it gets one slot to show what it brings."
+        case "linked": "Linked by your feeds: \(why.linkedBy?.count ?? 0) of the feeds you follow link to this in their posts this week, but none carries it as an item. At most \(TodayBuilder.linkedMaxPicks) such picks at a time."
         case "wildcard": "Something different: one item from a feed not in Today yet, picked at random, not by score."
         default: "Ranked by score among unseen items from the last \(Int(TodayBuilder.windowDays)) days."
         }

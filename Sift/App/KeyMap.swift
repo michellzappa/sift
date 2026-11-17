@@ -6,7 +6,7 @@ import Foundation
 /// ⌘, ⌃ and ⌥ combinations stay with the menus.
 enum KeyAction: Hashable, Sendable {
     // In a list
-    case next, previous, open, original, keep, toggleSeen, markAllSeen, copyLink, follow, send
+    case next, previous, open, original, keep, toggleSeen, markAllSeen, copyLink, follow, send, trail
     // Anywhere in the main window
     case go(SidebarItem), nextSource, previousSource, refresh, search, followSheet, help
     /// Scan, Watch, Read; nil = All.
@@ -38,6 +38,7 @@ enum KeyMap {
         .init(keys: "A", action: .markAllSeen, title: "Mark every item in the list as seen", group: "Item"),
         .init(keys: "c", action: .copyLink, title: "Copy the link", group: "Item"),
         .init(keys: "f", action: .follow, title: "Follow the item's site", group: "Item"),
+        .init(keys: "t", action: .trail, title: "More like this: open a trail from the item", group: "Item"),
         .init(keys: "e", action: .send, title: "Send to the theme's destination", group: "Item"),
         // Going places
         .init(keys: "g t", action: .go(.today), title: "Go to Today", group: "Go"),

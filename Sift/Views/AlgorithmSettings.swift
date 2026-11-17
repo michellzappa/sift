@@ -44,7 +44,7 @@ struct AlgorithmSettings: View {
 
     private var formula: some View {
         VStack(alignment: .leading, spacing: 8) {
-            Text("score = fresh × volume × reading + graph + theme + hot")
+            Text("score = fresh × volume × reading + graph + theme + linked + hot")
                 .font(.system(.body, design: .monospaced))
                 .padding(8)
                 .background(RoundedRectangle(cornerRadius: 6).fill(Color.secondary.opacity(0.1)))
@@ -54,10 +54,11 @@ struct AlgorithmSettings: View {
                 line("reading", "1 + 0.8 × affinity", "affinity is -1…1, from what you did with the feed")
                 line("graph", "0.12 × log2(1 + saves), max 0.6", "only for a creator you follow in Your Graph")
                 line("theme", "0.15 × shared words, max 0.6", "needs 3 or more words in common with a theme")
+                line("linked", "0.3 × feeds, max 0.9", "your other feeds link to it in their posts this week")
                 line("hot", "0.6 × (feeds − 1)", "the same link in 2 or more of your feeds")
             }
             .font(.callout)
-            Text("Places: Don't Miss items first, then Hot, then by score. A Normal feed gets up to \(TodayBuilder.perFeed) unseen picks at a time, a Best Only feed 1. Each mode (Scan, Watch, Read) gets at least \(TodayBuilder.perMode); if it has fewer, unseen items up to \(Int(TodayBuilder.fillWindowDays)) days old fill it. Then one \"New to you\" and one random \"Something different\" per mode.")
+            Text("Places: Don't Miss items first, then Hot, then by score. A Normal feed gets up to \(TodayBuilder.perFeed) unseen picks at a time, a Best Only feed 1. Each mode (Scan, Watch, Read) gets at least \(TodayBuilder.perMode); if it has fewer, unseen items up to \(Int(TodayBuilder.fillWindowDays)) days old fill it. Then one \"New to you\" and one random \"Something different\" per mode. A link that \(TodayBuilder.linkedMinFeeds) or more of your feeds point to, but none carries, gets its own place (\"Linked by\"), at most \(TodayBuilder.linkedMaxPicks).")
                 .font(.callout).foregroundStyle(.secondary).fixedSize(horizontal: false, vertical: true)
         }
     }
@@ -98,6 +99,7 @@ struct AlgorithmSettings: View {
         case "fill": "Fill"
         case "explore": "New to you"
         case "wildcard": "Random"
+        case "linked": "Linked by"
         case "ranked": "Ranked"
         default: "Older pick"
         }
@@ -128,6 +130,8 @@ struct AlgorithmSettings: View {
                 .font(.callout).foregroundStyle(.secondary).fixedSize(horizontal: false, vertical: true)
             Text("Farther: on request, per theme, your own Claude reads the theme's newest saved titles and history and names sources one step beyond: deeper, adjacent and one counterpoint. Sift checks each for a feed; only those with one can be followed. Each answer keeps the exact text Claude saw.")
                 .font(.callout).foregroundStyle(.secondary).fixedSize(horizontal: false, vertical: true)
+            Text("Trails: More Like This (T) on any item opens up to \(Trail.size) unseen items near it, from your saves and the last \(Int(Trail.offeredDays)) days of your feeds. Same creator counts 3, same theme 1.5, each shared word 0.6. At most \(Trail.perCreator) per creator. No AI.")
+                .font(.callout).foregroundStyle(.secondary).fixedSize(horizontal: false, vertical: true)
             Button("Open Your Graph") { model.navigationRequest = .creators }
         }
     }
@@ -136,7 +140,7 @@ struct AlgorithmSettings: View {
         VStack(alignment: .leading, spacing: 6) {
             Text("Claude (your own login or key): finding themes, sorting links that the on-device model is not sure of, connections between themes, and Farther suggestions when you ask. It gets titles, addresses and previews, never full pages.")
             Text("Apple's on-device model: the first sorting pass and summaries, on this Mac.")
-            Text("No AI: Today, Your Graph, Scan / Watch / Read, duplicates, search.")
+            Text("No AI: Today, Your Graph, Next Door, trails, Scan / Watch / Read, duplicates, search.")
         }
         .font(.callout).foregroundStyle(.secondary).fixedSize(horizontal: false, vertical: true)
     }

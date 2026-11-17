@@ -111,6 +111,9 @@ struct PickWhy: Codable, Hashable, Sendable {
     var creatorSaves: Int
     var creatorBonus: Double
     var score: Double
+    /// Social proof: your feeds whose posts link to this item.
+    var linkedBy: [String]? = nil
+    var linkedBonus: Double? = nil
 }
 
 extension Store {
@@ -333,15 +336,16 @@ struct AlgorithmView: View {
     var body: some View {
         List {
             Section {
-                Text("score = fresh × volume × reading + graph + theme + hot").font(.system(.callout, design: .monospaced))
+                Text("score = fresh × volume × reading + graph + theme + linked + hot").font(.system(.callout, design: .monospaced))
                 row("fresh", "exp(-hours / 36)", "1 when new, about 0.5 after a day")
                 row("volume", "1 / √(posts a day)", "a rare post counts more")
                 row("reading", "1 + 0.8 × affinity", "affinity is -1…1, from what you did with the feed")
                 row("graph", "0.12 × log2(1 + saves)", "a creator you follow in Your Graph, max 0.6")
                 row("theme", "0.15 × shared words", "3 or more words shared with a theme, max 0.6")
+                row("linked", "0.3 × feeds, max 0.9", "your other feeds link to it in their posts this week")
                 row("hot", "0.6 × (feeds − 1)", "the same link in 2 or more of your feeds")
             } header: { Text("The Today score") } footer: {
-                Text("Don't Miss items come first, then Hot, then by score. Each of Scan, Watch and Read gets at least 5 picks; unseen items up to 14 days old fill a mode that has fewer. One \"New to you\" and one random \"Something different\" per mode. Today and Your Graph use no AI.")
+                Text("Don't Miss items come first, then Hot, then by score. Each of Scan, Watch and Read gets at least 5 picks; unseen items up to 14 days old fill a mode that has fewer. One \"New to you\" and one random \"Something different\" per mode. A link 2 or more of your feeds point to, but none carries, gets its own place (\"Linked by\"), at most 3. More Like This on any item opens a trail: same creator, same theme or shared words, 20 at most. Today, trails and Your Graph use no AI.")
             }
             Section {
                 row("Keep", "+3", "")
@@ -382,6 +386,7 @@ struct AlgorithmView: View {
         case "fill": "Fill"
         case "explore": "New to you"
         case "wildcard": "Random"
+        case "linked": "Linked by"
         case "ranked": "Ranked"
         default: ""
         }

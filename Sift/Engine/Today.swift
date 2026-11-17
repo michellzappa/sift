@@ -81,6 +81,9 @@ struct PickWhy: Codable, Hashable, Sendable {
     var creatorSaves: Int
     var creatorBonus: Double
     var score: Double
+    /// Social proof: your feeds whose posts link to this item.
+    var linkedBy: [String]? = nil
+    var linkedBonus: Double? = nil
 }
 
 struct TodayDigest: Codable, Hashable, Sendable {
@@ -149,6 +152,90 @@ enum TodayBuilder {
         var creators: [String: (name: String, saves: Int)] = [:]
     }
 
+    /// Social proof (owner, 2026-11-17): each other feed of yours whose
+    /// post links to an item adds this, up to `linkedMaxBonus`.
+    static let linkedBonusEach = 0.3
+    static let linkedMaxBonus = 0.9
+    /// A link that is in no feed becomes a pick of its own when this many
+    /// of your feeds link to it, at most `linkedMaxPicks` per build.
+    static let linkedMinFeeds = 2
+    static let linkedMaxPicks = 3
+    /// Posts that count as linking: the last week.
+    static let linkedDays: Double = 7
+
+    /// One address your feeds link to from their posts.
+    struct Linked {
+        var url: String
+        var text: String
+        var context: String
+        /// Feed id → feed title, for each feed whose post links here.
+        var feeds: [String: String] = [:]
+        var newest: Date
+        var firstFeed: String
+    }
+
+    /// The outbound links in your feeds' posts of the last week, by
+    /// normalized address. A post's link to its own site, link aggregators
+    /// (they count as Hot), shops, sponsors and tip jars do not count.
+    static func linked(_ input: Input, now: Date) -> [String: Linked] {
+        let since = now.addingTimeInterval(-linkedDays * 86_400)
+        let aggregators = ["reddit.com", "news.ycombinator.com", "lobste.rs", "redd.it", "news.google.com"]
+        let pattern = try! NSRegularExpression(pattern: #"\[([^\]]{0,200})\]\((https?://[^)\s]+)\)"#)
+        var out: [String: Linked] = [:]
+        for feed in input.feeds where feed.enabled {
+            let feedHost = (URL(string: feed.site ?? feed.url)?.host() ?? "").replacingOccurrences(of: "www.", with: "")
+            if aggregators.contains(where: { feedHost.hasSuffix($0) }) { continue }
+            for e in input.entries[feed.id] ?? [] {
+                guard let date = e.date, date >= since, date <= now.addingTimeInterval(3600),
+                      let text = e.content, !text.isEmpty else { continue }
+                let own = (URL(string: e.url)?.host() ?? "").replacingOccurrences(of: "www.", with: "")
+                let ns = text as NSString
+                var seenHere = Set<String>()
+                for m in pattern.matches(in: text, range: NSRange(location: 0, length: ns.length)) {
+                    let link = ns.substring(with: m.range(at: 2))
+                    guard let u = URL(string: link), let h0 = u.host()?.lowercased() else { continue }
+                    let host = h0.replacingOccurrences(of: #"^(www\.|m\.)"#, with: "", options: .regularExpression)
+                    if host == own || host == feedHost || host.hasSuffix("." + own) || own.hasSuffix("." + host) { continue }
+                    if aggregators.contains(where: { host.hasSuffix($0) }) { continue }
+                    if NextDoor.noise.contains(host) || NextDoor.noise.contains(where: { host.hasSuffix("." + $0) }) { continue }
+                    if u.path.isEmpty || u.path == "/" { continue }
+                    if link.range(of: #"\.(png|jpe?g|gif|webp|svg|mp3|mp4|pdf)$"#, options: [.regularExpression, .caseInsensitive]) != nil { continue }
+                    if NextDoor.promo.firstMatch(in: link, range: NSRange(location: 0, length: (link as NSString).length)) != nil { continue }
+                    let line = ns.lineRange(for: m.range)
+                    if NextDoor.sponsorLine.firstMatch(in: text, range: line) != nil { continue }
+                    let key = URLKey.normalize(link)
+                    guard seenHere.insert(key).inserted else { continue }
+                    let anchor = ns.substring(with: m.range(at: 1))
+                    let context = ns.substring(with: line)
+                        .replacingOccurrences(of: #"\[([^\]]*)\]\([^)]*\)"#, with: "$1", options: .regularExpression)
+                        .replacingOccurrences(of: #"[*_`>#]"#, with: "", options: .regularExpression)
+                        .trimmingCharacters(in: .whitespacesAndNewlines)
+                    if out[key] == nil {
+                        out[key] = Linked(url: link, text: anchor, context: String(context.prefix(280)), newest: date, firstFeed: feed.id)
+                    }
+                    out[key]!.feeds[feed.id] = feed.title
+                    if date > out[key]!.newest {
+                        out[key]!.newest = date
+                        out[key]!.firstFeed = feed.id
+                        out[key]!.context = String(context.prefix(280))
+                        if anchor.count > out[key]!.text.count { out[key]!.text = anchor }
+                    }
+                }
+            }
+        }
+        return out
+    }
+
+    /// "Linked by A", "Linked by A and B", "Linked by A, B and 2 more".
+    static func linkedReason(_ names: [String]) -> String {
+        switch names.count {
+        case 0: ""
+        case 1: "Linked by \(names[0])"
+        case 2: "Linked by \(names[0]) and \(names[1])"
+        default: "Linked by \(names[0]), \(names[1]) and \(names.count - 2) more"
+        }
+    }
+
     /// Score bonus for a creator you saved `saves` links from.
     static func creatorBonus(_ saves: Int) -> Double { min(0.12 * log2(1 + Double(saves)), 0.6) }
 
@@ -201,9 +288,11 @@ enum TodayBuilder {
                 for k in keys { feedsPerURL[k, default: []].insert(feed.id) }
             }
         }
+        let linkedMap = linked(input, now: now)
         let themeWords: [(name: String, words: Set<String>)] = input.themes.map { ($0.name, words($0.name + " " + $0.summary)) }
 
-        struct Candidate { var pick: TodayPick; var score: Double; var priority: FeedPriority; var strong: Bool; var mentions: Int; var mode: ReadingMode; var older: Bool }
+        struct Candidate { var pick: TodayPick; var score: Double; var priority: FeedPriority; var strong: Bool; var mentions: Int; var mode: ReadingMode; var older: Bool
+                           var linked = false }
         var must: [TodayPick] = []
         var candidates: [Candidate] = []
         var seenURL = Set<String>()
@@ -251,6 +340,19 @@ enum TodayBuilder {
                     pick.reason = "Fits \(best.0)"
                     strong = true
                 }
+                // Social proof: other feeds of yours whose posts link here.
+                var linkers: [String: String] = [:]
+                for k in keysOf[e.url] ?? [key] {
+                    for (id, title) in linkedMap[k]?.feeds ?? [:] where id != feed.id { linkers[id] = title }
+                }
+                if !linkers.isEmpty {
+                    let names = linkers.values.sorted()
+                    why.linkedBy = names
+                    why.linkedBonus = min(Double(names.count) * linkedBonusEach, linkedMaxBonus)
+                    score += why.linkedBonus ?? 0
+                    pick.reason = linkedReason(names)
+                    strong = true
+                }
                 let mentions = (keysOf[e.url] ?? [key]).reduce(into: Set<String>()) { $0.formUnion(feedsPerURL[$1] ?? []) }.count
                 why.mentions = mentions
                 if mentions > 1 {
@@ -268,12 +370,43 @@ enum TodayBuilder {
             }
         }
 
+        // Social proof picks: a link that two or more of your feeds point to
+        // but no feed carries as an item. Its own place, at most
+        // `linkedMaxPicks`; the post that linked it most recently gives the
+        // summary.
+        for (key, l) in linkedMap where l.feeds.count >= linkedMinFeeds && feedsPerURL[key] == nil {
+            guard l.newest >= cutoff, !keptURLs.contains(l.url), !input.isSeen(l.url), seenURL.insert(key).inserted else { continue }
+            let host = (URL(string: l.url)?.host() ?? "").replacingOccurrences(of: "www.", with: "")
+            let generic = ["here", "this", "link", "post", "article", "read more", "source", "via", "paper", "thread"]
+            let anchor = l.text.trimmingCharacters(in: .whitespacesAndNewlines)
+            let title = anchor.count >= 12 && !generic.contains(anchor.lowercased()) ? anchor : host + (URL(string: l.url)?.path ?? "")
+            let names = l.feeds.values.sorted()
+            let hours = max(now.timeIntervalSince(l.newest) / 3600, 0)
+            let bonus = min(Double(names.count) * linkedBonusEach, linkedMaxBonus)
+            let why = PickWhy(slot: "linked", hoursOld: hours, freshness: exp(-hours / 36), postsPerDay: 0, volume: 1, affinity: 0,
+                              theme: nil, themeWords: 0, themeBonus: 0, mentions: 0, hotBonus: 0, creator: nil, creatorSaves: 0,
+                              creatorBonus: 0, score: exp(-hours / 36) + bonus, linkedBy: names, linkedBonus: bonus)
+            var pick = TodayPick(url: l.url, title: title, date: l.newest, feedID: l.firstFeed, feedTitle: host,
+                                 summary: l.context, image: nil, reason: linkedReason(names))
+            pick.why = why
+            candidates.append(Candidate(pick: pick, score: why.score, priority: .normal, strong: true, mentions: 0,
+                                        mode: input.mode(pick), older: false, linked: true))
+        }
+
         must.sort { ($0.date ?? .distantPast) > ($1.date ?? .distantPast) }
         // Hot first (most feeds, then score), then the rest by score.
         candidates.sort { ($0.mentions > 1 ? $0.mentions : 0, $0.score) > ($1.mentions > 1 ? $1.mentions : 0, $1.score) }
         var picks = must
         var perFeedCount: [String: Int] = [:]
+        var linkedPicks = 0
         for c in candidates where !c.older {
+            if c.linked {
+                // Social proof picks have their own cap, not the feed's.
+                guard linkedPicks < linkedMaxPicks else { continue }
+                linkedPicks += 1
+                picks.append(c.pick)
+                continue
+            }
             if c.priority == .best && !c.strong { continue }
             let cap = c.priority == .best ? 1 : perFeed
             guard perFeedCount[c.pick.feedID, default: 0] < cap else { continue }
@@ -306,7 +439,7 @@ enum TodayBuilder {
 
         // Exploration and the wildcard, once per mode, so each tab gets them.
         for mode in ReadingMode.allCases {
-            let pool = candidates.filter { $0.mode == mode && !$0.older }
+            let pool = candidates.filter { $0.mode == mode && !$0.older && !$0.linked }
             // Exploration: the newest item of a feed Sift has little evidence on.
             if let explore = pool.first(where: { c in !picks.contains { $0.url == c.pick.url } && c.priority == .normal
                 && (input.evidence[c.pick.feedID] ?? 0) < 3 && perFeedCount[c.pick.feedID] == nil }) {

@@ -5,6 +5,8 @@ enum SidebarItem: Hashable {
     case today
     /// Your Graph: the creators behind your saves (Views/CreatorsView.swift).
     case creators
+    /// More Like This from one item (Engine/Trail.swift).
+    case trail
     /// One followed feed, by id; one feed folder, by name.
     case feed(String)
     case feedFolder(String)
@@ -43,6 +45,8 @@ struct ContentView: View {
                     TodayView()
                 } else if item == .creators {
                     CreatorsView()
+                } else if item == .trail {
+                    TrailView()
                 } else if case .feed(let id) = item, let feed = model.state.feeds.first(where: { $0.id == id }) {
                     FeedItemsView(title: feed.title, feeds: [feed]).id(item)
                 } else if case .feedFolder(let name) = item {
@@ -264,6 +268,14 @@ private struct Sidebar: View {
                 if !model.creators.isEmpty {
                     Label("Your Graph", systemImage: "person.2").tag(SidebarItem.creators)
                         .help("The channels, writers and communities behind what you saved")
+                }
+                // The trail opened with More Like This, while there is one.
+                if let trail = model.trail {
+                    Label {
+                        Text("Trail: \(trail.seed.title)").lineLimit(1)
+                    } icon: { Image(systemName: "point.topleft.down.to.point.bottomright.curvepath") }
+                        .tag(SidebarItem.trail)
+                        .help("More like the item you started from. It ends after \(Trail.size) items.")
                 }
                 ForEach(model.feedFolders, id: \.self) { folder in
                     DisclosureGroup {

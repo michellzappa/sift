@@ -9,6 +9,12 @@ ships this file and shows it in Settings > About and in Sift > Version
 History. Headings are `## X.Y.Z - YYYY-MM-DD`; groups are `### Added`,
 `### Changed` and `### Fixed`.
 
+## 1.7.7 - 2026-11-17
+
+### Added
+- Trails. Choose More Like This on any item, or press T, to open a trail: up to 20 unseen items near it from the same creator, the same theme or with words in common. They come from your saves and the last two weeks of your feeds. The trail ends, and you can start a new one from any item on it. Follow the creator from the top of the trail. On the iPhone, More Like This is at the end of every article and in each row's menu.
+- Linked by your feeds. When a feed you follow links to an item in its posts this week, Today gives the item a lift and says who linked it. When two or more of your feeds link to something that no feed carries, it gets a place of its own in Today, at most three at a time. "Why this is here", Settings > Algorithm and How Today Works show the numbers.
+
 ## 1.7.6 - 2026-11-17
 
 ### Added

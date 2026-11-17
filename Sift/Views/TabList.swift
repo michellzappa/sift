@@ -30,6 +30,7 @@ struct TabList: View {
         switch item {
         case .today: "Today"
         case .creators: "Your Graph"
+        case .trail: "Trail"
         case .feed, .feedFolder: "Feeds"
         case .overview: "Overview"
         case .source(let id): model.sourceTitle(id)
@@ -48,7 +49,7 @@ struct TabList: View {
 
     private var all: [SafariTab] {
         switch item {
-        case .today, .creators, .feed, .feedFolder: []
+        case .today, .creators, .trail, .feed, .feedFolder: []
         case .overview, .source: model.tabs
         case .unsorted: model.tabs(in: nil)
         case .closeQueue: model.closeQueueTabs
@@ -295,6 +296,9 @@ struct TabList: View {
         case .follow:
             guard let tab, let input = AppModel.followInput(forLink: tab.url) else { return false }
             model.followQuick(input)
+        case .trail:
+            guard let tab else { return false }
+            model.openTrail(url: tab.url)
         case .send:
             guard let tab else { return false }
             guard let d = model.defaultDestination(for: tab) else {
@@ -365,6 +369,8 @@ struct TabCard: View {
         .contentShape(Rectangle())
         .task(id: tab.url) { await model.preview(for: tab) }
         .contextMenu {
+            Button("More Like This") { model.openTrail(url: tab.url) }
+            Divider()
             Button(model.isSeen(tab.url) ? "Mark as Unseen" : "Mark as Seen") {
                 model.setSeen([tab.url], !model.isSeen(tab.url))
             }

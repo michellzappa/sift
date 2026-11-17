@@ -67,6 +67,8 @@ extension AppModel {
     func fullText(for pick: TodayPick) async -> String? {
         if let c = pick.content, !c.isEmpty { return c }
         if let c = FeedStore.entries(pick.feedID).first(where: { $0.url == pick.url })?.content { return c }
+        // A saved link on a trail: the text Sift captured.
+        if pick.feedID == Trail.savedFeedID, let t = Library.text(for: pick.url), !t.isEmpty { return t }
         // Not for videos, and not for social posts: their summary is the
         // whole post, and bsky.app pages are an app, not an article.
         guard pick.url.range(of: #"youtube\.com|youtu\.be|bsky\.app|/@[^/]+/\d+$"#, options: .regularExpression) == nil,

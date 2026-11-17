@@ -89,7 +89,9 @@ struct TodayRules: View {
             rule("8", "It updates", "New picks go on top after each feed check. Items you have seen stay in their place until they are \(Int(TodayBuilder.windowDays)) days old (older picks that filled a mode: \(Int(TodayBuilder.fillWindowDays)) days). Rebuild Today starts again from nothing.")
             rule("9", "What it learns", "Keeping, opening, reading time and playing raise a feed; a quick skip lowers it a little. It counts the last month most, on this Mac and your iPhone.")
             rule("10", "Your Graph", "The channels, writers and communities behind what you saved, ranked by your saves (a save counts half after \(Int(Creators.halfLifeDays)) days). Sift only proposes them. A creator reaches Today only after you follow it.")
-            rule("11", "Check any pick", "Open a pick and look under \"Why this is here\": every number of its score, and which rule gave it its place.")
+            rule("11", "Linked by your feeds", "When another feed you follow links to an item in its posts this week, the item gets a lift (+0.3 per feed, up to +0.9). A link that \(TodayBuilder.linkedMinFeeds) or more of your feeds point to, but none carries, gets a place of its own, at most \(TodayBuilder.linkedMaxPicks) at a time.")
+            rule("12", "Trails", "More Like This (T, or the context menu) on any item opens a trail: up to \(Trail.size) unseen items from the same creator, the same theme or with words in common, from your saves and your feeds. It ends. Start a new trail from any item on it.")
+            rule("13", "Check any pick", "Open a pick and look under \"Why this is here\": every number of its score, and which rule gave it its place.")
         }
     }
 

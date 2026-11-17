@@ -161,6 +161,8 @@ final class AppModel {
     var creators: [Creator] = []
     /// Creator id per followed feed, for Today's ranking.
     @ObservationIgnored var creatorOfFeed: [String: Creator] = [:]
+    /// The trail the user opened with More Like This (Engine/Trail.swift).
+    var trail: TrailState?
     /// Next door: creators your creators link to (Feeds/Creators.swift).
     var neighbors: [Neighbor] = []
     var isFindingNeighbors = false

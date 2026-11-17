@@ -159,6 +159,7 @@ struct ReaderView: View {
     @Environment(\.dismiss) private var dismiss
     let item: Item
     @State private var browsing: BrowserLink?
+    @State private var trailFrom: Item?
 
     var body: some View {
         NavigationStack {
@@ -202,6 +203,8 @@ struct ReaderView: View {
                             Button { browsing = BrowserLink(url: url) } label: { Label("Open the original", systemImage: "safari") }
                                 .padding(.top, 10)
                         }
+                        // A trail: more like this, from your saves and Today (Trail.swift).
+                        Button { trailFrom = item } label: { Label("More like this", systemImage: "point.topleft.down.to.point.bottomright.curvepath") }
                     }
                     .padding(20)
                     .textSelection(.enabled)
@@ -212,6 +215,7 @@ struct ReaderView: View {
             // Links in the text open inside the app too.
             .environment(\.openURL, OpenURLAction { url in browsing = BrowserLink(url: url); return .handled })
             .sheet(item: $browsing) { InAppBrowser(url: $0.url).ignoresSafeArea() }
+            .background { Color.clear.sheet(item: $trailFrom) { TrailSheet(seed: $0) } }
         }
     }
 

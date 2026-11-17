@@ -126,7 +126,10 @@ struct OfferedList<Header: View, Empty: View>: View {
                                 Button { withAnimation(.snappy) { showPane = false } } label: { Image(systemName: "sidebar.right") }
                                     .buttonStyle(.borderless)
                                     .help("Close the reader (Space)")
-                                if model.isKept(pick.url) {
+                                if pick.feedID == Trail.savedFeedID {
+                                    // A saved link on a trail: already in the library.
+                                    EmptyView()
+                                } else if model.isKept(pick.url) {
                                     Label("Kept", systemImage: "star.fill").foregroundStyle(.yellow)
                                 } else {
                                     Button("Keep") { model.keep(pick) }
@@ -186,6 +189,9 @@ struct OfferedList<Header: View, Empty: View>: View {
         case .follow:
             guard let pick, let input = AppModel.followInput(forLink: pick.url) else { return false }
             model.followQuick(input)
+        case .trail:
+            guard let pick else { return false }
+            model.openTrail(url: pick.url, pick: pick)
         default:
             return false
         }
@@ -194,7 +200,11 @@ struct OfferedList<Header: View, Empty: View>: View {
 
     @ViewBuilder
     private func menu(_ pick: TodayPick) -> some View {
-        if model.isKept(pick.url) {
+        Button("More Like This") { model.openTrail(url: pick.url, pick: pick) }
+        Divider()
+        if pick.feedID == Trail.savedFeedID {
+            EmptyView()
+        } else if model.isKept(pick.url) {
             Button("Remove from Kept") { model.unkeep(pick.url) }
         } else {
             Button("Keep") { model.keep(pick) }
