@@ -28,8 +28,9 @@ Sift, Starlings or any server. Delete this folder once the answers are in.
   each pick's `mode` into today.json. Scan is a list of headlines and
   posts; Watch is the full-screen video cards; Read is long texts with the
   reading time. Tap opens the reader and counts as seen, swipe right
-  keeps, swipe left switches seen. Library and Lists follow; Log is the
-  button at the top right of Lists.
+  keeps, swipe left switches seen. Each tab is one stream that ends:
+  Today first, then "From your Library", your unseen saved items in that
+  mode. Lists follows; Log is the button at the top right of Lists.
 - **Deck:** seven cards across themes (or one theme from the top-right menu).
   Right keep, left let go, up send, down later (two per deck), tap to read.
   The end card counts what you did; another deck is a quiet button.
@@ -48,7 +49,7 @@ Sift, Starlings or any server. Delete this folder once the answers are in.
   unloads it. The Text pill opens the transcript or summary. In Today,
   double-tap and the Keep pill still keep. Turn the phone while a wide video plays and
   it fills the screen with sound; turn back and it returns to its card.
-  Library in the Watch tab shows your saved videos as the same player
+  After Today, the Watch tab shows your unseen saved videos as the same player
   cards (Instagram reels and TikTok on a tap). Each video card shows why it is
   here, the channel, age and length, and the summary. A link to a page with
   a video in it (a YouTube or Vimeo player, og:video) plays that video. Instagram

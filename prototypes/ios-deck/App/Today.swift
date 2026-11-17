@@ -109,8 +109,8 @@ struct TodayView: View {
     @State private var position: String?
     /// The pick being timed and when it came on screen.
     @State private var watching: (url: String, since: Date)?
-    /// Today or Library (Modes.swift); the end card switches to Library.
-    @Binding var part: ModePart
+    /// The Library part after Today: unseen saved videos, order fixed on open.
+    @State private var library: [String] = []
 
     /// Watch: the videos among today's picks, as full-screen cards.
     private var picks: [TodayPick] { (store.today?.picks ?? []).filter { $0.readingMode == .watch } }
@@ -129,9 +129,36 @@ struct TodayView: View {
                         }
                         if !picks.isEmpty {
                             TodayEnd(next: store.today?.next, seen: picks.filter { store.isSeen($0.url) }.count,
-                                     kept: picks.filter { store.isKept($0.url) }.count, total: picks.count, library: { part = .library })
+                                     kept: picks.filter { store.isKept($0.url) }.count, total: picks.count,
+                                     library: savedVideos.count, mode: .watch)
                                 .frame(width: geo.size.width, height: geo.size.height)
                                 .id("end")
+                        }
+                        // From your Library: unseen saved videos, then the end.
+                        let saved = savedVideos
+                        ForEach(Array(saved.enumerated()), id: \.element.url) { i, item in
+                            PlayableCard(item: item, active: current == item.url, reason: item.theme,
+                                         played: { watched(item) }, text: { watched(item); reading = item }) {
+                                if !store.isSeen(item.url) {
+                                    Circle().fill(Color.accentColor).frame(width: 10, height: 10).padding(6)
+                                }
+                            }
+                            .overlay(alignment: .topTrailing) {
+                                Label("Library \(i + 1)/\(saved.count)", systemImage: "books.vertical")
+                                    .font(.caption2.weight(.semibold).monospacedDigit())
+                                    .padding(.horizontal, 8).padding(.vertical, 4)
+                                    .background(.ultraThinMaterial, in: Capsule())
+                                    .padding(10)
+                            }
+                            .padding(.horizontal, 12)
+                            .padding(.vertical, 10)
+                            .frame(width: geo.size.width, height: geo.size.height)
+                            .id(item.url)
+                        }
+                        if !saved.isEmpty {
+                            StreamEnd(mode: .watch)
+                                .frame(width: geo.size.width, height: geo.size.height)
+                                .id("library-end")
                         }
                     }
                     .scrollTargetLayout()
@@ -140,7 +167,7 @@ struct TodayView: View {
                 .scrollPosition(id: $position)
                 .scrollIndicators(.hidden)
                 .overlay {
-                    if picks.isEmpty {
+                    if picks.isEmpty && savedVideos.isEmpty {
                         ContentUnavailableView("Nothing to watch", systemImage: "play.rectangle",
                                                description: Text(store.connectedFolder == nil
                                                                  ? "Connect the Sift folder: Lists, then Log. Today comes from your Mac."
@@ -149,15 +176,16 @@ struct TodayView: View {
                 }
             }
             .background(Color(.systemGroupedBackground))
+            .navigationTitle("Watch")
             .navigationBarTitleDisplayMode(.inline)
-            .toolbar { ToolbarItem(placement: .principal) { PartPicker(part: $part) } }
             .refreshable { store.sync() }
             .sheet(item: $browsing) { InAppBrowser(url: URL(string: $0.url)!).ignoresSafeArea() }
             .sheet(item: $reading) { ReaderView(item: $0) }
             .sensoryFeedback(.success, trigger: burst)
             // Time on screen: from the card coming in to the card going out,
             // the tab closing or the app going to the background.
-            .onAppear { startWatching() }
+            .onAppear { startWatching(); fillLibrary() }
+            .onChange(of: store.deck.items.count) { _, _ in fillLibrary() }
             .onDisappear { stopWatching() }
             .onChange(of: position) { _, _ in stopWatching(); startWatching() }
             .onChange(of: phase) { _, p in
@@ -168,7 +196,26 @@ struct TodayView: View {
 
     /// The URL of the card on screen. Before the first scroll the position
     /// is nil: the first card.
-    private var current: String? { position ?? picks.first?.url }
+    private var current: String? { position ?? picks.first?.url ?? savedVideos.first?.url }
+
+    private var savedVideos: [Item] {
+        var byURL: [String: Item] = [:]
+        for item in store.deck.items where item.readingMode == .watch { byURL[item.url] = byURL[item.url] ?? item }
+        return library.compactMap { byURL[$0] }
+    }
+
+    /// Takes the queue once per open, so a card does not leave when watched.
+    private func fillLibrary() {
+        let fresh = store.libraryQueue(.watch, excluding: Set(picks.map(\.url)))
+        let kept = library.filter { url in store.deck.items.contains { $0.url == url } }
+        library = kept + fresh.filter { !kept.contains($0) }
+    }
+
+    /// Playing or opening a saved video counts as seen; scrolling past does not.
+    private func watched(_ item: Item) {
+        store.setSeen([item], true, mode: "library")
+        store.record(item, .open, mode: "library", position: 0)
+    }
 
     private func startWatching() {
         guard watching == nil, phase == .active, let url = current, picks.contains(where: { $0.url == url }) else { return }
@@ -261,14 +308,16 @@ private struct TodayCard: View {
     }
 }
 
-/// The end of Today: what happened, when the next one comes, and the door
-/// to the library. No more items load here.
+/// The end of Today: what happened, when the next one comes, and how many
+/// saved items follow.
 private struct TodayEnd: View {
     let next: Date?
     let seen: Int
     let kept: Int
     let total: Int
-    let library: () -> Void
+    /// Unseen saved items that follow in this tab.
+    let library: Int
+    let mode: ReadingMode
 
     var body: some View {
         VStack(spacing: 16) {
@@ -279,9 +328,26 @@ private struct TodayEnd: View {
                 Text("The next one comes at \(next.formatted(date: .omitted, time: .shortened)).")
                     .font(.callout).foregroundStyle(.secondary)
             }
-            Spacer().frame(height: 16)
-            Button("Go deeper in your library", action: library)
-                .buttonStyle(.borderedProminent)
+            if library > 0 {
+                Spacer().frame(height: 8)
+                Label("Next: \(library) from your Library", systemImage: "arrow.down")
+                    .font(.callout.weight(.semibold))
+                    .foregroundStyle(Color.accentColor)
+            }
+        }
+        .padding(24)
+        .frame(maxWidth: .infinity, maxHeight: .infinity)
+    }
+}
+
+/// The end of a mode tab: Today and your unseen saved items are done.
+private struct StreamEnd: View {
+    let mode: ReadingMode
+    var body: some View {
+        VStack(spacing: 12) {
+            Image(systemName: "checkmark.circle").font(.system(size: 40)).foregroundStyle(.green)
+            Text("You're through").font(.title3.weight(.semibold))
+            Text("Your themes and sources are in Lists.").font(.callout).foregroundStyle(.secondary)
         }
         .padding(24)
         .frame(maxWidth: .infinity, maxHeight: .infinity)
@@ -293,15 +359,87 @@ private struct TodayEnd: View {
 struct TodayListView: View {
     @Environment(Store.self) private var store
     let mode: ReadingMode
-    @Binding var part: ModePart
     @State private var reading: Item?
     @State private var past = ScrollPast()
+    @State private var library: [String] = []
 
     private var picks: [TodayPick] { (store.today?.picks ?? []).filter { $0.readingMode == mode } }
 
+    private var saved: [Item] {
+        var byURL: [String: Item] = [:]
+        for item in store.deck.items where item.readingMode == mode { byURL[item.url] = byURL[item.url] ?? item }
+        return library.compactMap { byURL[$0] }
+    }
+
     var body: some View {
         NavigationStack {
-            List(Array(picks.enumerated()), id: \.element.id) { i, pick in
+            List {
+                if !picks.isEmpty {
+                    Section { todayRows } header: { Text("Today") }
+                }
+                let saved = saved
+                if !saved.isEmpty {
+                    Section {
+                        ForEach(Array(saved.enumerated()), id: \.element.url) { i, item in
+                            Button { openSaved(item) } label: { LibraryRow(item: item, mode: mode) }
+                                .buttonStyle(.plain)
+                                .onAppear { if mode == .scan { past.appear(item.url, at: picks.count + i) } }
+                                .onDisappear {
+                                    guard mode == .scan else { return }
+                                    past.disappear(item.url, at: picks.count + i) { url in
+                                        if let it = saved.first(where: { $0.url == url }), !store.isSeen(url) {
+                                            store.setSeen([it], true, mode: "scan")
+                                        }
+                                    }
+                                }
+                                .swipeActions(edge: .trailing) {
+                                    let seen = store.isSeen(item.url)
+                                    Button { store.setSeen([item], !seen, mode: "library") } label: {
+                                        Label(seen ? "Unseen" : "Seen", systemImage: seen ? "circle.fill" : "checkmark.circle")
+                                    }
+                                    .tint(.accentColor)
+                                }
+                        }
+                    } header: { Text("From your Library") } footer: {
+                        Text("You're through. Your themes and sources are in Lists.")
+                            .frame(maxWidth: .infinity).padding(.vertical, 24)
+                    }
+                }
+            }
+            .listStyle(.plain)
+            .overlay {
+                if picks.isEmpty && saved.isEmpty {
+                    ContentUnavailableView(mode == .scan ? "No headlines" : "Nothing to read", systemImage: mode.symbol,
+                                           description: Text(store.connectedFolder == nil
+                                                             ? "Connect the Sift folder: Lists, then Log. Today comes from your Mac."
+                                                             : mode == .scan ? "Headlines and posts from your feeds show here: Hacker News, Reddit, Bluesky."
+                                                                             : "Articles of about 3 minutes or more from your feeds show here."))
+                }
+            }
+            .navigationTitle(mode.title)
+            .navigationBarTitleDisplayMode(.inline)
+            .refreshable { store.sync() }
+            .sheet(item: $reading) { ReaderView(item: $0) }
+            .onAppear { past.active = true; fillLibrary() }
+            .onDisappear { past.active = false }
+            .onChange(of: store.deck.items.count) { _, _ in fillLibrary() }
+        }
+    }
+
+    private func fillLibrary() {
+        let fresh = store.libraryQueue(mode, excluding: Set(picks.map(\.url)))
+        let kept = library.filter { url in store.deck.items.contains { $0.url == url } }
+        library = kept + fresh.filter { !kept.contains($0) }
+    }
+
+    private func openSaved(_ item: Item) {
+        store.setSeen([item], true, mode: "library")
+        store.record(item, .open, mode: "library", position: 0)
+        reading = item
+    }
+
+    @ViewBuilder private var todayRows: some View {
+            ForEach(Array(picks.enumerated()), id: \.element.id) { i, pick in
                 Button { open(pick) } label: { row(pick) }
                     .buttonStyle(.plain)
                     // Scan: a headline scrolled past counts as seen.
@@ -328,23 +466,6 @@ struct TodayListView: View {
                         .tint(.accentColor)
                     }
             }
-            .listStyle(.plain)
-            .overlay {
-                if picks.isEmpty {
-                    ContentUnavailableView(mode == .scan ? "No headlines" : "Nothing to read", systemImage: mode.symbol,
-                                           description: Text(store.connectedFolder == nil
-                                                             ? "Connect the Sift folder: Lists, then Log. Today comes from your Mac."
-                                                             : mode == .scan ? "Headlines and posts from your feeds show here: Hacker News, Reddit, Bluesky."
-                                                                             : "Articles of about 3 minutes or more from your feeds show here."))
-                }
-            }
-            .navigationBarTitleDisplayMode(.inline)
-            .toolbar { ToolbarItem(placement: .principal) { PartPicker(part: $part) } }
-            .refreshable { store.sync() }
-            .sheet(item: $reading) { ReaderView(item: $0) }
-            .onAppear { past.active = true }
-            .onDisappear { past.active = false }
-        }
     }
 
     private func open(_ pick: TodayPick) {

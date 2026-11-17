@@ -22,149 +22,63 @@ extension Item {
     }
 }
 
-/// Today or Library inside a mode tab.
-enum ModePart: String, CaseIterable, Identifiable {
-    case today, library
-    var id: String { rawValue }
-    var title: String { rawValue.capitalized }
-}
-
-/// The Today / Library switch at the top of a mode tab.
-struct PartPicker: View {
-    @Binding var part: ModePart
-    var body: some View {
-        Picker("Show", selection: $part) {
-            ForEach(ModePart.allCases) { Text($0.title).tag($0) }
-        }
-        .pickerStyle(.segmented)
-        .fixedSize()
+extension Store {
+    /// Your unseen saved items in one mode, for the Library part of a mode
+    /// tab, without the links Today already shows. Watch: playable ones
+    /// first. The views keep this order while open, so a row or card does
+    /// not move or vanish when it becomes seen.
+    func libraryQueue(_ mode: ReadingMode, excluding: Set<String>) -> [String] {
+        var seenURL = excluding
+        let items = deck.items.filter { $0.readingMode == mode && !isSeen($0.url) && seenURL.insert($0.url).inserted }
+        guard mode == .watch else { return items.map(\.url) }
+        return (items.filter { $0.playable != nil } + items.filter { $0.playable == nil }).map(\.url)
     }
 }
 
-/// One mode tab: Today's picks or your saved items in that mode.
+/// One mode tab (owner, 2026-11-17: no Today / Library switch): one stream
+/// that ends. Today's picks in this mode first, then "From your Library",
+/// your unseen saved items in this mode. Lists is where you browse the
+/// library on purpose.
 struct ModeTab: View {
     let mode: ReadingMode
-    @State private var part: ModePart = .today
 
     var body: some View {
-        switch (part, mode) {
-        case (.today, .watch): TodayView(part: $part)
-        case (.today, _): TodayListView(mode: mode, part: $part)
-        case (.library, .watch): LibraryWatchView(part: $part)
-        case (.library, _): LibraryModeList(mode: mode, part: $part)
-        }
+        if mode == .watch { TodayView() } else { TodayListView(mode: mode) }
     }
 }
 
-/// Your saved items in one mode, unseen first. Tap opens the reader (a
-/// video on its player) and counts as seen; swipe switches seen. In Scan a
-/// row scrolled past counts as seen.
-struct LibraryModeList: View {
+/// A saved item as a row in Scan or Read, unseen dot after the title.
+struct LibraryRow: View {
     @Environment(Store.self) private var store
+    let item: Item
     let mode: ReadingMode
-    @Binding var part: ModePart
-    @State private var reading: Item?
-    @State private var past = ScrollPast()
-
-    private var items: [Item] {
-        let all = store.deck.items.filter { $0.readingMode == mode }
-        return all.filter { !store.isSeen($0.url) } + all.filter { store.isSeen($0.url) }
-    }
 
     var body: some View {
-        NavigationStack {
-            let items = items
-            List(Array(items.enumerated()), id: \.element.id) { i, item in
-                Button { open(item) } label: { row(item) }
-                    .buttonStyle(.plain)
-                    .onAppear { if mode == .scan { past.appear(item.url, at: i) } }
-                    .onDisappear {
-                        guard mode == .scan else { return }
-                        past.disappear(item.url, at: i) { url in
-                            if let it = items.first(where: { $0.url == url }), !store.isSeen(url) {
-                                store.setSeen([it], true, mode: "scan")
-                            }
-                        }
-                    }
-                    .swipeActions(edge: .trailing) {
-                        let seen = store.isSeen(item.url)
-                        Button { store.setSeen([item], !seen, mode: "library") } label: {
-                            Label(seen ? "Unseen" : "Seen", systemImage: seen ? "circle.fill" : "checkmark.circle")
-                        }
-                        .tint(.accentColor)
-                    }
-            }
-            .listStyle(.plain)
-            .overlay {
-                if items.isEmpty {
-                    ContentUnavailableView("Nothing saved here", systemImage: mode.symbol,
-                                           description: Text(store.deck.items.isEmpty
-                                                             ? "Import your library: Lists, then Log."
-                                                             : "Your saved \(mode == .watch ? "videos" : mode == .read ? "articles" : "posts and headlines") show here."))
-                }
-            }
-            .navigationBarTitleDisplayMode(.inline)
-            .toolbar { ToolbarItem(placement: .principal) { PartPicker(part: $part) } }
-            .sheet(item: $reading) { ReaderView(item: $0) }
-            .onAppear { past.active = true }
-            .onDisappear { past.active = false }
-        }
-    }
-
-    private func open(_ item: Item) {
-        store.setSeen([item], true, mode: "library")
-        store.record(item, .open, mode: "library", position: 0)
-        reading = item
-    }
-
-    @ViewBuilder
-    private func row(_ item: Item) -> some View {
         let seen = store.isSeen(item.url)
-        if mode == .watch {
-            VStack(alignment: .leading, spacing: 6) {
-                ItemImage(item: item, height: 190)
-                    .frame(maxWidth: .infinity)
-                    .clipShape(RoundedRectangle(cornerRadius: 10))
+        HStack(alignment: .top, spacing: 12) {
+            VStack(alignment: .leading, spacing: 4) {
+                HStack(alignment: .top, spacing: 6) {
+                    Text(item.title)
+                        .font(mode == .read ? .headline : .body)
+                        .fontWeight(seen ? .regular : .semibold)
+                        .foregroundStyle(seen ? .secondary : .primary)
+                        .lineLimit(mode == .scan ? 3 : 2)
+                    if !seen { Circle().fill(Color.accentColor).frame(width: 7, height: 7).padding(.top, 7) }
+                }
+                Text([item.site, item.theme, item.readTime].compactMap { $0?.isEmpty == false ? $0 : nil }.joined(separator: " · "))
+                    .font(.caption).foregroundStyle(.secondary).lineLimit(1)
+                if mode == .read, !item.summary.isEmpty {
+                    Text(item.summary).font(.subheadline).foregroundStyle(.secondary).lineLimit(3)
+                }
+            }
+            Spacer(minLength: 0)
+            if mode == .read {
+                ItemImage(item: item, height: 72).frame(width: 72)
+                    .clipShape(RoundedRectangle(cornerRadius: 8))
                     .saturation(seen ? 0 : 1)
-                title(item, seen)
-                meta(item)
             }
-            .padding(.vertical, 6)
-        } else {
-            HStack(alignment: .top, spacing: 12) {
-                VStack(alignment: .leading, spacing: 4) {
-                    title(item, seen)
-                    meta(item)
-                    if mode == .read, !item.summary.isEmpty {
-                        Text(item.summary).font(.subheadline).foregroundStyle(.secondary).lineLimit(3)
-                    }
-                }
-                Spacer(minLength: 0)
-                if mode == .read {
-                    ItemImage(item: item, height: 72).frame(width: 72)
-                        .clipShape(RoundedRectangle(cornerRadius: 8))
-                        .saturation(seen ? 0 : 1)
-                }
-            }
-            .padding(.vertical, mode == .scan ? 2 : 6)
-            .contentShape(Rectangle())
         }
-    }
-
-    /// The title, then the unseen dot.
-    private func title(_ item: Item, _ seen: Bool) -> some View {
-        HStack(alignment: .top, spacing: 6) {
-            Text(item.title)
-                .font(mode == .read ? .headline : .body)
-                .fontWeight(seen ? .regular : .semibold)
-                .foregroundStyle(seen ? .secondary : .primary)
-                .lineLimit(mode == .scan ? 3 : 2)
-            if !seen { Circle().fill(Color.accentColor).frame(width: 7, height: 7).padding(.top, 7) }
-        }
-    }
-
-    private func meta(_ item: Item) -> some View {
-        Text([item.site, item.theme, item.readTime].compactMap { $0?.isEmpty == false ? $0 : nil }.joined(separator: " · "))
-            .font(.caption).foregroundStyle(.secondary).lineLimit(1)
+        .padding(.vertical, mode == .scan ? 2 : 6)
+        .contentShape(Rectangle())
     }
 }

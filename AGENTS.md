@@ -660,12 +660,17 @@ The one exception is anonymous diagnostics (owner, 2026-11-15, below).
   Scan, Watch, Read, Library, Lists (Log in Lists' toolbar); the Mac writes
   `TodayPick.mode` into today.json only (`withModes`), the phone falls
   back to its own rule for older files.
+- One stream per mode on the phone (2026-11-17, owner): no Today /
+  Library switch. Scan, Watch and Read each show Today's picks in that
+  mode, then "From your Library" (`Store.libraryQueue`: unseen saved items
+  of the mode, Watch playable first, order fixed while the tab is open),
+  then an end. Lists is where the library is browsed on purpose.
 - One name per activity (2026-11-16, owner). Today = discovery (offered
   feed items), Library = review (saved links), on both apps. The toolbar
   Source menu is gone: sources are sidebar rows only. Archive is shown as
   "Closed or Removed" (links that left their source); code keeps
-  `archive`. Phone tabs: Scan, Watch, Read (each with a Today / Library
-  switch, `prototypes/ios-deck/App/Modes.swift`), then Lists (Review Deck,
+  `archive`. Phone tabs: Scan, Watch, Read (one stream each, Today then
+  Library, `prototypes/ios-deck/App/Modes.swift`), then Lists (Review Deck,
   Feeds, themes, Log).
 - My lists (2026-11-16, owner: "my playlists are a saved source").
   `App/AppModel+Lists.swift`: `Feed.mine` turns a feed of your own picks
