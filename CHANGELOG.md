@@ -9,6 +9,16 @@ ships this file and shows it in Settings > About and in Sift > Version
 History. Headings are `## X.Y.Z - YYYY-MM-DD`; groups are `### Added`,
 `### Changed` and `### Fixed`.
 
+## 1.7.2 - 2026-11-17
+
+### Added
+- Your Graph, in the sidebar under Feeds. It lists the YouTube channels, sites, writers, subreddits and repositories behind the links you saved, ranked by your saves (a save counts half after 90 days). Each one shows its themes, what you saved and how the score adds up. Follow a creator from there, or hide it. Nothing reaches Today until you follow it.
+- Followed creators get a lift in Today by how many of their links you saved, with a reason line like "You saved 14 from Dwarkesh Patel".
+- "Why this is here" under every Today pick: the rule that placed it and every number of its score.
+
+### Fixed
+- YouTube channel names with "&" were saved as "u0026".
+
 ## 1.7.1 - 2026-11-17
 
 ### Fixed

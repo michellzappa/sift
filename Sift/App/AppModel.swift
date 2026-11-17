@@ -157,6 +157,10 @@ final class AppModel {
     @ObservationIgnored var noticeTask: Task<Void, Never>?
     @ObservationIgnored var recentFollows: [String] = []
     var feedProgress: (done: Int, total: Int) = (0, 0)
+    /// Your Graph: the creators behind your saves (AppModel+Creators).
+    var creators: [Creator] = []
+    /// Creator id per followed feed, for Today's ranking.
+    @ObservationIgnored var creatorOfFeed: [String: Creator] = [:]
 
     // MARK: Seen (AppModel+Seen.swift, Storage/Seen.swift)
     /// Newest seen or unseen mark per URL, from every device.

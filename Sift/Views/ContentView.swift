@@ -3,6 +3,8 @@ import SwiftUI
 enum SidebarItem: Hashable {
     /// The digest of offered items (Engine/Today.swift).
     case today
+    /// Your Graph: the creators behind your saves (Views/CreatorsView.swift).
+    case creators
     /// One followed feed, by id; one feed folder, by name.
     case feed(String)
     case feedFolder(String)
@@ -39,6 +41,8 @@ struct ContentView: View {
                 let item = selection ?? .overview
                 if item == .today {
                     TodayView()
+                } else if item == .creators {
+                    CreatorsView()
                 } else if case .feed(let id) = item, let feed = model.state.feeds.first(where: { $0.id == id }) {
                     FeedItemsView(title: feed.title, feeds: [feed]).id(item)
                 } else if case .feedFolder(let name) = item {
@@ -255,6 +259,11 @@ private struct Sidebar: View {
                         }
                     } icon: { Image(systemName: "sun.max") }
                         .tag(SidebarItem.today)
+                }
+                // Your Graph: who you save from, to follow from here.
+                if !model.creators.isEmpty {
+                    Label("Your Graph", systemImage: "person.2").tag(SidebarItem.creators)
+                        .help("The channels, writers and communities behind what you saved")
                 }
                 ForEach(model.feedFolders, id: \.self) { folder in
                     DisclosureGroup {

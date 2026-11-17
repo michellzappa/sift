@@ -393,6 +393,7 @@ struct FeedReader: View {
                 Text(pick.title).font(.title2.weight(.semibold))
                 Text([pick.feedTitle, pick.date?.formatted(date: .abbreviated, time: .shortened)].compactMap { $0 }.joined(separator: " · "))
                     .font(.caption).foregroundStyle(.secondary)
+                if let why = pick.why { PickWhyView(why: why, feedTitle: pick.feedTitle) }
                 if content == nil {
                     if !pick.summary.isEmpty { Text(pick.summary).font(.body).lineSpacing(3) }
                     if loading {

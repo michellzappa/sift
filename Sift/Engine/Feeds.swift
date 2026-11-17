@@ -27,6 +27,8 @@ struct Feed: Codable, Hashable, Sendable, Identifiable {
     /// True for a list of your own picks (a YouTube playlist you add to):
     /// a Library source, not part of Today (AppModel+Lists).
     var mine: Bool? = nil
+    /// The `Creator.id` this feed was followed from in Your Graph.
+    var creator: String? = nil
     var enabled = true
     var added: Date
     var lastFetched: Date?

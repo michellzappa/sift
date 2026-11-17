@@ -168,7 +168,7 @@ extension AppModel {
     /// What "Follow Site" follows for a link: r/name for Reddit, owner/repo
     /// for GitHub, the page itself for YouTube (the provider reads the
     /// channel), Bluesky and Mastodon profiles, else the site's host.
-    static func followInput(forLink link: String) -> String? {
+    nonisolated static func followInput(forLink link: String) -> String? {
         guard let u = URL(string: link), let h = u.host()?.lowercased() else { return nil }
         let host = h.replacingOccurrences(of: #"^(www\.|m\.|old\.)"#, with: "", options: .regularExpression)
         let parts = u.pathComponents.filter { $0 != "/" }

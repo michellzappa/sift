@@ -185,6 +185,9 @@ enum Library {
         var summary: String?
         /// Videos: length in seconds.
         var duration: Int?
+        /// Who made it: the YouTube channel, the article's author. From the
+        /// front matter `author:`; filled once for older entries.
+        var author: String?
     }
 
     static var folder: URL {
@@ -226,6 +229,7 @@ enum Library {
         let thin = c.kind != "post" && c.kind != "video" && c.words < 150
         var entry = Entry(file: file, captured: .now, words: c.words, kind: c.kind, status: thin ? "thin" : "ok")
         entry.duration = c.duration
+        entry.author = c.author.flatMap { $0.isEmpty ? nil : $0 }
         return entry
     }
 
@@ -289,7 +293,17 @@ enum YouTubePage {
             guard let r = html.range(of: "\"\(key)\":\"") else { return nil }
             var out = ""
             var escaped = false
+            var hex: String?
             for ch in html[r.upperBound...] {
+                if var h = hex {
+                    h.append(ch)
+                    if h.count == 4 {
+                        if let v = UInt32(h, radix: 16), let u = Unicode.Scalar(v) { out.unicodeScalars.append(u) }
+                        hex = nil
+                    } else { hex = h }
+                    continue
+                }
+                if escaped && ch == "u" { hex = ""; escaped = false; continue }
                 if escaped { out.append(ch == "n" ? "\n" : ch); escaped = false; continue }
                 if ch == "\\" { escaped = true; continue }
                 if ch == "\"" { break }

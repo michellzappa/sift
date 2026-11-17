@@ -52,6 +52,35 @@ struct TodayPick: Codable, Hashable, Sendable, Identifiable {
     var fill: Bool? = nil
     /// Top comments on a Hacker News or Reddit post (`Discussions`).
     var discussion: Discussion? = nil
+    /// The numbers that put it here (`TodayBuilder.build`), shown under
+    /// "Why this is here". Nil for picks from before 1.7.2.
+    var why: PickWhy? = nil
+}
+
+/// How a pick got its place: every factor of the score, so the reader can
+/// check the ranking (owner, 2026-11-17: "show the algorithm").
+struct PickWhy: Codable, Hashable, Sendable {
+    /// dontMiss, ranked, fill, explore or wildcard.
+    var slot: String
+    var hoursOld: Double
+    /// exp(-hours / 36): 1 when new, 0.5 after about a day.
+    var freshness: Double
+    var postsPerDay: Double
+    /// 1 / sqrt(posts a day): a rare post counts more.
+    var volume: Double
+    /// What you did with this feed before, -1…1.
+    var affinity: Double
+    var theme: String?
+    var themeWords: Int
+    var themeBonus: Double
+    /// Feeds that carry the same link.
+    var mentions: Int
+    var hotBonus: Double
+    /// Your Graph: the creator and how many of their links you saved.
+    var creator: String?
+    var creatorSaves: Int
+    var creatorBonus: Double
+    var score: Double
 }
 
 struct TodayDigest: Codable, Hashable, Sendable {
@@ -115,7 +144,13 @@ enum TodayBuilder {
         /// Scan, Watch or Read for a pick (`AppModel.mode(of:feeds:)`, so
         /// the feed's own setting counts).
         var mode: (TodayPick) -> ReadingMode = { Modes.mode(url: $0.url, words: Modes.words($0.content)) }
+        /// Your Graph: per feed, the creator it follows and how many of
+        /// their links you saved.
+        var creators: [String: (name: String, saves: Int)] = [:]
     }
+
+    /// Score bonus for a creator you saved `saves` links from.
+    static func creatorBonus(_ saves: Int) -> Double { min(0.12 * log2(1 + Double(saves)), 0.6) }
 
     /// Don't-miss feeds keep their items in Today this long, until seen.
     static let mustWindowDays: Double = 14
@@ -187,27 +222,47 @@ enum TodayBuilder {
                 let title = FeedParser.Text.title(e.title, body: e.summary)
                 var pick = TodayPick(url: e.url, title: title.isEmpty ? e.url : title, date: date, feedID: feed.id,
                                      feedTitle: feed.title, summary: e.summary, image: e.image, reason: "", content: e.content)
-                if priority == .must { must.append(pick); continue }
-
                 let hours = now.timeIntervalSince(date) / 3600
-                var score = exp(-max(hours, 0) / 36) * damping * (1 + 0.8 * affinity)
+                let creator = input.creators[feed.id]
+                var why = PickWhy(slot: "ranked", hoursOld: max(hours, 0), freshness: exp(-max(hours, 0) / 36), postsPerDay: rate,
+                                  volume: damping, affinity: affinity, theme: nil, themeWords: 0, themeBonus: 0, mentions: 1, hotBonus: 0,
+                                  creator: creator?.name, creatorSaves: creator?.saves ?? 0, creatorBonus: creatorBonus(creator?.saves ?? 0), score: 0)
+                if priority == .must {
+                    why.slot = "dontMiss"
+                    pick.why = why
+                    must.append(pick)
+                    continue
+                }
+
+                var score = why.freshness * damping * (1 + 0.8 * affinity) + why.creatorBonus
                 var strong = false
                 let keeps = keptPerFeed[feed.id] ?? 0
                 if affinity > 0.4 || keeps >= 2 { pick.reason = "You often read \(feed.title)" }
+                if let creator, creator.saves >= 3 {
+                    pick.reason = "You saved \(creator.saves) from \(creator.name)"
+                    if creator.saves >= 5 { strong = true }
+                }
                 let itemWords = words(e.title + " " + e.summary)
                 if let best = themeWords.map({ ($0.name, $0.words.intersection(itemWords).count) }).max(by: { $0.1 < $1.1 }), best.1 >= 3 {
-                    score += min(Double(best.1), 4) * 0.15
+                    why.theme = best.0
+                    why.themeWords = best.1
+                    why.themeBonus = min(Double(best.1), 4) * 0.15
+                    score += why.themeBonus
                     pick.reason = "Fits \(best.0)"
                     strong = true
                 }
                 let mentions = (keysOf[e.url] ?? [key]).reduce(into: Set<String>()) { $0.formUnion(feedsPerURL[$1] ?? []) }.count
+                why.mentions = mentions
                 if mentions > 1 {
-                    score += Double(mentions - 1) * 0.6
+                    why.hotBonus = Double(mentions - 1) * 0.6
+                    score += why.hotBonus
                     pick.reason = "Hot in \(mentions) of your feeds"
                     pick.hot = true
                     strong = true
                 }
                 if affinity > 0.4 { strong = true }
+                why.score = score
+                pick.why = why
                 candidates.append(Candidate(pick: pick, score: score, priority: priority, strong: strong, mentions: mentions,
                                             mode: input.mode(pick), older: date < cutoff))
             }
@@ -240,6 +295,7 @@ enum TodayBuilder {
                     if !relaxed && perFeedCount[c.pick.feedID, default: 0] >= cap { continue }
                     var p = c.pick
                     p.fill = true
+                    p.why?.slot = "fill"
                     if p.reason.isEmpty { p.reason = "From the last \(Int(fillWindowDays)) days" }
                     perFeedCount[p.feedID, default: 0] += 1
                     modeCount[mode, default: 0] += 1
@@ -255,6 +311,7 @@ enum TodayBuilder {
             if let explore = pool.first(where: { c in !picks.contains { $0.url == c.pick.url } && c.priority == .normal
                 && (input.evidence[c.pick.feedID] ?? 0) < 3 && perFeedCount[c.pick.feedID] == nil }) {
                 var p = explore.pick
+                p.why?.slot = "explore"
                 if p.reason.isEmpty { p.reason = "New to you" }
                 perFeedCount[p.feedID, default: 0] += 1
                 picks.append(p)
@@ -267,6 +324,7 @@ enum TodayBuilder {
             if var wild = (open.dropFirst(size).filter({ $0.priority != .best }).randomElement() ?? open.randomElement())?.pick {
                 wild.reason = "Something different"
                 wild.wildcard = true
+                wild.why?.slot = "wildcard"
                 picks.append(wild)
             }
         }

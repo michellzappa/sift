@@ -23,6 +23,8 @@ struct SiftState: Codable, Sendable {
     /// Follow requests from the phone that this Mac handled: request id →
     /// "followed", "failed" or "done" (App/AppModel+FeedSync.swift).
     var phoneRequests: [String: String] = [:]
+    /// Creators the user hid from Your Graph (`Creator.id`).
+    var hiddenCreators: [String] = []
     /// The current Today digest.
     var today: TodayDigest?
     /// Capture new links into the library in the background.
@@ -89,6 +91,7 @@ struct SiftState: Codable, Sendable {
         feeds = try c.decodeIfPresent([Feed].self, forKey: .feeds) ?? []
         kept = try c.decodeIfPresent([KeptItem].self, forKey: .kept) ?? []
         phoneRequests = try c.decodeIfPresent([String: String].self, forKey: .phoneRequests) ?? [:]
+        hiddenCreators = try c.decodeIfPresent([String].self, forKey: .hiddenCreators) ?? []
         today = try c.decodeIfPresent(TodayDigest.self, forKey: .today)
         autoCapture = try c.decodeIfPresent(Bool.self, forKey: .autoCapture) ?? true
         youtubeTranscripts = try c.decodeIfPresent(Bool.self, forKey: .youtubeTranscripts) ?? true

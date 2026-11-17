@@ -748,3 +748,20 @@ The one exception is anonymous diagnostics (owner, 2026-11-15, below).
   tap on a muted clip turns the sound on (the "play" signal). Embedded
   players (`VerticalPlayer`) cancel link taps and new windows, so a video
   never opens as a page.
+- Your Graph (2026-11-17, owner: "let user build their own social
+  graph … show the algorithm, treat users as intelligent creatures").
+  `Feeds/Creators.swift` groups every saved link (archive + current tabs,
+  not errands, drop or merged) by creator: YouTube channel (from
+  `Library.Entry.author`, else the oEmbed "By X" preview), subreddit,
+  GitHub repo, Medium writer, else the host (`FeedSuggestions.skipHosts`
+  out). Score = sum of 0.5^(age/90 days); 2+ saves to show. Ids
+  (`youtube:<name>`, `site:<host>`, `reddit:r/x`, `github:o/r`) are stable:
+  `state.hiddenCreators` and `Feed.creator` use them. Sift only proposes:
+  a creator reaches Today only after Follow (`followCreator`, the YouTube
+  provider reads the channel from a saved video). Today adds
+  `TodayBuilder.creatorBonus(saves)` (0.12 × log2(1 + saves), max 0.6)
+  for followed creators. Every pick carries `PickWhy` (slot and each score
+  factor), shown as "Why this is here" (`Views/PickWhyView.swift`); change
+  it with `build`. `Library.Entry.author` is new; older entries are filled
+  once from front matter (`library.authorsV1`). Mac only for now; Instagram,
+  TikTok and X authors are not in the graph (no feeds).

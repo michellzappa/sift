@@ -104,6 +104,8 @@ extension AppModel {
     func startLibraryJobs() {
         // Seen marks from the other devices come in with each round.
         loadSeen()
+        // Your Graph first: Today's ranking reads it.
+        refreshCreators()
         // A new Today digest at 07:00 and 17:00; feeds not fetched in the last hour.
         refreshToday()
         Task { await fetchFeeds() }
@@ -122,6 +124,8 @@ extension AppModel {
         if !isFetchingVideoTitles, !videosWithoutTitle.isEmpty { Task { await fetchVideoTitles() } }
         // New links go into the library.
         if state.autoCapture, !isCapturing, !linksToCapture.isEmpty { Task { await captureAll() } }
+        // Older library entries get their author (Your Graph), once.
+        Task { await backfillAuthors() }
         // Saved pages and transcripts get a short summary on this Mac.
         Task { await summarizeLibrary() }
     }

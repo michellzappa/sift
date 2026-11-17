@@ -147,6 +147,7 @@ enum PaletteCatalog {
             out.append(PaletteItem(key: "go:" + key, section: .goTo, title: title, detail: detail, symbol: symbol, hint: hint, command: .go(item)))
         }
         if !model.state.feeds.isEmpty { add("today", "Today", "sun.max", "Feeds", .today) }
+        if !model.creators.isEmpty { add("creators", "Your Graph", "person.2", "Feeds", .creators, detail: "Creators you save from") }
         add("overview", "Overview", "circle.hexagongrid", "Library", .overview)
         for (id, symbol) in sourceIDs(model) {
             add("source:" + id, model.sourceTitle(id), symbol, "Source", .source(id))
