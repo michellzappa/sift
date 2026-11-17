@@ -3,6 +3,8 @@ import Foundation
 enum TodayStore {
     /// The saved source that holds what the user kept from Today.
     static let keptSourceID = "kept"
+    /// Items kept on other devices: iCloud Drive/Sift/kept/<device>.json.
+    static var deviceFolder: URL { CloseList.folder.appending(path: "kept", directoryHint: .isDirectory) }
 }
 
 /// Today (Engine/Today.swift): the digest of offered items, and keeping.
@@ -220,7 +222,7 @@ extension AppModel {
     /// `state.kept` and count as seen.
     func mergeDeviceKept() {
         guard !Demo.isOn else { return }
-        let dir = CloseList.folder.appending(path: "kept", directoryHint: .isDirectory)
+        let dir = TodayStore.deviceFolder
         let d = JSONDecoder(); d.dateDecodingStrategy = .iso8601
         var have = Set(state.kept.map(\.url))
         var added: [KeptItem] = []

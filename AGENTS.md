@@ -352,6 +352,7 @@ The one exception is anonymous diagnostics (owner, 2026-11-15, below).
   Algorithm (2026-11-17, owner: "algo visibility": the Today formula from
   the same constants, today's picks by score, signal weights, feed
   standings, Your Graph, where AI is used; `Views/AlgorithmSettings.swift`,
+  You (2026-11-17, see "You pane" below),
   change it with the ranking), Inputs, Library, Outputs, Intelligence,
   Themes, Telemetry, About (ids are
   the lowercase names; `-demoView settings:<id>`). A new pane is one more
@@ -827,3 +828,26 @@ The one exception is anonymous diagnostics (owner, 2026-11-15, below).
   carries becomes its own pick (slot "linked", feed id = the newest
   linker's feed, summary = the linking line), at most 3, outside the
   per-feed caps, exploration and wildcard.
+- You pane (2026-11-17, owner: "show the user what we know about them
+  BEYOND their interest graph"). Settings > You (id "you", after
+  Algorithm; `SettingsRoute.panes` matches). `Engine/Profile.swift`:
+  `Profile` (Codable) from plain `Profile.Inputs` by a pure
+  `Profile.build`. `App/AppModel+Profile.swift` (`buildProfile`) gathers
+  on the main actor, then reads files in a detached task.
+  `Views/YouSettings.swift` builds it when the pane appears (`@State`, no
+  stored property). Sections and their data: at a glance (`savedLinks()`,
+  themes, `state.feeds`, visible creators, device files in seen/, kept/,
+  signals/); sources (archive `source` per saved link, grouped by
+  `profileSourceName`; saves per month from the link date); when you
+  read (seen marks with seen true from each `seen/<device>.json`, every
+  signal; Mac vs iPhone from the file prefix, the local signals.json is
+  the Mac); how you read (opened = seen URLs + open/play/keep signals;
+  mode from library entries, Today picks, else the feed's mode and
+  `Modes.mode`; read minutes from words, video length from library
+  `duration`; keep rate = kept / opened Today URLs from signals); finish
+  and skip (signals per feed); themes over time (saved link theme and
+  date; rising or falling = last 3 months vs the 3 before,
+  `Profile.trend`); files (`AppModel.profileFiles`, each path from its
+  own constant, sizes, Show in Finder, Export as JSON); what leaves
+  (telemetry and Claude calls). No AI, no network. A new Sift data file
+  gets a row in `profileFiles`. `TodayStore.deviceFolder` is kept/.

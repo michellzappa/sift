@@ -72,6 +72,7 @@ enum SettingsRoute {
         ("general", "General", "gearshape"),
         ("how", "How It Works", "point.3.connected.trianglepath.dotted"),
         ("algorithm", "Algorithm", "function"),
+        ("you", "You", "person.crop.circle"),
         ("inputs", "Inputs", "tray.and.arrow.down"),
         ("library", "Library", "books.vertical"),
         ("outputs", "Outputs", "tray.and.arrow.up"),

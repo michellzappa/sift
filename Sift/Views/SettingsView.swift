@@ -18,6 +18,7 @@ struct SettingsView: View {
             .general { GeneralSettings() },
             SettingsPane(id: "how", title: "How It Works", symbol: "point.3.connected.trianglepath.dotted") { HowSiftWorksPane() },
             SettingsPane(id: "algorithm", title: "Algorithm", symbol: "function") { AlgorithmSettings() },
+            SettingsPane(id: "you", title: "You", symbol: "person.crop.circle") { YouSettings() },
             SettingsPane(id: "inputs", title: "Inputs", symbol: "tray.and.arrow.down") { InputSettings() },
             SettingsPane(id: "library", title: "Library", symbol: "books.vertical") { LibrarySettings() },
             SettingsPane(id: "outputs", title: "Outputs", symbol: "tray.and.arrow.up") { OutputSettings() },
