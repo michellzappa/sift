@@ -87,6 +87,17 @@ The one exception is anonymous diagnostics (owner, 2026-11-15, below).
   keyed by URL. Hand moves set `manual: true`; the sorter never overwrites them.
 - API key: login keychain, service `app.sift.anthropic-api-key`.
 
+- iPhone on TestFlight (2026-11-17): `prototypes/ios-deck` ships as
+  bundle `com.centaur-labs.sift` (app.sift.ios was not available), App
+  Store Connect app 6835794611, store name "Sift: Scan, Watch, Read"
+  ("Sift" and "Sift Reader" are taken; the home screen says Sift).
+  Upload: `./scripts/testflight-ios.sh "what to test"` on the laptop
+  (archive under build-lock, build number = commit count, `asc builds
+  upload`). Public group "Public", link testflight.apple.com/join/183k9bZC,
+  listed on michellzappa.com (lib/apps.ts). New builds for the public
+  group: `asc builds add-groups --app 6835794611 --latest --group
+  93ebfa74-838e-49cb-9b9e-1046ad0b1c0e --submit --confirm`.
+
 ## Decisions
 
 - Themes are the only categories, always generated (2026-11-14). There is
