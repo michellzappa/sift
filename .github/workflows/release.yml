@@ -29,6 +29,10 @@ jobs:
     uses: michellzappa/housekit/.github/workflows/release-mac.yml@main
     with:
       app-name: Sift
+      # macos-15 (Xcode 26.3), as Sift's releases up to 1.7.6. On macos-26
+      # (Xcode 26.6) codesign gave the embedded helpers no timestamp
+      # ("A timestamp was expected but was not found"), three runs in a row.
+      runner: macos-15
       # The embedded MCP server and Chrome host need Developer ID, hardened
       # runtime and a timestamp, or notarization rejects the app.
       verify-command: |
