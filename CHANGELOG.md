@@ -9,6 +9,13 @@ ships this file and shows it in Settings > About and in Sift > Version
 History. Headings are `## X.Y.Z - YYYY-MM-DD`; groups are `### Added`,
 `### Changed` and `### Fixed`.
 
+## 1.8.0 - 2026-11-17
+
+### Fixed
+- Saved X posts no longer show X's "enable JavaScript" page and its code as their text. Sift never reads x.com pages: an X post's text comes from X's public post data. The Mac and the iPhone show an X post as a post, with name, handle, date, text, links and pictures, and Open on X.
+- Any page that comes back as a "turn on JavaScript" notice or a dump of code now counts as having no text, so it never reaches summaries or the iPhone.
+- On first launch, Sift repairs saved posts and pages that already carry such text. Their summaries are made again.
+
 ## 1.7.9 - 2026-11-17
 
 ### Added
