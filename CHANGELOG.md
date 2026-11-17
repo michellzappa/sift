@@ -9,6 +9,11 @@ ships this file and shows it in Settings > About and in Sift > Version
 History. Headings are `## X.Y.Z - YYYY-MM-DD`; groups are `### Added`,
 `### Changed` and `### Fixed`.
 
+## 1.8.2 - 2026-11-17
+
+### Changed
+- A calmer reader on the Mac and the iPhone. Text sits in one column of about 68 characters, in New York serif by default, with more space between lines and paragraphs, a large title and a quiet line with the site, author, date and reading time. Quotes, code, lists and pictures have their own simple styles. The Aa button changes the text size (five steps) and switches between serif and sans; both apps remember it. On the Mac, Command-plus and Command-minus change the size too. On the iPhone, a thin bar at the top shows how far you have read.
+
 ## 1.8.1 - 2026-11-17
 
 ### Added
