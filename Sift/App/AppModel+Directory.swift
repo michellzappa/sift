@@ -15,7 +15,7 @@ extension AppModel {
     func refreshDirectory(force: Bool = false) {
         guard !Demo.isOn, !isBuildingDirectory else { return }
         if !force, let built = directory.built, Date().timeIntervalSince(built) < Directory.rebuildDays * 86_400 { return }
-        let affinity = FeedSignals.affinity(FeedSignals.loadAll())
+        let affinity = FeedSignals.affinity(signalEvents())
         var vouchers: [Directory.Voucher] = []
         for f in offeredFeeds where f.enabled && f.trial == nil {
             let place = People.profile(of: f)

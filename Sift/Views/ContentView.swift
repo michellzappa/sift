@@ -389,8 +389,20 @@ private struct Sidebar: View {
             Section("Themes", isExpanded: $showThemes) {
                 ForEach(model.activeProjects, id: \.project) { item in
                     // Unseen links, like an unread count; the total is in the help.
-                    let unseen = model.unseenCount(model.tabs(in: item.project))
-                    HStack { Text(item.project).fontWeight(unseen > 0 ? .semibold : .regular); Spacer(); count(unseen) }
+                    let tabs = model.tabs(in: item.project)
+                    let unseen = model.unseenCount(tabs)
+                    VStack(alignment: .leading, spacing: 3) {
+                        HStack { Text(item.project).fontWeight(unseen > 0 ? .semibold : .regular); Spacer(); count(unseen) }
+                        // One pill per type with what is unseen in it (owner, 2026-11-17).
+                        let byMode = Dictionary(grouping: tabs.filter { !model.isSeen($0.url) }, by: { model.mode(of: $0) }).mapValues(\.count)
+                        if !byMode.isEmpty {
+                            HStack(spacing: 4) {
+                                ForEach(ReadingMode.allCases, id: \.self) { m in
+                                    if let n = byMode[m], n > 0 { TypePill(mode: m, count: n) }
+                                }
+                            }
+                        }
+                    }
                         .tag(SidebarItem.project(item.project))
                         .help("\(unseen) unseen of \(item.count)")
                         .contextMenu {
@@ -494,6 +506,8 @@ private struct Sidebar: View {
         // Drag a feed onto a folder to move it there.
         .draggable(feed.id)
         .contextMenu {
+            Button("Forget What Sift Learned") { model.forgetSignals(feed) }
+                .help("What you did with this feed's items no longer counts in Today.")
             Menu("Move to Folder") {
                 ForEach(model.feedFolders.filter { $0 != feed.category }, id: \.self) { folder in
                     Button(folder) { model.moveFeed(feed.id, to: folder) }
@@ -720,5 +734,22 @@ private struct LibraryStatus: View {
         .background(.bar)
         .overlay(alignment: .top) { Divider() }
         .help("Sift saves the readable text of your links on this Mac, so it stays when a tab closes.")
+    }
+}
+
+/// A small capsule under a theme in the sidebar: a type and how many of its
+/// links are unseen.
+struct TypePill: View {
+    let mode: ReadingMode
+    let count: Int
+
+    var body: some View {
+        Label("\(count)", systemImage: mode.symbol)
+            .labelStyle(.titleAndIcon)
+            .font(.caption2.monospacedDigit())
+            .padding(.horizontal, 5).padding(.vertical, 1)
+            .foregroundStyle(.secondary)
+            .background(Capsule().fill(Color.secondary.opacity(0.12)))
+            .help("\(count) unseen in \(mode.title)")
     }
 }

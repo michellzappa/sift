@@ -488,7 +488,14 @@ struct TodayListView: View {
             ForEach(Array(picks.enumerated()), id: \.element.id) { i, pick in
                 Button { open(pick) } label: { row(pick) }
                     .buttonStyle(.plain)
-                    .contextMenu { Button { trailFrom = store.trailNode(pick).item } label: { Label("More Like This", systemImage: "point.topleft.down.to.point.bottomright.curvepath") } }
+                    .contextMenu {
+                        Button { trailFrom = store.trailNode(pick).item } label: { Label("More Like This", systemImage: "point.topleft.down.to.point.bottomright.curvepath") }
+                        Menu {
+                            Button("Less from \(pick.feedTitle)") { store.notInterested(pick, "source") }
+                            if let t = pick.why?.theme { Button("Less about \(t)") { store.notInterested(pick, "topic") } }
+                            Button("Seen Enough of This Story") { store.notInterested(pick, "story") }
+                        } label: { Label("Not Interested", systemImage: "hand.thumbsdown") }
+                    }
                     // Scan: a headline scrolled past counts as seen.
                     .onAppear { if mode == .scan { past.appear(pick.url, at: i) } }
                     .onDisappear {

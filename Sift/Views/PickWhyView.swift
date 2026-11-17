@@ -31,6 +31,9 @@ struct PickWhyView: View {
                                 row("Theme", String(format: "+ %.2f", why.themeBonus), "\(why.themeWords) words shared with \(t)")
                             }
                         }
+                        if let t = why.mutedTheme {
+                            row("Not interested", String(format: "− %.2f", why.mutedPenalty ?? 0), "you asked for less about \(t)")
+                        }
                         if let by = why.vouchedBy, !by.isEmpty {
                             row("Vouched", String(format: "+ %.2f", why.vouchBonus ?? 0), by.joined(separator: ", ") + " (directory, first \(Int(TodayBuilder.vouchDays)) days)")
                         }

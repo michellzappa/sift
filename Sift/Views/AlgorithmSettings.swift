@@ -56,6 +56,7 @@ struct AlgorithmSettings: View {
                 line("theme", "0.15 × shared words, max 0.6", "needs 3 or more words in common with a theme")
                 line("", "or 2 × (meaning − 0.35), max 0.6", "closeness in meaning to the theme's centre, at least \(String(format: "%.2f", Meaning.themeMin)) and clearly ahead of the next theme; the larger of the two counts")
                 line("linked", "0.3 × feeds, max 0.9", "your other feeds link to it in their posts this week")
+                line("not interested", "− 0.5 per muted theme", "Less about a theme: 30 days; Seen enough of a story: items with 3+ of its words stay out for 7 days")
                 line("dial", "Lean In: theme × 2", "per theme, in its header or the sidebar menu; Explore and Lean In also try a few sources")
                 line("vouched", "0.1 × log2(1 + vouchers), max 0.3", "a feed you followed from the directory, for its first \(Int(TodayBuilder.vouchDays)) days")
                 line("hot", "0.6 × (feeds − 1)", "the same link in 2 or more of your feeds")
@@ -118,6 +119,7 @@ struct AlgorithmSettings: View {
                 line("Open, play, mark unseen", "+1", "")
                 line("Reading time", "up to +1", "0.05 for each second on screen")
                 line("Quick skip", "-0.4", "less than 1.5 seconds on screen (phone)")
+                line("Less from this source", "-1.5", "Not Interested in the item's menu")
             }
             .font(.callout)
         }

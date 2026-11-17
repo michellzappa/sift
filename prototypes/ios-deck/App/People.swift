@@ -207,3 +207,14 @@ struct ThemeDialSection: View {
         }
     }
 }
+
+// MARK: Not interested
+
+extension Store {
+    /// Not interested in a Today pick: the Mac applies it (source, topic or
+    /// story); the pick counts as seen here at once.
+    func notInterested(_ pick: TodayPick, _ reason: String) {
+        request("less", input: pick.url, feedID: pick.feedID, priority: reason)
+        setSeen([pick.item], true, mode: "today")
+    }
+}

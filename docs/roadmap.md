@@ -8,11 +8,11 @@ order. Items marked "decision" wait for the owner.
 
 - [x] Theme dials: Stay, Lean In, Explore per theme; Sift tries a few
   sources for Lean In and Explore (1.8.3).
-- [ ] "Not interested" with a reason: less of this source, less of this
+- [x] "Not interested" with a reason (1.8.4): less of this source, less of this
   topic, seen enough of this story. Each changes one visible number.
-- [ ] Snooze discovery for a week (everywhere or one theme), and "Forget
-  what you learned" for one feed.
-- [ ] Theme pills in the Mac sidebar (the iPhone has them).
+- [x] Snooze discovery for a week, and "Forget what you learned" for one
+  feed (1.8.4). One theme: use "Less about" or the Stay dial.
+- [x] Theme pills in the Mac sidebar (1.8.4).
 - [ ] Loose ends: X junk text already in feed files and Today picks; X
   posts as post cards in the iPhone deck; run `export-deck.py` after the
   owner's first launch of 1.8.0 or later.

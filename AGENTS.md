@@ -986,4 +986,16 @@ The one exception is anonymous diagnostics (owner, 2026-11-15, below).
   creators.json `dials`, `trials`.
 - Roadmap (2026-11-17, owner): `docs/roadmap.md` is the build order for
   the ideas from that day. Tick items there as they ship.
+- Not interested, snooze, forget (2026-11-17, owner; roadmap 1).
+  `App/AppModel+NotInterested.swift`: `notInterested(pick, .source|.topic|
+  .story)`. Source: a "less" signal (-1.5 in `FeedSignals.affinity`).
+  Topic: `state.muted` kind "theme" for 30 days; Today turns the theme lift
+  into -0.5 (`PickWhy.mutedTheme`). Story: kind "story" (words + URL) for 7
+  days; `TodayBuilder.isMutedStory` (3+ shared words or the same address)
+  keeps items out. `state.discoverySnoozedUntil` (toolbar, 7 days) turns
+  off Linked by, explore, wildcard and tried-source places
+  (`Input.snoozed`). `state.forgotSignals` (feed menu) drops a feed's
+  older signals in `signalEvents()`, which every affinity call uses.
+  Phone: Today row menu, request "less" (input URL, priority reason).
+  Mac sidebar `TypePill` under each theme.
 

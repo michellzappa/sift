@@ -46,7 +46,7 @@ extension AppModel {
         let feedsByID = Dictionary(state.feeds.map { ($0.id, $0) }, uniquingKeysWith: { a, _ in a })
         let modeOf: (TodayPick) -> ReadingMode = { [unowned self] in self.mode(of: $0, feeds: feedsByID) }
         for feed in offeredFeeds where feed.enabled { entries[feed.id] = FeedStore.entries(feed.id) }
-        let events = FeedSignals.loadAll()
+        let events = signalEvents()
         let input = TodayBuilder.Input(
             feeds: offeredFeeds, entries: entries,
             themes: themes.map { ($0.name, $0.summary) },
@@ -55,7 +55,9 @@ extension AppModel {
             creators: creatorOfFeed.mapValues { ($0.name, $0.count) },
             themeByMeaning: { [weak self] in self?.themeByMeaning($0) },
             personOf: personOfFeed,
-            dials: themeDials)
+            dials: themeDials,
+            muted: state.muted.filter { $0.until > Date() },
+            snoozed: (state.discoverySnoozedUntil ?? .distantPast) > Date())
         let fresh = TodayBuilder.build(input)
         // Old digests (URL titles, "New from") are dropped, not merged.
         let stale = state.today?.picks.contains { $0.title.hasPrefix("http") || $0.reason.hasPrefix("New from ") } ?? false
@@ -99,7 +101,7 @@ extension AppModel {
     /// What Today knows about each feed, for "How Today Works" and the feed
     /// list header: the same numbers `TodayBuilder.build` uses.
     func standings(_ feeds: [Feed]? = nil) -> [FeedStanding] {
-        let events = FeedSignals.loadAll()
+        let events = signalEvents()
         let affinity = FeedSignals.affinity(events)
         let evidence = FeedSignals.evidence(events)
         let keeps = Dictionary(grouping: state.kept.compactMap(\.feedID), by: { $0 }).mapValues(\.count)

@@ -111,6 +111,13 @@ extension AppModel {
                     }
                     writeFeedsForPhone()
                 }
+            case "less":
+                // Not interested from the phone: input = the pick's URL, priority = source, topic or story.
+                if let url = r.input, let pick = state.today?.picks.first(where: { $0.url == url }),
+                   let reason = LessOf(rawValue: r.priority ?? "") {
+                    notInterested(pick, reason)
+                }
+                state.phoneRequests[r.id] = "done"
             case "dial":
                 // A theme dial set on the phone: input = theme, priority = dial.
                 if let theme = r.input, let d = ThemeDial(rawValue: r.priority ?? "") { setDial(d, for: theme) }

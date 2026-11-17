@@ -27,6 +27,15 @@ struct TodayView: View {
                     .help("Build Today again from nothing. It also updates by itself when feeds bring new items.")
             }
             ToolbarItem {
+                Button { model.snoozeDiscovery(!model.isDiscoverySnoozed) } label: {
+                    Label(model.isDiscoverySnoozed ? "Resume Discovery" : "Snooze Discovery",
+                          systemImage: model.isDiscoverySnoozed ? "moon.zzz.fill" : "moon.zzz")
+                }
+                .help(model.isDiscoverySnoozed
+                      ? "Discovery is snoozed until \(model.state.discoverySnoozedUntil?.formatted(date: .abbreviated, time: .omitted) ?? ""). Click to bring it back."
+                      : "For a week, Today shows only your feeds' own picks: no Linked by, New to you, Something different or tried sources.")
+            }
+            ToolbarItem {
                 Button { model.showHowToday = true } label: { Label("How Today Works", systemImage: "questionmark.circle") }
                     .help("How Today picks and orders items, and what it learned about each feed")
             }
@@ -208,6 +217,13 @@ struct OfferedList<Header: View, Empty: View>: View {
     @ViewBuilder
     private func menu(_ pick: TodayPick) -> some View {
         Button("More Like This") { model.openTrail(url: pick.url, pick: pick) }
+        if pick.feedID != Trail.savedFeedID {
+            Menu("Not Interested") {
+                Button("Less from \(pick.feedTitle)") { model.notInterested(pick, .source) }
+                if let t = pick.why?.theme { Button("Less about \(t)") { model.notInterested(pick, .topic) } }
+                Button("Seen Enough of This Story") { model.notInterested(pick, .story) }
+            }
+        }
         Divider()
         if pick.feedID == Trail.savedFeedID {
             EmptyView()

@@ -9,6 +9,14 @@ ships this file and shows it in Settings > About and in Sift > Version
 History. Headings are `## X.Y.Z - YYYY-MM-DD`; groups are `### Added`,
 `### Changed` and `### Fixed`.
 
+## 1.8.4 - 2026-11-17
+
+### Added
+- Not Interested, in each Today item's menu on the Mac and the iPhone: less from its source, less about its theme for 30 days, or seen enough of the story (items that share three or more of its words stay out for a week). Each one shows in "Why this is here" and Settings > Algorithm.
+- Snooze Discovery in Today's toolbar: for a week, only your feeds' own picks, without Linked by, New to you, Something different or tried sources.
+- Forget What Sift Learned, in a feed's menu: what you did with its items no longer counts.
+- The Mac sidebar shows a pill per type (Scan, Watch, Read) under each theme, with what is unseen.
+
 ## 1.8.3 - 2026-11-17
 
 ### Added

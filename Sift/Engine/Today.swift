@@ -57,6 +57,18 @@ struct TodayPick: Codable, Hashable, Sendable, Identifiable {
     var why: PickWhy? = nil
 }
 
+/// Not interested (owner, 2026-11-17): a theme or a story Today holds back.
+/// "theme": items that fit it get `TodayBuilder.mutedPenalty` for
+/// `TodayBuilder.mutedThemeDays`. "story": items that share 3 or more words
+/// with it, or its address, stay out for `mutedStoryDays`.
+struct Muted: Codable, Hashable, Sendable {
+    var kind: String
+    var value: String
+    var words: [String] = []
+    var url: String = ""
+    var until: Date
+}
+
 /// How a pick got its place: every factor of the score, so the reader can
 /// check the ranking (owner, 2026-11-17: "show the algorithm").
 struct PickWhy: Codable, Hashable, Sendable {
@@ -87,6 +99,9 @@ struct PickWhy: Codable, Hashable, Sendable {
     var dial: String? = nil
     /// A source Sift is trying for a theme: the theme and where it came from.
     var trial: String? = nil
+    /// Not interested: the theme you asked for less of, and what it cost.
+    var mutedTheme: String? = nil
+    var mutedPenalty: Double? = nil
     /// Directory: who vouched for this feed when you followed it.
     var vouchedBy: [String]? = nil
     var vouchBonus: Double? = nil
@@ -169,6 +184,27 @@ enum TodayBuilder {
         /// Theme dials: Lean In doubles a theme's lift; tried sources get
         /// `ThemeDial.picks` places per theme.
         var dials: [String: ThemeDial] = [:]
+        /// Not interested: themes and stories held back (expired ones are ignored).
+        var muted: [Muted] = []
+        /// Discovery snoozed: no Linked by, New to you, Something different
+        /// or tried-source places.
+        var snoozed = false
+    }
+
+    static let mutedPenalty = 0.5
+    static let mutedThemeDays: Double = 30
+    static let mutedStoryDays: Double = 7
+
+    /// True when a muted story covers this item.
+    static func isMutedStory(url: String, title: String, summary: String, muted: [Muted], now: Date = Date()) -> Bool {
+        let key = URLKey.normalize(url)
+        var itemWords: Set<String>?
+        for m in muted where m.kind == "story" && m.until > now {
+            if !m.url.isEmpty, URLKey.normalize(m.url) == key { return true }
+            if itemWords == nil { itemWords = words(title + " " + summary) }
+            if Set(m.words).intersection(itemWords!).count >= 3 { return true }
+        }
+        return false
     }
 
     /// Directory: a feed followed because people you follow vouch for it gets
@@ -361,6 +397,7 @@ enum TodayBuilder {
                       date >= (priority == .must ? mustCutoff : fillCutoff) else { continue }
                 let key = URLKey.normalize(e.url)
                 guard !keptURLs.contains(e.url), !input.isSeen(e.url), !isCrossPost(e, feed: feed.id), seenURL.insert(key).inserted else { continue }
+                if isMutedStory(url: e.url, title: e.title, summary: e.summary, muted: input.muted, now: now) { continue }
                 let title = FeedParser.Text.title(e.title, body: e.summary)
                 var pick = TodayPick(url: e.url, title: title.isEmpty ? e.url : title, date: date, feedID: feed.id,
                                      feedTitle: feed.title, summary: e.summary, image: e.image, reason: "", content: e.content)
@@ -439,6 +476,15 @@ enum TodayBuilder {
                     why.themeBonus *= 2
                     why.dial = ThemeDial.leanIn.rawValue
                 }
+                if let t = why.theme, input.muted.contains(where: { $0.kind == "theme" && $0.value == t && $0.until > now }) {
+                    // Not interested in this theme for now: the lift becomes a cost.
+                    score -= why.themeBonus + mutedPenalty
+                    why.mutedTheme = t
+                    why.mutedPenalty = mutedPenalty
+                    why.themeBonus = 0
+                    strong = false
+                    if pick.reason == "Fits \(t)" { pick.reason = "" }
+                }
                 if let t = feed.trial {
                     why.trial = t
                     why.dial = input.dials[t]?.rawValue
@@ -456,7 +502,7 @@ enum TodayBuilder {
         // but no feed carries as an item. Its own place, at most
         // `linkedMaxPicks`; the post that linked it most recently gives the
         // summary.
-        for (key, l) in linkedMap where Set(l.feeds.keys.map { input.personOf[$0] ?? $0 }).count >= linkedMinFeeds && feedsPerURL[key] == nil {
+        for (key, l) in linkedMap where !input.snoozed && Set(l.feeds.keys.map { input.personOf[$0] ?? $0 }).count >= linkedMinFeeds && feedsPerURL[key] == nil {
             guard l.newest >= cutoff, !keptURLs.contains(l.url), !input.isSeen(l.url), seenURL.insert(key).inserted else { continue }
             let host = (URL(string: l.url)?.host() ?? "").replacingOccurrences(of: "www.", with: "")
             let generic = ["here", "this", "link", "post", "article", "read more", "source", "via", "paper", "thread"]
@@ -486,7 +532,7 @@ enum TodayBuilder {
         var trialPerTheme: [String: Int] = [:]
         var trialFeedsUsed = Set<String>()
         for older in [false, true] {
-            for c in candidates where c.trial != nil && c.older == older {
+            for c in candidates where !input.snoozed && c.trial != nil && c.older == older {
                 let t = c.trial!
                 guard trialPerTheme[t, default: 0] < (input.dials[t] ?? .stay).picks,
                       trialFeedsUsed.insert(c.pick.feedID).inserted else { continue }
@@ -536,7 +582,7 @@ enum TodayBuilder {
         }
 
         // Exploration and the wildcard, once per mode, so each tab gets them.
-        for mode in ReadingMode.allCases {
+        for mode in ReadingMode.allCases where !input.snoozed {
             let pool = candidates.filter { $0.mode == mode && !$0.older && !$0.linked && $0.trial == nil }
             // Exploration: the newest item of a feed Sift has little evidence on.
             if let explore = pool.first(where: { c in !picks.contains { $0.url == c.pick.url } && c.priority == .normal

@@ -27,6 +27,13 @@ struct SiftState: Codable, Sendable {
     var hiddenCreators: [String] = []
     /// Sources a theme dial tried once (ids or feed URLs): never tried again.
     var triedSources: [String] = []
+    /// Not interested: themes and stories Today holds back for a while.
+    var muted: [Muted] = []
+    /// Discovery (Linked by, New to you, Something different, tried
+    /// sources) is off until this date.
+    var discoverySnoozedUntil: Date?
+    /// Feed id → when the user told Sift to forget what it learned there.
+    var forgotSignals: [String: Date] = [:]
     /// The current Today digest.
     var today: TodayDigest?
     /// Capture new links into the library in the background.
@@ -95,6 +102,9 @@ struct SiftState: Codable, Sendable {
         phoneRequests = try c.decodeIfPresent([String: String].self, forKey: .phoneRequests) ?? [:]
         hiddenCreators = try c.decodeIfPresent([String].self, forKey: .hiddenCreators) ?? []
         triedSources = try c.decodeIfPresent([String].self, forKey: .triedSources) ?? []
+        muted = try c.decodeIfPresent([Muted].self, forKey: .muted) ?? []
+        discoverySnoozedUntil = try c.decodeIfPresent(Date.self, forKey: .discoverySnoozedUntil)
+        forgotSignals = try c.decodeIfPresent([String: Date].self, forKey: .forgotSignals) ?? [:]
         today = try c.decodeIfPresent(TodayDigest.self, forKey: .today)
         autoCapture = try c.decodeIfPresent(Bool.self, forKey: .autoCapture) ?? true
         youtubeTranscripts = try c.decodeIfPresent(Bool.self, forKey: .youtubeTranscripts) ?? true

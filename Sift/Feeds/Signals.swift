@@ -83,6 +83,8 @@ enum FeedSignals {
             case "open", "play", "unseen": w = 1
             case "dwell": w = min((e.seconds ?? 0) / 10, 2) * 0.5
             case "skip": w = -0.4
+            // Not interested: less from this source.
+            case "less": w = -1.5
             default: w = 0
             }
             sum[e.feedID, default: 0] += w * decay
