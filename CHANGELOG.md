@@ -9,6 +9,11 @@ ships this file and shows it in Settings > About and in Sift > Version
 History. Headings are `## X.Y.Z - YYYY-MM-DD`; groups are `### Added`,
 `### Changed` and `### Fixed`.
 
+## 1.8.3 - 2026-11-17
+
+### Added
+- Theme dials. Each theme is Stay, Lean In or Explore, set in the theme's header, in the sidebar menu (In Today) or on the iPhone's theme page. Lean In doubles the theme's lift in Today and tries up to 2 creators you already save from there. Explore tries up to 3 sources one step out, from Next Door, the directory and Farther. A tried source is not a follow: its items say "Trying for <theme>", a few at a time, and it goes after two weeks unless you follow it. Keeping one of its items gives it two more weeks. Follow or Stop sits above each of its items and in the theme's header.
+
 ## 1.8.2 - 2026-11-17
 
 ### Changed

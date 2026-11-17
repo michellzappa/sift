@@ -147,3 +147,63 @@ struct DirectoryView: View {
         .navigationTitle("Directory")
     }
 }
+
+// MARK: Theme dials
+
+/// Stay, Lean In or Explore for one theme (the Mac's ThemeDial).
+enum PhoneDial: String, CaseIterable, Identifiable {
+    case stay, leanIn, explore
+    var id: String { rawValue }
+    var title: String { self == .stay ? "Stay" : self == .leanIn ? "Lean In" : "Explore" }
+    var help: String {
+        switch self {
+        case .stay: "Only the feeds you follow."
+        case .leanIn: "Twice the theme's lift in Today, and your Mac tries up to 2 creators you already save from here."
+        case .explore: "Your Mac tries up to 3 sources one step out: Next Door, the directory and Farther."
+        }
+    }
+}
+
+extension Store {
+    /// The dial the Mac has, or the one this phone asked for last.
+    func dial(_ theme: String) -> PhoneDial {
+        if let r = feedRequests.last(where: { $0.kind == "dial" && $0.input == theme }), macFeeds?.requests[r.id] == nil {
+            return PhoneDial(rawValue: r.priority ?? "") ?? .stay
+        }
+        return PhoneDial(rawValue: creators?.dials?[theme] ?? "") ?? .stay
+    }
+    func setDial(_ d: PhoneDial, theme: String) { request("dial", input: theme, priority: d.rawValue) }
+    func trials(_ theme: String) -> [CreatorsFile.TrialRow] {
+        let done = Set(feedRequests.filter { $0.kind.hasPrefix("trial-") }.compactMap(\.feedID))
+        return (creators?.trials ?? []).filter { $0.theme == theme && !done.contains($0.feedID) }
+    }
+}
+
+/// The dial and the tried sources, for the top of a theme page.
+struct ThemeDialSection: View {
+    @Environment(Store.self) private var store
+    let theme: String
+
+    var body: some View {
+        VStack(alignment: .leading, spacing: 8) {
+            Picker("In Today", selection: Binding(get: { store.dial(theme) }, set: { store.setDial($0, theme: theme) })) {
+                ForEach(PhoneDial.allCases) { Text($0.title).tag($0) }
+            }
+            .pickerStyle(.segmented)
+            Text(store.dial(theme).help).font(.caption).foregroundStyle(.secondary)
+            ForEach(store.trials(theme)) { t in
+                HStack(spacing: 8) {
+                    Image(systemName: "flask").foregroundStyle(.secondary)
+                    VStack(alignment: .leading, spacing: 1) {
+                        Text("Trying \(t.title)").font(.subheadline).lineLimit(1)
+                        Text([t.source, t.until.map { "until \($0.formatted(date: .abbreviated, time: .omitted))" }].compactMap { $0 }.joined(separator: " · "))
+                            .font(.caption).foregroundStyle(.secondary)
+                    }
+                    Spacer()
+                    Button("Follow") { store.request("trial-follow", feedID: t.feedID) }.buttonStyle(.bordered).controlSize(.small)
+                    Button("Stop") { store.request("trial-stop", feedID: t.feedID) }.controlSize(.small)
+                }
+            }
+        }
+    }
+}

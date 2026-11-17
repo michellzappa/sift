@@ -281,11 +281,11 @@ extension AppModel {
 
     /// The feeds in a folder ("" = no folder), by title.
     func feeds(inFolder folder: String) -> [Feed] {
-        offeredFeeds.filter { ($0.category ?? "") == folder }
+        offeredFeeds.filter { ($0.category ?? "") == folder && $0.trial == nil }
             .sorted { $0.title.localizedCaseInsensitiveCompare($1.title) == .orderedAscending }
     }
 
-    var feedFolders: [String] { Array(Set(offeredFeeds.compactMap(\.category))).sorted() }
+    var feedFolders: [String] { Array(Set(offeredFeeds.filter { $0.trial == nil }.compactMap(\.category))).sorted() }
 
     /// Recent items of some feeds as Today-style picks (no reason line),
     /// newest first, for the sidebar's feed and folder lists.

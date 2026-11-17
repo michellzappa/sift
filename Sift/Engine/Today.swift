@@ -83,6 +83,10 @@ struct PickWhy: Codable, Hashable, Sendable {
     var score: Double
     /// Theme fit by meaning (Embeddings): cosine to the theme's centre.
     var themeSimilarity: Double? = nil
+    /// The theme's dial when it changed the score or the place (Dials).
+    var dial: String? = nil
+    /// A source Sift is trying for a theme: the theme and where it came from.
+    var trial: String? = nil
     /// Directory: who vouched for this feed when you followed it.
     var vouchedBy: [String]? = nil
     var vouchBonus: Double? = nil
@@ -162,6 +166,9 @@ enum TodayBuilder {
         /// platforms shows once, and a person never counts as "Linked by"
         /// for their own items.
         var personOf: [String: String] = [:]
+        /// Theme dials: Lean In doubles a theme's lift; tried sources get
+        /// `ThemeDial.picks` places per theme.
+        var dials: [String: ThemeDial] = [:]
     }
 
     /// Directory: a feed followed because people you follow vouch for it gets
@@ -338,7 +345,7 @@ enum TodayBuilder {
         let themeWords: [(name: String, words: Set<String>)] = input.themes.map { ($0.name, words($0.name + " " + $0.summary)) }
 
         struct Candidate { var pick: TodayPick; var score: Double; var priority: FeedPriority; var strong: Bool; var mentions: Int; var mode: ReadingMode; var older: Bool
-                           var linked = false }
+                           var linked = false; var trial: String? = nil }
         var must: [TodayPick] = []
         var candidates: [Candidate] = []
         var seenURL = Set<String>()
@@ -426,11 +433,22 @@ enum TodayBuilder {
                     pick.hot = true
                     strong = true
                 }
+                if let t = why.theme, input.dials[t] == .leanIn, why.themeBonus > 0 {
+                    // Lean In: the theme's lift counts twice.
+                    score += why.themeBonus
+                    why.themeBonus *= 2
+                    why.dial = ThemeDial.leanIn.rawValue
+                }
+                if let t = feed.trial {
+                    why.trial = t
+                    why.dial = input.dials[t]?.rawValue
+                    pick.reason = "Trying for \(t)" + (feed.trialSource.map { ": \($0)" } ?? "")
+                }
                 if affinity > 0.4 { strong = true }
                 why.score = score
                 pick.why = why
                 candidates.append(Candidate(pick: pick, score: score, priority: priority, strong: strong, mentions: mentions,
-                                            mode: input.mode(pick), older: date < cutoff))
+                                            mode: input.mode(pick), older: date < cutoff, trial: feed.trial))
             }
         }
 
@@ -463,7 +481,23 @@ enum TodayBuilder {
         var picks = must
         var perFeedCount: [String: Int] = [:]
         var linkedPicks = 0
-        for c in candidates where !c.older {
+        // Tried sources (theme dials): their own places, at most the dial's
+        // count per theme and one per source, newest window first.
+        var trialPerTheme: [String: Int] = [:]
+        var trialFeedsUsed = Set<String>()
+        for older in [false, true] {
+            for c in candidates where c.trial != nil && c.older == older {
+                let t = c.trial!
+                guard trialPerTheme[t, default: 0] < (input.dials[t] ?? .stay).picks,
+                      trialFeedsUsed.insert(c.pick.feedID).inserted else { continue }
+                trialPerTheme[t, default: 0] += 1
+                var p = c.pick
+                p.why?.slot = "trial"
+                if older { p.fill = true }
+                picks.append(p)
+            }
+        }
+        for c in candidates where !c.older && c.trial == nil {
             if c.linked {
                 // Social proof picks have their own cap, not the feed's.
                 guard linkedPicks < linkedMaxPicks else { continue }
@@ -485,7 +519,7 @@ enum TodayBuilder {
         // Watch when it is the only one.
         for mode in ReadingMode.allCases {
             for relaxed in [false, true] where modeCount[mode, default: 0] < perMode {
-                for c in candidates where c.older && c.mode == mode && modeCount[mode, default: 0] < perMode {
+                for c in candidates where c.older && c.trial == nil && c.mode == mode && modeCount[mode, default: 0] < perMode {
                     if c.priority == .best && !c.strong { continue }
                     if picks.contains(where: { $0.url == c.pick.url }) { continue }
                     let cap = c.priority == .best ? 1 : perFeed
@@ -503,7 +537,7 @@ enum TodayBuilder {
 
         // Exploration and the wildcard, once per mode, so each tab gets them.
         for mode in ReadingMode.allCases {
-            let pool = candidates.filter { $0.mode == mode && !$0.older && !$0.linked }
+            let pool = candidates.filter { $0.mode == mode && !$0.older && !$0.linked && $0.trial == nil }
             // Exploration: the newest item of a feed Sift has little evidence on.
             if let explore = pool.first(where: { c in !picks.contains { $0.url == c.pick.url } && c.priority == .normal
                 && (input.evidence[c.pick.feedID] ?? 0) < 3 && perFeedCount[c.pick.feedID] == nil }) {

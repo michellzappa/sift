@@ -184,6 +184,8 @@ extension AppModel {
             await refreshNeighbors()
             // Where your creators publish: one person, many places.
             refreshPeople()
+            // Theme dials: end and start the sources Sift tries.
+            refreshTrials()
         }
         // Meaning on this Mac for links and recent feed items (trails, Today).
         refreshEmbeddings()

@@ -968,3 +968,22 @@ The one exception is anonymous diagnostics (owner, 2026-11-15, below).
   (thin progress bar at the top) and the phone's Today card lede
   (`ReaderStyle.card`). Light and dark follow the system; no sepia. X
   posts keep their own cards.
+
+- Theme dials (2026-11-17, owner: "theme dials", "keeping it simple").
+  `Engine/Dials.swift` (`ThemeDial` stay/leanIn/explore on `Project.dial`,
+  `Trials`), `App/AppModel+Dials.swift`. Lean In: theme lift × 2
+  (`PickWhy.dial`) and up to 2 tried sources from Your Graph creators in
+  the theme not followed; Explore: up to 3 from Next Door, the directory
+  and Farther (with a feed), one source after another. Tried sources are
+  feeds with `Feed.trial` (theme), `trialSource`, `trialUntil` (14 days,
+  a Keep extends): hidden from the Feeds sidebar, feeds.json, telemetry,
+  Your Graph's "followed" and directory vouchers; `state.triedSources`
+  never tries one twice; 12 in all. Today gives tried sources their own
+  places (slot "trial", `ThemeDial.picks` per theme, one per source,
+  older ones as fill). `refreshTrials` runs with the library jobs and on a
+  dial change. Phone: `ThemeDialSection` on the theme page, requests
+  "dial" (input theme, priority dial), "trial-follow", "trial-stop";
+  creators.json `dials`, `trials`.
+- Roadmap (2026-11-17, owner): `docs/roadmap.md` is the build order for
+  the ideas from that day. Tick items there as they ship.
+

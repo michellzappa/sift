@@ -35,6 +35,12 @@ struct Feed: Codable, Hashable, Sendable, Identifiable {
     /// a little for `TodayBuilder.vouchDays`).
     var vouchedBy: [String]? = nil
     var vouchedAt: Date? = nil
+    /// A source Sift tries for a theme set to Lean In or Explore (Dials):
+    /// the theme, where it came from, and when the try ends. Not a follow:
+    /// hidden from the Feeds list until you follow it.
+    var trial: String? = nil
+    var trialSource: String? = nil
+    var trialUntil: Date? = nil
     var enabled = true
     var added: Date
     var lastFetched: Date?

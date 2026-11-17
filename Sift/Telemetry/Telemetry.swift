@@ -379,7 +379,8 @@ final class TelemetryCoordinator {
         let info = Bundle.main.infoDictionary ?? [:]
         let sources = Set(model.archive.values.compactMap { Telemetry.sourceKind($0.source) }).sorted()
         let destinations = Set(state.destinations.map(\.kind)).intersection(Telemetry.destinationKinds).sorted()
-        let feeds = state.feeds.filter(\.enabled)
+        // Sources Sift is only trying (theme dials) are not follows.
+        let feeds = state.feeds.filter { $0.enabled && $0.trial == nil }
         let feedKinds = Set(feeds.map { $0.provider ?? AppModel.providerID(forFeed: $0.url) ?? WebProvider.id }).sorted()
         var knownFeeds: [String]? = nil
         if Telemetry.knownFeedsEnabled, let list = Telemetry.loadKnownFeeds() {

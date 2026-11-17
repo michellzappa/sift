@@ -54,7 +54,8 @@ extension AppModel {
             affinity: FeedSignals.affinity(events), evidence: FeedSignals.evidence(events), mode: modeOf,
             creators: creatorOfFeed.mapValues { ($0.name, $0.count) },
             themeByMeaning: { [weak self] in self?.themeByMeaning($0) },
-            personOf: personOfFeed)
+            personOf: personOfFeed,
+            dials: themeDials)
         let fresh = TodayBuilder.build(input)
         // Old digests (URL titles, "New from") are dropped, not merged.
         let stale = state.today?.picks.contains { $0.title.hasPrefix("http") || $0.reason.hasPrefix("New from ") } ?? false
@@ -247,6 +248,7 @@ extension AppModel {
         state.kept.append(KeptItem(url: pick.url, title: pick.title, date: pick.date, kept: Date(),
                                    feedID: pick.feedID, feedTitle: pick.feedTitle, summary: pick.summary, image: pick.image))
         signal(pick, "keep")
+        extendTrial(feedID: pick.feedID)
         setSeen([pick.url], true)
         writeTodayForPhone()
         reload()

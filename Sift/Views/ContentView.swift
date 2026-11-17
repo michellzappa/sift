@@ -395,6 +395,13 @@ private struct Sidebar: View {
                         .help("\(unseen) unseen of \(item.count)")
                         .contextMenu {
                             if model.themes.contains(where: { $0.name == item.project }) {
+                                Menu("In Today") {
+                                    ForEach(ThemeDial.allCases) { d in
+                                        Button { model.setDial(d, for: item.project) } label: {
+                                            if model.dial(of: item.project) == d { Label(d.title, systemImage: "checkmark") } else { Text(d.title) }
+                                        }
+                                    }
+                                }
                                 MergeThemeMenu(theme: item.project, pending: $mergeRequest)
                             }
                         }

@@ -16,7 +16,8 @@ extension AppModel {
     /// Builds the graph from every saved link (`savedLinks`).
     func refreshCreators() {
         let kept = savedLinks()
-        let followed = Creators.followed(state.feeds)
+        // Sources a theme dial only tries are not follows.
+        let followed = Creators.followed(state.feeds.filter { $0.trial == nil })
         creators = Creators.build(Array(kept), followed: followed)
         var byFeed: [String: Creator] = [:]
         for c in creators { if let f = c.feedID { byFeed[f] = c } }

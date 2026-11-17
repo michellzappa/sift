@@ -17,7 +17,7 @@ extension AppModel {
         if !force, let built = directory.built, Date().timeIntervalSince(built) < Directory.rebuildDays * 86_400 { return }
         let affinity = FeedSignals.affinity(FeedSignals.loadAll())
         var vouchers: [Directory.Voucher] = []
-        for f in offeredFeeds where f.enabled {
+        for f in offeredFeeds where f.enabled && f.trial == nil {
             let place = People.profile(of: f)
             var v = Directory.Voucher(name: f.title, weight: max(0, min(1, affinity[f.id] ?? 0)), site: nil, feedURL: f.url)
             switch place?.platform {

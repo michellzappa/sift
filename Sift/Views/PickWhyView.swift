@@ -22,6 +22,9 @@ struct PickWhyView: View {
                             row("Your Graph", String(format: "+ %.2f", why.creatorBonus), "you saved \(why.creatorSaves) from \(c)")
                         }
                         if let t = why.theme {
+                            if why.dial == ThemeDial.leanIn.rawValue, why.slot != "trial" {
+                                row("Lean In", "× 2", "\(t) is set to Lean In, so its lift counts twice")
+                            }
                             if let sim = why.themeSimilarity {
                                 row("Theme", String(format: "+ %.2f", why.themeBonus), String(format: "close in meaning to %@ (%.2f), on this Mac", t, sim))
                             } else {
@@ -77,6 +80,7 @@ struct PickWhyView: View {
         case "dontMiss": "Your feed \(feedTitle) is set to Don't Miss: every new item comes in first, newest first."
         case "fill": "This mode had fewer than \(TodayBuilder.perMode) picks, so Sift added an unseen item from the last \(Int(TodayBuilder.fillWindowDays)) days, best score first."
         case "explore": "New to you: Sift knows little about this feed yet, so it gets one slot to show what it brings."
+        case "trial": "Trying for \(why.trial ?? "a theme"): that theme is set to \(ThemeDial(why.dial).title), so Sift tries a few sources for it. Up to \(ThemeDial(why.dial).picks) of their items at a time. Follow the source to keep it; it goes after \(Int(Trials.days)) days otherwise."
         case "linked": "Linked by your feeds: \(why.linkedBy?.count ?? 0) of the feeds you follow link to this in their posts this week, but none carries it as an item. At most \(TodayBuilder.linkedMaxPicks) such picks at a time."
         case "wildcard": "Something different: one item from a feed not in Today yet, picked at random, not by score."
         default: "Ranked by score among unseen items from the last \(Int(TodayBuilder.windowDays)) days."

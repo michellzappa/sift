@@ -65,6 +65,8 @@ struct Project: Identifiable, Hashable, Codable, Sendable {
     var history: [String] = []
     /// The destination this theme's links are sent to by default.
     var sendTo: String?
+    /// How the theme takes part in Today (`ThemeDial` raw value); nil = stay.
+    var dial: String?
 
     init(name: String, summary: String, isTheme: Bool = true, destination: String = "") {
         self.name = name
@@ -82,6 +84,7 @@ struct Project: Identifiable, Hashable, Codable, Sendable {
         notes = try c.decodeIfPresent(String.self, forKey: .notes) ?? ""
         history = try c.decodeIfPresent([String].self, forKey: .history) ?? []
         sendTo = try c.decodeIfPresent(String.self, forKey: .sendTo)
+        dial = try c.decodeIfPresent(String.self, forKey: .dial)
     }
 
     /// Notes and history as one text, for prompts and the search index.

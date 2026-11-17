@@ -82,7 +82,9 @@ extension Store {
 
     /// Today's picks that fit a theme (the Mac's reason line "Fits <theme>").
     func todayPicks(theme: String) -> [TodayPick] {
-        (today?.picks ?? []).filter { $0.reason == "Fits \(theme)" && !isSeen($0.url) }
+        (today?.picks ?? []).filter { p in
+            (p.reason == "Fits \(theme)" || p.why?.theme == theme || p.why?.trial == theme) && !isSeen(p.url)
+        }
     }
 
     /// Themes linked to this one: links of this theme that also feed
@@ -166,6 +168,7 @@ struct ThemePage: View {
                 if !theme.summary.isEmpty {
                     Text(theme.summary).font(.callout).foregroundStyle(.secondary)
                 }
+                ThemeDialSection(theme: theme.name)
                 let picks = store.todayPicks(theme: theme.name)
                 if !picks.isEmpty {
                     shelf("In Today", symbol: "sun.max", all: nil) {

@@ -25,6 +25,8 @@ struct SiftState: Codable, Sendable {
     var phoneRequests: [String: String] = [:]
     /// Creators the user hid from Your Graph (`Creator.id`).
     var hiddenCreators: [String] = []
+    /// Sources a theme dial tried once (ids or feed URLs): never tried again.
+    var triedSources: [String] = []
     /// The current Today digest.
     var today: TodayDigest?
     /// Capture new links into the library in the background.
@@ -92,6 +94,7 @@ struct SiftState: Codable, Sendable {
         kept = try c.decodeIfPresent([KeptItem].self, forKey: .kept) ?? []
         phoneRequests = try c.decodeIfPresent([String: String].self, forKey: .phoneRequests) ?? [:]
         hiddenCreators = try c.decodeIfPresent([String].self, forKey: .hiddenCreators) ?? []
+        triedSources = try c.decodeIfPresent([String].self, forKey: .triedSources) ?? []
         today = try c.decodeIfPresent(TodayDigest.self, forKey: .today)
         autoCapture = try c.decodeIfPresent(Bool.self, forKey: .autoCapture) ?? true
         youtubeTranscripts = try c.decodeIfPresent(Bool.self, forKey: .youtubeTranscripts) ?? true

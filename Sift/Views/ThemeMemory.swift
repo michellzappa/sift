@@ -43,6 +43,7 @@ struct ThemeHeader: View {
             }
             .font(.caption)
             .foregroundStyle(.secondary)
+            if project?.isTheme == true { ThemeDialRow(theme: theme) }
         }
     }
 
@@ -75,6 +76,39 @@ struct ThemeHeader: View {
                     Button("Send \(unsent.count)") { Task { await model.send(unsent, to: d) } }
                         .buttonStyle(.borderless)
                         .help("Sends the links in this theme that have not gone to \(d.name) yet.")
+                }
+            }
+        }
+    }
+}
+
+/// The theme's dial (Engine/Dials.swift) and the sources Sift is trying for it.
+struct ThemeDialRow: View {
+    @Environment(AppModel.self) private var model
+    let theme: String
+
+    var body: some View {
+        let dial = model.dial(of: theme)
+        VStack(alignment: .leading, spacing: 4) {
+            HStack(spacing: 8) {
+                Text("In Today").font(.caption).foregroundStyle(.secondary)
+                Picker("", selection: Binding(get: { dial }, set: { model.setDial($0, for: theme) })) {
+                    ForEach(ThemeDial.allCases) { Text($0.title).tag($0) }
+                }
+                .pickerStyle(.segmented).labelsHidden().fixedSize().controlSize(.small)
+                Text(dial.help).font(.caption).foregroundStyle(.tertiary).lineLimit(2)
+            }
+            ForEach(model.trialFeeds(for: theme)) { f in
+                HStack(spacing: 6) {
+                    Image(systemName: "flask").foregroundStyle(.secondary).font(.caption)
+                    Text("Trying \(f.title)").font(.caption).lineLimit(1)
+                    if let s = f.trialSource { Text("· \(s)").font(.caption).foregroundStyle(.tertiary).lineLimit(1) }
+                    if let until = f.trialUntil {
+                        Text("· until \(until.formatted(date: .abbreviated, time: .omitted))").font(.caption).foregroundStyle(.tertiary)
+                    }
+                    Spacer(minLength: 4)
+                    Button("Follow") { model.followTrial(f) }.controlSize(.mini)
+                    Button("Stop") { model.stopTrial(f) }.controlSize(.mini)
                 }
             }
         }

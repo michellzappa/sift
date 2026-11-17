@@ -127,6 +127,12 @@ struct OfferedList<Header: View, Empty: View>: View {
                                 Button { withAnimation(.snappy) { showPane = false } } label: { Image(systemName: "sidebar.right") }
                                     .buttonStyle(.borderless)
                                     .help("Close the reader (Space)")
+                                if let f = model.state.feeds.first(where: { $0.id == pick.feedID && $0.trial != nil }) {
+                                    // A source Sift is trying (theme dial): follow it or stop.
+                                    Button("Follow \(f.title)") { model.followTrial(f) }
+                                        .help("Follow this source. It joins your feeds.")
+                                    Button("Stop Trying") { model.stopTrial(f) }
+                                }
                                 if pick.feedID == Trail.savedFeedID {
                                     // A saved link on a trail: already in the library.
                                     EmptyView()

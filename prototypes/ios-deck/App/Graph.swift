@@ -88,6 +88,16 @@ struct CreatorsFile: Codable {
     var people: [PersonRow]?
     var directory: [DirectoryEntry]?
     var directoryBuilt: Date?
+    /// Theme dials (the Mac's Engine/Dials.swift): theme → leanIn or explore.
+    var dials: [String: String]?
+    /// Sources the Mac is trying for a theme set to Lean In or Explore.
+    var trials: [TrialRow]?
+    struct TrialRow: Codable, Identifiable, Hashable {
+        var feedID, title, url, theme: String
+        var source: String?
+        var until: Date?
+        var id: String { feedID }
+    }
 
     /// The directory (the Mac's Feeds/Directory.swift): who the people you
     /// follow vouch for, small web first, built once a week.
@@ -162,6 +172,9 @@ struct PickWhy: Codable, Hashable, Sendable {
     var creatorSaves: Int
     var creatorBonus: Double
     var score: Double
+    /// Theme dials: the dial, and the theme a tried source is for.
+    var dial: String? = nil
+    var trial: String? = nil
     /// Social proof: your feeds whose posts link to this item.
     var linkedBy: [String]? = nil
     var linkedBonus: Double? = nil
@@ -438,6 +451,7 @@ struct AlgorithmView: View {
         case "explore": "New to you"
         case "wildcard": "Random"
         case "linked": "Linked by"
+        case "trial": "Trying"
         case "ranked": "Ranked"
         default: ""
         }
