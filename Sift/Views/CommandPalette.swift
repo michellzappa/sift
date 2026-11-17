@@ -191,7 +191,7 @@ struct CommandPalette: View {
         case .export(let id):
             if let exporter = Exporters.all.first(where: { $0.id == id }) { model.runExport(exporter) }
         case .updates:
-            Task { await UpdateChecker.shared.checkFromMenu() }
+            Updates.shared.checkForUpdatesInteractively()
         case .versionHistory:
             openWindow(id: VersionHistory.windowID)
         case .setupGuide:

@@ -213,14 +213,14 @@ struct ContentView: View {
         ToolbarItem(placement: .primaryAction) {
             Button { model.reload() } label: { Label("Reload", systemImage: "arrow.clockwise") }
         }
-        // Shows once a newer release exists (UpdateChecker, daily).
-        if let version = UpdateChecker.shared.available {
+        // Shows once Sparkle found a newer release (daily check).
+        if let version = Updates.shared.availableVersion, Updates.shared.canInstall {
             ToolbarItem(placement: .primaryAction) {
-                Button { UpdateChecker.shared.install() } label: {
+                Button { try? Updates.shared.installUpdate() } label: {
                     Label("Update to \(version)", systemImage: "arrow.down.circle")
                         .labelStyle(.titleAndIcon)
                 }
-                .help("Download Sift \(version), check it, then quit and open the new version.")
+                .help("Sift \(version) is available. Sparkle shows what changed, then installs it and opens Sift again.")
             }
         }
     }

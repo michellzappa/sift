@@ -26,6 +26,9 @@ identity="${SIGN_IDENTITY:-Apple Development}"
 # then the app around them.
 codesign --force --sign "$identity" --identifier app.sift.sift-mcp --options runtime "$app/Contents/MacOS/sift-mcp"
 codesign --force --sign "$identity" --identifier app.sift.sift-chrome --options runtime "$app/Contents/MacOS/sift-chrome"
+# Sparkle ships signed by its own team; hardened runtime refuses to load a
+# framework from another team, so sign it with ours.
+codesign --force --deep --sign "$identity" --options runtime "$app/Contents/Frameworks/Sparkle.framework"
 codesign --force --sign "$identity" --entitlements Sift/Resources/Sift.entitlements --options runtime "$app"
 
 target=/Applications/Sift.app

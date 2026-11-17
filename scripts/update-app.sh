@@ -7,10 +7,13 @@
 #   ./scripts/update-app.sh --version 0.5.1
 #   ./scripts/update-app.sh --force    # reinstall even at the same version
 #
-# Sift runs this too, from Contents/Resources, with --yes --version X
-# (Sift/App/Updates.swift). The app cannot replace its own bundle while it
-# runs, so this script quits it, verifies the download, swaps the bundle,
-# keeps the old copy until the new one is in place, and opens Sift again.
+# Sift up to 1.7.6 runs this from Contents/Resources, with --yes --version X;
+# that is how those copies reach the first Sparkle release. Later builds
+# update through Sparkle and do not ship it. Keep the contract it checks:
+# Sift-<version>.zip and SHA256SUMS on the release (the shared workflow in
+# michellzappa/housekit writes both). The app cannot replace its own bundle
+# while it runs, so this script quits it, verifies the download, swaps the
+# bundle, keeps the old copy until the new one is in place, and opens Sift.
 #
 # System tools only: curl, unzip, shasum, plutil, codesign, spctl, ditto.
 set -euo pipefail
