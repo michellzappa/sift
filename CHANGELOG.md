@@ -13,6 +13,7 @@ History. Headings are `## X.Y.Z - YYYY-MM-DD`; groups are `### Added`,
 
 ### Added
 - Closeness in meaning, on your Mac and iPhone. Sift now reads what each saved link and recent feed item is about with Apple's on-device language model (part of macOS and iOS, no download, nothing sent anywhere). Trails use it to find items close in meaning even when they share no words. Today uses it as a soft theme fit, only when one theme clearly leads. "Why this is here" shows the number. The vectors are plain files in the embeddings folder.
+- Settings > You: what Sift knows about you beyond your themes. Where your saves come from, when you read (hour and weekday, Mac and iPhone), how you read (Scan, Watch, Read, reading time, video length, keep rate), which feeds you finish and which you skip, how your themes rose or fell, every file Sift keeps with its size, and what leaves your Mac. All computed on your Mac. Export it as JSON.
 
 ## 1.7.7 - 2026-11-17
 
