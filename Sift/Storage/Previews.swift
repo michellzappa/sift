@@ -63,6 +63,8 @@ enum PreviewFetcher {
         if isXPost(url) {
             if xSyndication, let p = await syndication(url) { return p }
             if let p = await oEmbed(url) { return p }
+            // Never x.com's page: without JavaScript it is a shell.
+            return failed(urlString)
         }
         return await html(url) ?? failed(urlString)
     }
@@ -208,7 +210,8 @@ enum PreviewFetcher {
         else { return nil }
         let head = String(decoding: data.prefix(600_000), as: UTF8.self)
         let title = meta(head, "og:title") ?? tag(head, "title") ?? ""
-        let text = meta(head, "og:description") ?? meta(head, "description") ?? meta(head, "twitter:description") ?? ""
+        var text = meta(head, "og:description") ?? meta(head, "description") ?? meta(head, "twitter:description") ?? ""
+        if ShellText.isJunk(text) { text = "" }
         var image = meta(head, "og:image") ?? meta(head, "twitter:image")
         if let i = image, let resolved = URL(string: i, relativeTo: url) { image = resolved.absoluteString }
         let site = meta(head, "og:site_name") ?? (url.host() ?? "")

@@ -23,7 +23,8 @@ struct Capture: Sendable {
 ///   headings, paragraphs and list items kept as Markdown; navigation,
 ///   scripts, styles, headers, footers, forms and asides removed.
 /// - PDF: the document text through PDFKit.
-/// - X posts: the post text Sift already has.
+/// - X posts: the post text from the X API, oEmbed or syndication
+///   (`XPostText`), never x.com's page.
 enum Capturer {
     enum Outcome: Sendable {
         case captured(Capture)
@@ -35,19 +36,28 @@ enum Capturer {
 
     private struct Gone: Error {}
 
-    static func capture(_ urlString: String, knownText: String? = nil) async -> Outcome {
+    /// - Parameters:
+    ///   - known: the capture built from what Sift has (a post's text); no fetch.
+    ///   - xSyndication: X posts may ask the opt-in syndication endpoint first.
+    static func capture(_ urlString: String, known: Capture? = nil, xSyndication: Bool = false) async -> Outcome {
         do {
-            if let c = try await extract(urlString, knownText: knownText) { return .captured(c) }
+            // A no-JavaScript shell or a CSS dump is no text: title only.
+            var found = known
+            if found == nil { found = try await extract(urlString, xSyndication: xSyndication) }
+            if let c = found, !ShellText.isJunk(c.text) { return .captured(c) }
             return .failed
         } catch {
             return .gone
         }
     }
 
-    private static func extract(_ urlString: String, knownText: String?) async throws -> Capture? {
+    private static func extract(_ urlString: String, xSyndication: Bool) async throws -> Capture? {
         guard let url = URL(string: urlString) else { return nil }
-        if let knownText, !knownText.isEmpty {
-            return Capture(url: urlString, title: "", author: nil, site: url.host() ?? "", published: nil, kind: "post", text: knownText)
+        // X posts: never x.com's page (a no-JavaScript shell), only the post
+        // text from oEmbed or the opt-in syndication endpoint.
+        if XClient.statusID(urlString) != nil {
+            let preview = await PreviewFetcher.fetch(urlString, xSyndication: xSyndication)
+            return XPostText.post(url: urlString, preview: preview).map { XPostText.capture($0, url: urlString) }
         }
         // One site at a time, politely; a paused site is skipped, not failed.
         let host = (url.host() ?? "").lowercased()
@@ -127,7 +137,7 @@ enum Readable {
             if isHeading || (isItem && line.count > 25) || line.count > 60 { kept.append(line) }
         }
         let text = kept.joined(separator: "\n\n")
-        guard text.count > 200 else { return nil }
+        guard text.count > 200, !ShellText.isJunk(text) else { return nil }
         return Capture(url: url, title: title, author: author, site: site, published: published, kind: "article",
                        text: String(text.prefix(400_000)))
     }
@@ -160,6 +170,36 @@ enum Readable {
             }
         }
         return nil
+    }
+}
+
+/// Text that is not content: a page's no-JavaScript shell ("enable
+/// JavaScript", "switch to a supported browser"), a bot check, or a dump of
+/// CSS or script. The one check for every site: capture, article text,
+/// previews and the library repair call it, so such text never reaches the
+/// library, summaries, search or the phone.
+enum ShellText {
+    static let phrases = [
+        "enable javascript", "javascript is disabled", "javascript disabled", "javascript is not available",
+        "javascript is required", "turn on javascript", "javascript must be enabled", "supported browser",
+        "browser is not supported", "unsupported browser", "checking your browser", "verify you are human",
+        "please wait while we verify",
+    ]
+
+    static func isJunk(_ text: String) -> Bool {
+        let t = text.trimmingCharacters(in: .whitespacesAndNewlines)
+        guard !t.isEmpty else { return false }
+        // A shell is short and says so near the top; a long article may
+        // mention JavaScript further down.
+        let head = t.prefix(1200).lowercased()
+        if t.count < 4000, phrases.contains(where: head.contains) { return true }
+        // Prose has almost no braces or semicolons; CSS and script are full of them.
+        let marks = t.unicodeScalars.reduce(0) { $0 + ($1 == "{" || $1 == "}" || $1 == ";" ? 1 : 0) }
+        if t.count > 80, Double(marks) / Double(t.unicodeScalars.count) > 0.02 { return true }
+        // Lines of CSS rules: `.css-146c3p1{…}`, `[stylesheet-group="0"]{}`.
+        let lines = t.split(separator: "\n").filter { !$0.trimmingCharacters(in: .whitespaces).isEmpty }
+        let rules = lines.filter { $0.contains("{") && ($0.contains("}") || $0.contains(":")) }.count
+        return rules >= 3 && Double(rules) / Double(max(lines.count, 1)) > 0.2
     }
 }
 
@@ -262,16 +302,25 @@ enum Library {
     /// Writes the summary into the file's front matter as `summary:`,
     /// replacing an earlier one.
     static func setSummary(_ summary: String, file: String) {
+        rewrite(file) { $0.filter { !$0.hasPrefix("summary:") } + ["summary: \(ExportText.yaml(summary))"] }
+    }
+
+    /// Removes the captured text and its summary from a file, keeping the
+    /// front matter: the link stays in the library as title only.
+    static func clearText(file: String) {
+        rewrite(file, body: "") { $0.filter { !$0.hasPrefix("summary:") && !$0.hasPrefix("words:") } + ["words: 0"] }
+    }
+
+    /// Edits a library file's front matter lines; `body` replaces the text when given.
+    private static func rewrite(_ file: String, body: String? = nil, _ edit: ([String]) -> [String]) {
         let path = folder.appending(path: file)
         guard !file.isEmpty, let raw = try? String(contentsOf: path, encoding: .utf8), raw.hasPrefix("---\n"),
               let end = raw.range(of: "\n---\n", range: raw.index(raw.startIndex, offsetBy: 3)..<raw.endIndex)
         else { return }
-        var front = raw[raw.index(raw.startIndex, offsetBy: 4)..<end.lowerBound]
+        let front = raw[raw.index(raw.startIndex, offsetBy: 4)..<end.lowerBound]
             .split(separator: "\n", omittingEmptySubsequences: false)
-            .filter { !$0.hasPrefix("summary:") }
             .map(String.init)
-        front.append("summary: \(ExportText.yaml(summary))")
-        let out = "---\n" + front.joined(separator: "\n") + "\n---\n" + raw[end.upperBound...]
+        let out = "---\n" + edit(front).joined(separator: "\n") + "\n---\n" + (body ?? String(raw[end.upperBound...]))
         try? out.write(to: path, atomically: true, encoding: .utf8)
     }
 

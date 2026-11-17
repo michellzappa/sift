@@ -114,7 +114,8 @@ The one exception is anonymous diagnostics (owner, 2026-11-15, below).
 - Engine step 1, capture (2026-11-14): `Sift/Engine/Capture.swift`.
   `Capturer` fetches each archived link once (4 at a time) and `Readable`
   extracts the main text with regular expressions (no dependencies); PDFs
-  via PDFKit; X posts from the text Sift has. `Library` writes one Markdown
+  via PDFKit; X posts from the post text, never x.com's page (see "X posts
+  display"). `Library` writes one Markdown
   file per link (front matter + text) and `index.json`. Next steps: digests
   by the user's Claude, theme memory, local search (SQLite FTS5).
 - YouTube transcripts (2026-11-14, owner's choice of the free route):
@@ -878,3 +879,26 @@ The one exception is anonymous diagnostics (owner, 2026-11-15, below).
   own constant, sizes, Show in Finder, Export as JSON); what leaves
   (telemetry and Claude calls). No AI, no network. A new Sift data file
   gets a row in `profileFiles`. `TodayStore.deviceFolder` is kept/.
+- X posts display (2026-11-17, owner: the phone reader showed x.com's
+  "enable JavaScript" shell, its CSS and a summary of it). Sift never
+  reads x.com's page: `PreviewFetcher.fetch` has no HTML fallback for
+  status URLs, and `Capturer` takes an X post from the X API post, else
+  the preview (oEmbed, or syndication when on). `Sift/X/XPostText.swift`
+  is the one builder: `post(url:preview:)` makes an `XPost` (handle from
+  the URL, date from the post id), `markdown` and `capture` write the
+  library file (name, @handle, date, text with links, image lines).
+  `ShellText.isJunk` (Engine/Capture.swift) is the one check for shell
+  pages and CSS/script dumps on every site; `Readable.extract`,
+  `Capturer.capture` and HTML previews call it, so junk counts as no text
+  (title only). One-time repair `repairCapturedText` (UserDefaults
+  `library.shellTextV1`, runs before capture in `startLibraryJobs`):
+  every X post is written again from its post text; a junk file without
+  post text is cleared (`Library.clearText`), X posts go back to capture,
+  other links become status "failed"; junk previews are dropped; no
+  summary is kept for any of them. Files with a transcript are not
+  touched. Mac: the web pane shows `AppModel.shownXPost` in `XPostView`
+  (API or preview) with Open on X in Sift's browser window. Phone:
+  `Item.post` (`XPostInfo`, from export-deck.py) or `Item.xPost` from the
+  item; `ReaderView` shows `XPostCard` for X status links. export-deck.py
+  has `is_junk` (same rules as `ShellText`: change both together) and
+  sends X items with `post`, no key lines and no summary.

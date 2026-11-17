@@ -164,6 +164,21 @@ struct ReaderView: View {
     var body: some View {
         NavigationStack {
             ScrollView {
+                if item.isXPost {
+                    // An X post reads as a post: who, when, the text, its pictures.
+                    VStack(alignment: .leading, spacing: 14) {
+                        Text(item.theme).font(.caption.weight(.semibold)).foregroundStyle(store.color(item.theme))
+                        XPostCard(post: item.xPost)
+                        if let url = URL(string: item.url) {
+                            Button { browsing = BrowserLink(url: url) } label: { Label("Open on X", systemImage: "arrow.up.forward.square") }
+                                .padding(.top, 6)
+                        }
+                        Button { trailFrom = item } label: { Label("More like this", systemImage: "point.topleft.down.to.point.bottomright.curvepath") }
+                    }
+                    .padding(20)
+                    .padding(.top, 40)
+                    .textSelection(.enabled)
+                } else {
                 VStack(alignment: .leading, spacing: 0) {
                     if let video = item.video, video.provider == "youtube" {
                         YouTubePlayer(id: video.id)
@@ -209,6 +224,7 @@ struct ReaderView: View {
                     .padding(20)
                     .textSelection(.enabled)
                 }
+                }
             }
             .ignoresSafeArea(edges: .top)
             .toolbar { ToolbarItem(placement: .confirmationAction) { Button("Done") { dismiss() } } }
@@ -234,6 +250,74 @@ struct ReaderView: View {
             }
         }
         return out
+    }
+}
+
+/// An X post: avatar (when the Mac had one), name and @handle, date, the
+/// text with its links, then the pictures. Links go through the reader's
+/// `openURL`, so they open in the in-app browser.
+struct XPostCard: View {
+    let post: Item.XPostInfo
+
+    var body: some View {
+        VStack(alignment: .leading, spacing: 12) {
+            HStack(alignment: .top, spacing: 10) {
+                AsyncImage(url: post.avatar.flatMap(URL.init(string:))) { phase in
+                    if let image = phase.image {
+                        image.resizable().scaledToFill()
+                    } else {
+                        Circle().fill(Color(.tertiarySystemFill))
+                            .overlay(Text(String((post.name ?? post.handle ?? "X").prefix(1))).font(.headline).foregroundStyle(.secondary))
+                    }
+                }
+                .frame(width: 44, height: 44)
+                .clipShape(Circle())
+                VStack(alignment: .leading, spacing: 1) {
+                    Text(post.name ?? post.handle ?? "X").font(.body.weight(.semibold)).lineLimit(1)
+                    if let handle = post.handle { Text("@\(handle)").font(.subheadline).foregroundStyle(.secondary).lineLimit(1) }
+                }
+                Spacer()
+                Text("𝕏").font(.title3.weight(.bold)).accessibilityLabel("X")
+            }
+            Text(Self.linked(post.text)).font(.body).lineSpacing(3)
+                .fixedSize(horizontal: false, vertical: true)
+            ForEach(post.images ?? [], id: \.self) { s in
+                AsyncImage(url: URL(string: s)) { phase in
+                    if let image = phase.image { image.resizable().scaledToFit() } else { Color(.tertiarySystemFill).frame(height: 180) }
+                }
+                .frame(maxWidth: .infinity)
+                .clipShape(RoundedRectangle(cornerRadius: 14))
+            }
+            if let date = post.date.flatMap(Self.parse) {
+                Text(date, format: .dateTime.hour().minute().day().month(.abbreviated).year())
+                    .font(.caption).foregroundStyle(.secondary)
+            }
+        }
+        .padding(16)
+        .background(RoundedRectangle(cornerRadius: 18).fill(Color(.secondarySystemGroupedBackground)))
+        .overlay(RoundedRectangle(cornerRadius: 18).strokeBorder(Color(.separator).opacity(0.5)))
+    }
+
+    /// Markdown links stay links; bare addresses ("example.com/page") become links.
+    static func linked(_ text: String) -> AttributedString {
+        var out = (try? AttributedString(markdown: text, options: .init(interpretedSyntax: .inlineOnlyPreservingWhitespace))) ?? AttributedString(text)
+        let plain = String(out.characters)
+        guard let detector = try? NSDataDetector(types: NSTextCheckingResult.CheckingType.link.rawValue) else { return out }
+        for m in detector.matches(in: plain, range: NSRange(plain.startIndex..., in: plain)) {
+            guard let r = Range(m.range, in: plain), let url = m.url else { continue }
+            let lo = out.characters.index(out.startIndex, offsetBy: plain.distance(from: plain.startIndex, to: r.lowerBound))
+            let hi = out.characters.index(lo, offsetBy: plain.distance(from: r.lowerBound, to: r.upperBound))
+            guard out[lo..<hi].link == nil else { continue }
+            out[lo..<hi].link = url
+        }
+        return out
+    }
+
+    private static func parse(_ s: String) -> Date? {
+        let f = ISO8601DateFormatter()
+        if let d = f.date(from: s) { return d }
+        f.formatOptions = [.withFullDate]
+        return f.date(from: String(s.prefix(10)))
     }
 }
 

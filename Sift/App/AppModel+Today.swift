@@ -73,8 +73,9 @@ extension AppModel {
         // A saved link on a trail: the text Sift captured.
         if pick.feedID == Trail.savedFeedID, let t = Library.text(for: pick.url), !t.isEmpty { return t }
         // Not for videos, and not for social posts: their summary is the
-        // whole post, and bsky.app pages are an app, not an article.
+        // whole post, and bsky.app and x.com pages are an app, not an article.
         guard pick.url.range(of: #"youtube\.com|youtu\.be|bsky\.app|/@[^/]+/\d+$"#, options: .regularExpression) == nil,
+              XClient.statusID(pick.url) == nil,
               pick.summary.count >= 280 || pick.summary.isEmpty || pick.summary.hasSuffix("…"),
               let text = await ArticleText.fetch(pick.url) else { return nil }
         FeedStore.setContent(text, url: pick.url, feedID: pick.feedID)
