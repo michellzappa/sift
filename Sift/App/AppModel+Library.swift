@@ -129,6 +129,8 @@ extension AppModel {
         Task {
             await backfillAuthors()
             await refreshNeighbors()
+            // Where your creators publish: one person, many places.
+            refreshPeople()
         }
         // Meaning on this Mac for links and recent feed items (trails, Today).
         refreshEmbeddings()

@@ -9,6 +9,14 @@ ships this file and shows it in Settings > About and in Sift > Version
 History. Headings are `## X.Y.Z - YYYY-MM-DD`; groups are `### Added`,
 `### Changed` and `### Fixed`.
 
+## 1.7.9 - 2026-11-17
+
+### Added
+- People, a fourth tab in Your Graph. One person, every place they publish: site, YouTube, Bluesky, Mastodon, newsletter, podcast, GitHub, and links to X, Instagram, TikTok, Threads and LinkedIn. Sift finds them only from what each person publishes about themselves: rel=me links, the profiles their own site links to, and a Bluesky handle that is their domain. Follow Everywhere follows each place that has a feed. Each place and the evidence show on the person's page. Not One Person splits a wrong group for good.
+- A person's post on several platforms shows once in Today, and a person no longer counts as "Linked by" for their own work.
+- Your Graph shows where a creator also publishes. On the iPhone, People is in the Themes menu, and follows go through your Mac.
+- On the iPhone themes list, each theme shows a pill per type (Scan, Watch, Read) with what is unseen, under its name.
+
 ## 1.7.8 - 2026-11-17
 
 ### Added

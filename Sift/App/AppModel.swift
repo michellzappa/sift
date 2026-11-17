@@ -164,6 +164,11 @@ final class AppModel {
     /// Meaning on this Mac: link vectors and theme centres (Engine/Embeddings.swift).
     @ObservationIgnored var embedSpace = Meaning.Space()
     var isEmbedding = false
+    /// People: one person's places across platforms (Feeds/People.swift).
+    var people: [Person] = []
+    @ObservationIgnored var peopleFile = People.load()
+    var isFindingPeople = false
+    @ObservationIgnored var peopleRound: Date?
     /// The trail the user opened with More Like This (Engine/Trail.swift).
     var trail: TrailState?
     /// Next door: creators your creators link to (Feeds/Creators.swift).

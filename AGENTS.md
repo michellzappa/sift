@@ -878,3 +878,26 @@ The one exception is anonymous diagnostics (owner, 2026-11-15, below).
   own constant, sizes, Show in Finder, Export as JSON); what leaves
   (telemetry and Claude calls). No AI, no network. A new Sift data file
   gets a row in `profileFiles`. `TodayStore.deviceFolder` is kept/.
+- People (2026-11-17, owner: "a SOLID follow model where we follow across
+  platforms … let creators own their feeds"). `Feeds/People.swift`:
+  `Place` (platform + handle, `followInput` when it has a feed), `Person`
+  (places + evidence), `People.check` per seed (site/newsletter home page:
+  every rel=me link, plus a lone profile per platform only when its handle
+  `resembles` the site's domain or name; Bluesky: public AppView
+  getProfile, a domain handle is proof, bio links), union-find `merge`
+  (2+ places, id = the site place). Seeds: followed site, newsletter and
+  Bluesky feeds and the top 300 Your Graph `site:` creators; 40 a round,
+  hourly, recheck after 14 days; `people.json` (checked seeds, hidden).
+  `AppModel+People`: `followPerson`, `followProfile` (sets `Feed.place`),
+  `splitPerson`, `personOfFeed`, `person(forCreator:)`. Today:
+  `Input.personOf` drops a person's cross-post (an item whose links point
+  only to their own item elsewhere) and never counts a person as "Linked
+  by" for their own items. UI: Your Graph tab People (`PeopleView`),
+  "Also publishes on" in the creator pane; phone `App/People.swift`
+  (creators.json `people`, follow with creator "place:<id>"). YouTube
+  places match followed feeds by channel name or `Feed.site`. Tested on
+  the owner's feeds: a lone LinkedIn link in a sponsor post counted until
+  the `resembles` rule.
+- Theme pills on the phone (2026-11-17, owner): `ThemePill` under each
+  theme name in the Themes list, one per mode with its unseen count.
+

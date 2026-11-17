@@ -38,6 +38,7 @@ extension AppModel {
         run("titles", "YouTube titles", isFetchingVideoTitles, nil)
         run("nextdoor", "Finding who your creators link to", isFindingNeighbors, nil)
         run("embeddings", "Reading meaning on this Mac", isEmbedding, nil)
+        run("people", "Finding where your creators publish", isFindingPeople, nil)
         for theme in fartherAsking.sorted() { run("farther:" + theme, "Asking Claude about \(theme)", true, nil) }
         run("summaries", "Summaries on this Mac", isSummarizing, summaryProgress)
 

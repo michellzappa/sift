@@ -82,7 +82,11 @@ extension AppModel {
                             addFeed(found, category: r.folder, priority: r.priority.flatMap(FeedPriority.init(rawValue:)))
                             noteFollowed(found.label ?? found.parsed.title)
                         }
-                        if let creator = r.creator, creator.hasPrefix("farther:") {
+                        if let creator = r.creator, creator.hasPrefix("place:") {
+                            // "place:<Place.id>": a person's place, followed from the phone.
+                            if let i = state.feeds.firstIndex(where: { $0.url == found.url }) { state.feeds[i].place = String(creator.dropFirst(6)) }
+                            writeCreatorsForPhone()
+                        } else if let creator = r.creator, creator.hasPrefix("farther:") {
                             // "farther:<theme>:<input>": take it off that theme's list.
                             let parts = creator.split(separator: ":", maxSplits: 2).map(String.init)
                             if parts.count == 3 {
@@ -164,7 +168,10 @@ extension AppModel {
             var nextDoor: [Near]
             var farther: [String: FartherResult]
             var fartherAsking: [String]
+            var people: [PersonRow]
         }
+        struct PlaceRow: Encodable { var id, platform, platformName, url, handle: String; var hasFeed, followed: Bool }
+        struct PersonRow: Encodable { var id, name: String; var places: [PlaceRow]; var evidence: [String] }
         let hidden = Set(state.hiddenCreators)
         let rows = creators.map { c in
             Row(id: c.id, kind: c.kind.rawValue, name: c.name, input: c.input, count: c.count, recent: c.recent,
@@ -180,7 +187,14 @@ extension AppModel {
                  themes: Dictionary(n.themes.map { ($0.name, $0.count) }, uniquingKeysWith: { a, _ in a }),
                  evidence: n.evidence.prefix(6).map { Evidence(from: $0.from, item: $0.item, itemURL: $0.itemURL, link: $0.link) })
         }
-        guard let data = try? e.encode(File(creators: rows, nextDoor: near, farther: farther, fartherAsking: fartherAsking.sorted())) else { return }
+        let peopleRows = people.map { person in
+            PersonRow(id: person.id, name: person.name, places: person.profiles.map { p in
+                PlaceRow(id: p.id, platform: p.platform, platformName: p.platformName, url: p.url, handle: p.handle,
+                         hasFeed: p.hasFeed, followed: followedFeed(for: p) != nil)
+            }, evidence: person.evidence)
+        }
+        guard let data = try? e.encode(File(creators: rows, nextDoor: near, farther: farther, fartherAsking: fartherAsking.sorted(),
+                                            people: peopleRows)) else { return }
         let dir = CloseList.folder.appending(path: "Deck", directoryHint: .isDirectory)
         try? FileManager.default.createDirectory(at: dir, withIntermediateDirectories: true)
         let url = dir.appending(path: "creators.json")

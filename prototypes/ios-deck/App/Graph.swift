@@ -31,6 +31,36 @@ struct CreatorsFile: Codable {
             themes.map { ($0.key, $0.value) }.sorted { $0.1 == $1.1 ? $0.0 < $1.0 : $0.1 > $1.1 }
         }
     }
+    /// People: one person, every place they publish (the Mac's People).
+    struct PlaceRow: Codable, Identifiable, Hashable {
+        var id, platform, platformName, url, handle: String
+        var hasFeed, followed: Bool
+        /// What Follow takes on the Mac (`Place.followInput`).
+        var input: String {
+            switch platform {
+            case "github": "https://github.com/" + handle.dropFirst() + ".atom"
+            case "medium": "medium.com/" + handle
+            case "youtube", "podcast": url
+            default: handle
+            }
+        }
+        var symbol: String {
+            switch platform {
+            case "youtube": "play.rectangle"
+            case "podcast": "mic"
+            case "github": "chevron.left.forwardslash.chevron.right"
+            case "bluesky", "mastodon", "x", "threads": "bubble.left"
+            case "instagram", "tiktok": "camera"
+            case "substack", "medium": "envelope"
+            default: "globe"
+            }
+        }
+    }
+    struct PersonRow: Codable, Identifiable, Hashable {
+        var id, name: String
+        var places: [PlaceRow]
+        var evidence: [String]
+    }
     /// Next Door: creators outside your graph that two or more of yours link to.
     struct Near: Codable, Identifiable, Hashable {
         struct Evidence: Codable, Hashable { var from, item, itemURL, link: String }
@@ -55,6 +85,7 @@ struct CreatorsFile: Codable {
     /// Farther: Claude's suggestions per theme (the Mac's Feeds/Farther.swift).
     var farther: [String: FartherResult]?
     var fartherAsking: [String]?
+    var people: [PersonRow]?
 }
 
 struct FartherSuggestion: Codable, Hashable, Identifiable {

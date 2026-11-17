@@ -50,6 +50,7 @@ struct ThemesView: View {
                         } label: { Label("All Unseen", systemImage: "circle.inset.filled") }
                         Button { showDeck = true } label: { Label("Review Deck", systemImage: "rectangle.stack") }
                         NavigationLink { CreatorGraphView() } label: { Label("Your Graph", systemImage: "person.2") }
+                        NavigationLink { PeopleListView() } label: { Label("People", systemImage: "person.crop.rectangle.stack") }
                         NavigationLink { FeedsView() } label: { Label("Feeds", systemImage: "dot.radiowaves.up.forward") }
                         Button { showLog = true } label: { Label("Settings", systemImage: "gearshape") }
                     } label: { Image(systemName: "ellipsis.circle") }
@@ -108,24 +109,38 @@ private struct ThemeRow: View {
         let today = store.todayPicks(theme: theme.name).count
         HStack(alignment: .top, spacing: 10) {
             Circle().fill(theme.color).frame(width: 10, height: 10).padding(.top, 6)
-            VStack(alignment: .leading, spacing: 4) {
+            VStack(alignment: .leading, spacing: 6) {
                 Text(theme.name).font(.headline)
+                // One pill per type, with what is unseen in it (owner, 2026-11-17).
+                HStack(spacing: 6) {
+                    if today > 0 { ThemePill(text: "\(today) today", symbol: "sun.max", tint: .orange) }
+                    ForEach(ReadingMode.allCases) { mode in
+                        if let n = counts[mode], n > 0 { ThemePill(text: "\(mode.title) \(n)", symbol: mode.symbol, tint: theme.color) }
+                    }
+                }
                 if !theme.summary.isEmpty {
                     Text(theme.summary).font(.subheadline).foregroundStyle(.secondary).lineLimit(2)
                 }
-                HStack(spacing: 12) {
-                    if today > 0 {
-                        Label("\(today) today", systemImage: "sun.max").foregroundStyle(.orange)
-                    }
-                    ForEach(ReadingMode.allCases) { mode in
-                        if let n = counts[mode], n > 0 { Label("\(n)", systemImage: mode.symbol) }
-                    }
-                }
-                .font(.caption.monospacedDigit())
-                .foregroundStyle(.secondary)
             }
         }
         .padding(.vertical, 4)
+    }
+}
+
+/// A small capsule: a type and its count under a theme's name.
+struct ThemePill: View {
+    let text: String
+    let symbol: String
+    let tint: Color
+
+    var body: some View {
+        Label(text, systemImage: symbol)
+            .font(.caption2.weight(.semibold).monospacedDigit())
+            .labelStyle(.titleAndIcon)
+            .padding(.horizontal, 8).padding(.vertical, 3)
+            .foregroundStyle(tint)
+            .background(Capsule().fill(tint.opacity(0.15)))
+            .lineLimit(1)
     }
 }
 

@@ -155,6 +155,22 @@ enum TodayBuilder {
         /// The theme an item is closest to in meaning, when one clearly
         /// leads (`Meaning.Space.theme`).
         var themeByMeaning: (String) -> (name: String, cos: Double)? = { _ in nil }
+        /// People: person id per feed. One person's post on several
+        /// platforms shows once, and a person never counts as "Linked by"
+        /// for their own items.
+        var personOf: [String: String] = [:]
+    }
+
+    /// Markdown and bare links in an item's text.
+    static func outLinks(_ e: FeedEntry) -> Set<String> {
+        let text = e.content ?? e.summary
+        guard !text.isEmpty else { return [] }
+        let ns = text as NSString
+        var out = Set<String>()
+        for m in NextDoor.linkPattern.matches(in: text, range: NSRange(location: 0, length: ns.length)) {
+            out.insert(URLKey.normalize(ns.substring(with: m.range).trimmingCharacters(in: CharacterSet(charactersIn: ".,;:!?*_"))))
+        }
+        return out
     }
 
     /// Theme lift by meaning: 2 × (cosine − 0.35), at most 0.6. Only when the
@@ -298,6 +314,19 @@ enum TodayBuilder {
             }
         }
         let linkedMap = linked(input, now: now)
+        // Cross-posts: a person's post that only points to their own item on
+        // another platform (a Bluesky post for a new video) is left out; the
+        // item itself stays.
+        var personItems: [String: Set<String>] = [:]
+        for feed in input.feeds where feed.enabled {
+            guard let person = input.personOf[feed.id] else { continue }
+            for e in input.entries[feed.id] ?? [] { personItems[person, default: []].insert(URLKey.normalize(e.url)) }
+        }
+        func isCrossPost(_ e: FeedEntry, feed: String) -> Bool {
+            guard let person = input.personOf[feed], let own = personItems[person] else { return false }
+            let key = URLKey.normalize(e.url)
+            return !outLinks(e).filter { $0 != key && own.contains($0) }.isEmpty
+        }
         let themeWords: [(name: String, words: Set<String>)] = input.themes.map { ($0.name, words($0.name + " " + $0.summary)) }
 
         struct Candidate { var pick: TodayPick; var score: Double; var priority: FeedPriority; var strong: Bool; var mentions: Int; var mode: ReadingMode; var older: Bool
@@ -316,7 +345,7 @@ enum TodayBuilder {
                 guard let date = e.date, date <= now.addingTimeInterval(3600),
                       date >= (priority == .must ? mustCutoff : fillCutoff) else { continue }
                 let key = URLKey.normalize(e.url)
-                guard !keptURLs.contains(e.url), !input.isSeen(e.url), seenURL.insert(key).inserted else { continue }
+                guard !keptURLs.contains(e.url), !input.isSeen(e.url), !isCrossPost(e, feed: feed.id), seenURL.insert(key).inserted else { continue }
                 let title = FeedParser.Text.title(e.title, body: e.summary)
                 var pick = TodayPick(url: e.url, title: title.isEmpty ? e.url : title, date: date, feedID: feed.id,
                                      feedTitle: feed.title, summary: e.summary, image: e.image, reason: "", content: e.content)
@@ -361,7 +390,10 @@ enum TodayBuilder {
                 // Social proof: other feeds of yours whose posts link here.
                 var linkers: [String: String] = [:]
                 for k in keysOf[e.url] ?? [key] {
-                    for (id, title) in linkedMap[k]?.feeds ?? [:] where id != feed.id { linkers[id] = title }
+                    for (id, title) in linkedMap[k]?.feeds ?? [:] where id != feed.id {
+                        if let me = input.personOf[feed.id], input.personOf[id] == me { continue }
+                        linkers[id] = title
+                    }
                 }
                 if !linkers.isEmpty {
                     let names = linkers.values.sorted()
@@ -392,7 +424,7 @@ enum TodayBuilder {
         // but no feed carries as an item. Its own place, at most
         // `linkedMaxPicks`; the post that linked it most recently gives the
         // summary.
-        for (key, l) in linkedMap where l.feeds.count >= linkedMinFeeds && feedsPerURL[key] == nil {
+        for (key, l) in linkedMap where Set(l.feeds.keys.map { input.personOf[$0] ?? $0 }).count >= linkedMinFeeds && feedsPerURL[key] == nil {
             guard l.newest >= cutoff, !keptURLs.contains(l.url), !input.isSeen(l.url), seenURL.insert(key).inserted else { continue }
             let host = (URL(string: l.url)?.host() ?? "").replacingOccurrences(of: "www.", with: "")
             let generic = ["here", "this", "link", "post", "article", "read more", "source", "via", "paper", "thread"]

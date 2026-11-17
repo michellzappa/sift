@@ -53,7 +53,8 @@ extension AppModel {
             kept: state.kept, isSeen: { [seenMarks] in seenMarks[$0]?.seen ?? false },
             affinity: FeedSignals.affinity(events), evidence: FeedSignals.evidence(events), mode: modeOf,
             creators: creatorOfFeed.mapValues { ($0.name, $0.count) },
-            themeByMeaning: { [weak self] in self?.themeByMeaning($0) })
+            themeByMeaning: { [weak self] in self?.themeByMeaning($0) },
+            personOf: personOfFeed)
         let fresh = TodayBuilder.build(input)
         // Old digests (URL titles, "New from") are dropped, not merged.
         let stale = state.today?.picks.contains { $0.title.hasPrefix("http") || $0.reason.hasPrefix("New from ") } ?? false

@@ -29,11 +29,12 @@ struct CreatorsView: View {
                 Text("Your Graph").tag("yours")
                 Text("Next Door").tag("nextdoor")
                 Text("Farther").tag("farther")
+                Text("People").tag("people")
             }
             .pickerStyle(.segmented).labelsHidden().fixedSize()
             .padding(.vertical, 8)
             Divider()
-            if tab == "nextdoor" { NextDoorView() } else if tab == "farther" { FartherView() } else { yours }
+            if tab == "nextdoor" { NextDoorView() } else if tab == "farther" { FartherView() } else if tab == "people" { PeopleView() } else { yours }
         }
         .navigationTitle("Your Graph")
         .onAppear { if model.creators.isEmpty { model.refreshCreators() } }
@@ -153,6 +154,16 @@ private struct CreatorPane: View {
                     }
                     let hidden = model.state.hiddenCreators.contains(creator.id)
                     Button(hidden ? "Show in Your Graph" : "Hide") { model.setCreatorHidden(creator, !hidden) }
+                }
+                if let person = model.person(forCreator: creator) {
+                    VStack(alignment: .leading, spacing: 6) {
+                        Text("Also publishes on").font(.headline)
+                        Text(person.profiles.map { p in p.platformName + (model.followedFeed(for: p) != nil ? " (following)" : p.hasFeed ? "" : " (no feed)") }.joined(separator: " · "))
+                            .font(.callout).foregroundStyle(.secondary)
+                        if person.profiles.contains(where: { $0.hasFeed && model.followedFeed(for: $0) == nil }) {
+                            Button("Follow Everywhere") { model.followPerson(person) }
+                        }
+                    }
                 }
                 score
                 if !creator.themes.isEmpty { themes }
