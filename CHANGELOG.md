@@ -9,6 +9,15 @@ ships this file and shows it in Settings > About and in Sift > Version
 History. Headings are `## X.Y.Z - YYYY-MM-DD`; groups are `### Added`,
 `### Changed` and `### Fixed`.
 
+## 1.7.1 - 2026-11-17
+
+### Fixed
+
+- Instagram posts and reels and TikTok videos play in the pane beside
+  the list, without the login wall: Sift opens their embed page.
+- Library lists use the full width again when the pane is open. Rows
+  were squeezed and slid under the sidebar.
+
 ## 1.7.0 - 2026-11-17
 
 ### Added

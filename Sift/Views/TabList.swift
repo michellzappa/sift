@@ -118,8 +118,6 @@ struct TabList: View {
                 }
                 .padding(.horizontal, 10)
                 .padding(.vertical, 8)
-                // Rows stay clear of the browser pane, so none hides under it.
-                .padding(.trailing, showInspector ? BrowserOverlay.width(for: listWidth) : 0)
             }
             .background(Color(nsColor: .textBackgroundColor))
             .background(GeometryReader { g in Color.clear.onAppear { listWidth = g.size.width }.onChange(of: g.size.width) { _, w in listWidth = w } })

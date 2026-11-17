@@ -114,9 +114,9 @@ struct WebPane: View {
                     Divider()
                 }
                 WebViewHost(webView: page.webView)
-                    .onAppear { page.load(tab.url) }
+                    .onAppear { page.load(Embeds.page(for: tab.url)) }
                     .onDisappear { page.stop() }
-                    .onChange(of: tab.url) { page.load(tab.url) }
+                    .onChange(of: tab.url) { page.load(Embeds.page(for: tab.url)) }
                     .task(id: tab.url) { if model.xConnected, XClient.statusID(tab.url) != nil { await model.refreshXPosts(urls: [tab.url]) } }
             }
         }
@@ -210,5 +210,25 @@ struct ReaderBlock: View {
 
     private func inline(_ s: String) -> AttributedString {
         (try? AttributedString(markdown: s, options: .init(interpretedSyntax: .inlineOnlyPreservingWhitespace))) ?? AttributedString(s)
+    }
+}
+
+/// Instagram and TikTok show a login wall on their own pages. Their embed
+/// pages play the post or video without a login (owner, 2026-11-17:
+/// "embeds need to work on mac"), so the pane opens those instead.
+enum Embeds {
+    static func page(for link: String) -> String {
+        guard let u = URL(string: link), let host = u.host()?.lowercased() else { return link }
+        if host.hasSuffix("instagram.com") {
+            let parts = u.path.split(separator: "/").map(String.init)
+            if let i = parts.firstIndex(where: { ["p", "reel", "reels", "tv"].contains($0) }), i + 1 < parts.count {
+                let kind = parts[i] == "reels" ? "reel" : parts[i]
+                return "https://www.instagram.com/\(kind)/\(parts[i + 1])/embed/captioned/"
+            }
+        }
+        if host.hasSuffix("tiktok.com"), let id = TikTokReader.videoID(link) {
+            return "https://www.tiktok.com/embed/v2/\(id)"
+        }
+        return link
     }
 }

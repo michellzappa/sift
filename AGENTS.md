@@ -315,6 +315,11 @@ The one exception is anonymous diagnostics (owner, 2026-11-15, below).
   library entry has `transcript == true`. The web pane opens such a link on
   its transcript (reader view); the toggle switches to the video. The pane
   stops media (`WebPage.stop`) when it closes or switches to the reader.
+- Mac pane embeds (2026-11-17, owner): `Embeds.page(for:)` (WebPane.swift)
+  opens Instagram posts and reels on `/<kind>/<code>/embed/captioned/` and
+  TikTok videos on `/embed/v2/<id>`, which play without a login. TabList
+  rows no longer pad for the old browser overlay (it squeezed rows and
+  pushed the list under the sidebar).
 - Rows carry no icon buttons (owner, 2026-11-15): Send is in the context
   menu and the web pane header, not on the row.
 
