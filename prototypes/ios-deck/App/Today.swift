@@ -25,6 +25,9 @@ struct TodayPick: Codable, Hashable, Sendable, Identifiable {
     /// "scan", "watch" or "read", from the Mac's classifier
     /// (Sift/Engine/Modes.swift). Older files have none: see `readingMode`.
     var mode: String?
+    /// Top comments on a Hacker News or Reddit post, from the Mac
+    /// (Sift/Feeds/Discussion.swift).
+    var discussion: Discussion?
 
     /// The tab this pick shows in. Without a mode from the Mac: video is
     /// Watch, headlines and posts are Scan, the rest Read.
@@ -71,6 +74,44 @@ enum ReadingMode: String, Codable, CaseIterable, Sendable, Identifiable {
         case .watch: "play.rectangle"
         case .read: "book"
         }
+    }
+}
+
+struct DiscussionComment: Codable, Hashable, Sendable {
+    var author: String
+    var text: String
+}
+
+struct Discussion: Codable, Hashable, Sendable {
+    var url: String
+    var site: String
+    var count: Int?
+    var comments: [DiscussionComment]
+    var fetched: Date
+}
+
+/// The top comments under a Scan row: author and the first lines, quiet,
+/// like a reply under a post.
+struct DiscussionBlock: View {
+    let discussion: Discussion
+    var lines = 3
+
+    var body: some View {
+        VStack(alignment: .leading, spacing: 6) {
+            ForEach(Array(discussion.comments.enumerated()), id: \.offset) { _, c in
+                HStack(alignment: .top, spacing: 8) {
+                    RoundedRectangle(cornerRadius: 1).fill(Color.secondary.opacity(0.35)).frame(width: 2)
+                    VStack(alignment: .leading, spacing: 1) {
+                        Text(c.author).font(.caption2.weight(.semibold)).foregroundStyle(.secondary)
+                        Text(c.text).font(.footnote).foregroundStyle(.primary.opacity(0.85)).lineLimit(lines)
+                    }
+                }
+                .fixedSize(horizontal: false, vertical: true)
+            }
+            Text([discussion.site, discussion.count.map { "\($0) comments" }].compactMap { $0 }.joined(separator: " · "))
+                .font(.caption2).foregroundStyle(.tertiary)
+        }
+        .padding(.top, 4)
     }
 }
 
@@ -499,6 +540,9 @@ struct TodayListView: View {
                     .font(.caption).foregroundStyle(.secondary).lineLimit(1)
                 if mode == .read, !pick.summary.isEmpty {
                     Text(pick.summary).font(.subheadline).foregroundStyle(.secondary).lineLimit(3)
+                }
+                if let d = pick.discussion, !d.comments.isEmpty {
+                    DiscussionBlock(discussion: d)
                 }
             }
             Spacer(minLength: 0)

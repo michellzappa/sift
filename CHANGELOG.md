@@ -9,6 +9,14 @@ ships this file and shows it in Settings > About and in Sift > Version
 History. Headings are `## X.Y.Z - YYYY-MM-DD`; groups are `### Added`,
 `### Changed` and `### Fixed`.
 
+## 1.6.9 - 2026-11-17
+
+### Added
+
+- Top comments for Hacker News and Reddit posts in Today. Sift fetches
+  the top 3 comments from the public Hacker News and Reddit pages, paced,
+  with no login, and the iPhone shows them under each Scan headline.
+
 ## 1.6.8 - 2026-11-17
 
 ### Changed

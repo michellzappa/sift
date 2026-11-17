@@ -154,6 +154,30 @@ extension AppModel {
         }
         if changed { writeTodayForPhone() }
         await markShorts()
+        await fillDiscussions()
+    }
+
+    /// Top comments for Hacker News and Reddit picks (Feeds/Discussion.swift).
+    /// Fetched once; fetched again once after 3 hours while the post is
+    /// young and had fewer comments than Sift shows, so a new post gets
+    /// its comments later. At most 15 posts a round.
+    func fillDiscussions() async {
+        guard !Demo.isOn, let picks = state.today?.picks else { return }
+        let feeds = Dictionary(state.feeds.map { ($0.id, $0) }, uniquingKeysWith: { a, _ in a })
+        var done = 0
+        for pick in picks where done < 15 {
+            let provider = feeds[pick.feedID].flatMap { $0.provider ?? AppModel.providerID(forFeed: $0.url) }
+            guard Discussions.applies(url: pick.url, provider: provider) else { continue }
+            if let d = pick.discussion {
+                let young = (pick.date ?? .distantPast) > Date().addingTimeInterval(-2 * 86_400)
+                guard young, d.comments.count < Discussions.perPost, d.fetched < Date().addingTimeInterval(-3 * 3600) else { continue }
+            }
+            done += 1
+            guard let found = await Discussions.fetch(url: pick.url, provider: provider),
+                  let i = state.today?.picks.firstIndex(where: { $0.url == pick.url }) else { continue }
+            state.today?.picks[i].discussion = found
+            writeTodayForPhone()
+        }
     }
 
     // MARK: The phone (prototypes/ios-deck): iCloud Drive/Sift

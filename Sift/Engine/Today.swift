@@ -50,6 +50,8 @@ struct TodayPick: Codable, Hashable, Sendable, Identifiable {
     /// Older than the 3-day window: it came in to fill a mode that had
     /// too few picks (`TodayBuilder.perMode`). Stays until 14 days old.
     var fill: Bool? = nil
+    /// Top comments on a Hacker News or Reddit post (`Discussions`).
+    var discussion: Discussion? = nil
 }
 
 struct TodayDigest: Codable, Hashable, Sendable {
