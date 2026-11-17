@@ -41,18 +41,20 @@ extension AppModel {
             return
         }
         var entries: [String: [FeedEntry]] = [:]
+        let feedsByID = Dictionary(state.feeds.map { ($0.id, $0) }, uniquingKeysWith: { a, _ in a })
+        let modeOf: (TodayPick) -> ReadingMode = { [unowned self] in self.mode(of: $0, feeds: feedsByID) }
         for feed in offeredFeeds where feed.enabled { entries[feed.id] = FeedStore.entries(feed.id) }
         let events = FeedSignals.loadAll()
         let input = TodayBuilder.Input(
             feeds: offeredFeeds, entries: entries,
             themes: themes.map { ($0.name, $0.summary) },
             kept: state.kept, isSeen: { [seenMarks] in seenMarks[$0]?.seen ?? false },
-            affinity: FeedSignals.affinity(events), evidence: FeedSignals.evidence(events))
+            affinity: FeedSignals.affinity(events), evidence: FeedSignals.evidence(events), mode: modeOf)
         let fresh = TodayBuilder.build(input)
         // Old digests (URL titles, "New from") are dropped, not merged.
         let stale = state.today?.picks.contains { $0.title.hasPrefix("http") || $0.reason.hasPrefix("New from ") } ?? false
         let old = (force || stale) ? [] : TodayBuilder.stillCurrent(state.today?.picks ?? [], feeds: state.feeds)
-        let merged = TodayBuilder.merge(old: old, fresh: fresh)
+        let merged = TodayBuilder.merge(old: old, fresh: fresh, mode: modeOf)
         guard force || merged.map(\.url) != (state.today?.picks ?? []).map(\.url) else { return }
         state.today = TodayDigest(slot: Date(), built: Date(), picks: merged)
         writeTodayForPhone()

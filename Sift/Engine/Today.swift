@@ -47,6 +47,9 @@ struct TodayPick: Codable, Hashable, Sendable, Identifiable {
     /// phone's today.json (`writeTodayForPhone`), so both apps use one
     /// classifier; nil in state.json.
     var mode: String? = nil
+    /// Older than the 3-day window: it came in to fill a mode that had
+    /// too few picks (`TodayBuilder.perMode`). Stays until 14 days old.
+    var fill: Bool? = nil
 }
 
 struct TodayDigest: Codable, Hashable, Sendable {
@@ -67,6 +70,11 @@ enum TodayBuilder {
     static let perFeed = 3
     /// The ranked part before exploration and the wildcard come in.
     static let size = 10
+    /// Picks each mode (Scan, Watch, Read) should have. A mode with fewer
+    /// takes unseen items of that mode up to `fillWindowDays` old, so the
+    /// Watch tab is not empty on a day the video feeds were quiet.
+    static let perMode = 5
+    static let fillWindowDays: Double = 14
 
     /// The latest slot at or before `now`.
     static func currentSlot(_ now: Date = Date()) -> Date {
@@ -102,6 +110,9 @@ enum TodayBuilder {
         var affinity: [String: Double] = [:]
         /// Signals per feed: few means Sift knows little about it yet.
         var evidence: [String: Int] = [:]
+        /// Scan, Watch or Read for a pick (`AppModel.mode(of:feeds:)`, so
+        /// the feed's own setting counts).
+        var mode: (TodayPick) -> ReadingMode = { Modes.mode(url: $0.url, words: Modes.words($0.content)) }
     }
 
     /// Don't-miss feeds keep their items in Today this long, until seen.
@@ -131,9 +142,12 @@ enum TodayBuilder {
     ///    counts more than the 30th of a busy one) × learned affinity, plus
     ///    theme fit and the same link in several feeds. Best Only feeds need
     ///    such a signal and get one slot; Normal feeds two; Not in Today none.
-    /// 3. One slot for a feed Sift knows little about, one wildcard.
+    /// 3. Per mode: a mode with fewer than `perMode` picks takes older
+    ///    unseen items of that mode (up to 14 days), then one slot for a
+    ///    feed Sift knows little about and one wildcard.
     static func build(_ input: Input, now: Date = Date()) -> [TodayPick] {
         let cutoff = now.addingTimeInterval(-windowDays * 86_400)
+        let fillCutoff = now.addingTimeInterval(-fillWindowDays * 86_400)
         let mustCutoff = now.addingTimeInterval(-mustWindowDays * 86_400)
         let keptURLs = Set(input.kept.map(\.url))
         let keptPerFeed = Dictionary(grouping: input.kept.compactMap(\.feedID), by: { $0 }).mapValues(\.count)
@@ -152,7 +166,7 @@ enum TodayBuilder {
         }
         let themeWords: [(name: String, words: Set<String>)] = input.themes.map { ($0.name, words($0.name + " " + $0.summary)) }
 
-        struct Candidate { var pick: TodayPick; var score: Double; var priority: FeedPriority; var strong: Bool; var mentions: Int }
+        struct Candidate { var pick: TodayPick; var score: Double; var priority: FeedPriority; var strong: Bool; var mentions: Int; var mode: ReadingMode; var older: Bool }
         var must: [TodayPick] = []
         var candidates: [Candidate] = []
         var seenURL = Set<String>()
@@ -165,7 +179,7 @@ enum TodayBuilder {
             let affinity = input.affinity[feed.id] ?? 0
             for e in entries {
                 guard let date = e.date, date <= now.addingTimeInterval(3600),
-                      date >= (priority == .must ? mustCutoff : cutoff) else { continue }
+                      date >= (priority == .must ? mustCutoff : fillCutoff) else { continue }
                 let key = URLKey.normalize(e.url)
                 guard !keptURLs.contains(e.url), !input.isSeen(e.url), seenURL.insert(key).inserted else { continue }
                 let title = FeedParser.Text.title(e.title, body: e.summary)
@@ -192,7 +206,8 @@ enum TodayBuilder {
                     strong = true
                 }
                 if affinity > 0.4 { strong = true }
-                candidates.append(Candidate(pick: pick, score: score, priority: priority, strong: strong, mentions: mentions))
+                candidates.append(Candidate(pick: pick, score: score, priority: priority, strong: strong, mentions: mentions,
+                                            mode: input.mode(pick), older: date < cutoff))
             }
         }
 
@@ -201,30 +216,57 @@ enum TodayBuilder {
         candidates.sort { ($0.mentions > 1 ? $0.mentions : 0, $0.score) > ($1.mentions > 1 ? $1.mentions : 0, $1.score) }
         var picks = must
         var perFeedCount: [String: Int] = [:]
-        for c in candidates {
+        for c in candidates where !c.older {
             if c.priority == .best && !c.strong { continue }
             let cap = c.priority == .best ? 1 : perFeed
             guard perFeedCount[c.pick.feedID, default: 0] < cap else { continue }
             perFeedCount[c.pick.feedID, default: 0] += 1
             picks.append(c.pick)
         }
-        let taken = Set(picks.map(\.url))
-        // Exploration: the newest item of a feed Sift has little evidence on.
-        if let explore = candidates.first(where: { !taken.contains($0.pick.url) && $0.priority == .normal
-            && (input.evidence[$0.pick.feedID] ?? 0) < 3 && perFeedCount[$0.pick.feedID] == nil }) {
-            var p = explore.pick
-            if p.reason.isEmpty { p.reason = "New to you" }
-            picks.append(p)
+        var modeCount = Dictionary(grouping: picks, by: { input.mode($0) }).mapValues(\.count)
+
+        // Fill: a mode with too few picks takes its older unseen items, best
+        // score first (the score already favours newer ones). First within
+        // the per-feed share, then past it, so one video channel can fill
+        // Watch when it is the only one.
+        for mode in ReadingMode.allCases {
+            for relaxed in [false, true] where modeCount[mode, default: 0] < perMode {
+                for c in candidates where c.older && c.mode == mode && modeCount[mode, default: 0] < perMode {
+                    if c.priority == .best && !c.strong { continue }
+                    if picks.contains(where: { $0.url == c.pick.url }) { continue }
+                    let cap = c.priority == .best ? 1 : perFeed
+                    if !relaxed && perFeedCount[c.pick.feedID, default: 0] >= cap { continue }
+                    var p = c.pick
+                    p.fill = true
+                    if p.reason.isEmpty { p.reason = "From the last \(Int(fillWindowDays)) days" }
+                    perFeedCount[p.feedID, default: 0] += 1
+                    modeCount[mode, default: 0] += 1
+                    picks.append(p)
+                }
+            }
         }
-        // One wildcard: from a feed not in the digest yet, not the top scores.
-        let used = Set(picks.map(\.feedID))
-        let urls = Set(picks.map(\.url))
-        // One wildcard, always from a feed not in the digest yet; none if every feed is in.
-        if var wild = (candidates.dropFirst(size).filter({ !used.contains($0.pick.feedID) && $0.priority != .best }).randomElement()
-            ?? candidates.filter({ !urls.contains($0.pick.url) && !used.contains($0.pick.feedID) }).randomElement())?.pick {
-            wild.reason = "Something different"
-            wild.wildcard = true
-            picks.append(wild)
+
+        // Exploration and the wildcard, once per mode, so each tab gets them.
+        for mode in ReadingMode.allCases {
+            let pool = candidates.filter { $0.mode == mode && !$0.older }
+            // Exploration: the newest item of a feed Sift has little evidence on.
+            if let explore = pool.first(where: { c in !picks.contains { $0.url == c.pick.url } && c.priority == .normal
+                && (input.evidence[c.pick.feedID] ?? 0) < 3 && perFeedCount[c.pick.feedID] == nil }) {
+                var p = explore.pick
+                if p.reason.isEmpty { p.reason = "New to you" }
+                perFeedCount[p.feedID, default: 0] += 1
+                picks.append(p)
+            }
+            // One wildcard, always from a feed not in the digest yet, not
+            // from the top scores when there is a choice; none if every
+            // feed of this mode is in.
+            let used = Set(picks.map(\.feedID))
+            let open = pool.filter { !used.contains($0.pick.feedID) }
+            if var wild = (open.dropFirst(size).filter({ $0.priority != .best }).randomElement() ?? open.randomElement())?.pick {
+                wild.reason = "Something different"
+                wild.wildcard = true
+                picks.append(wild)
+            }
         }
         return picks
     }
@@ -236,21 +278,20 @@ enum TodayBuilder {
         let byID = Dictionary(feeds.map { ($0.id, $0) }, uniquingKeysWith: { a, _ in a })
         return picks.filter { p in
             guard let feed = byID[p.feedID], feed.enabled, feed.priority != FeedPriority.off.rawValue else { return false }
-            let days = feed.priority == FeedPriority.must.rawValue ? mustWindowDays : windowDays
+            let days = feed.priority == FeedPriority.must.rawValue ? mustWindowDays : p.fill == true ? fillWindowDays : windowDays
             return (p.date ?? now) >= now.addingTimeInterval(-days * 86_400)
         }
     }
 
     /// New picks on top (in rank order), then the old ones in their place.
-    /// At most one unseen wildcard at a time.
-    static func merge(old: [TodayPick], fresh: [TodayPick]) -> [TodayPick] {
+    /// At most one wildcard per mode at a time.
+    static func merge(old: [TodayPick], fresh: [TodayPick], mode: (TodayPick) -> ReadingMode) -> [TodayPick] {
         let oldURLs = Set(old.map(\.url))
-        var hasWild = old.contains { $0.wildcard == true }
+        var wildModes = Set(old.filter { $0.wildcard == true }.map(mode))
         var added: [TodayPick] = []
         for p in fresh where !oldURLs.contains(p.url) {
             if p.wildcard == true {
-                if hasWild { continue }
-                hasWild = true
+                guard wildModes.insert(mode(p)).inserted else { continue }
             }
             added.append(p)
         }

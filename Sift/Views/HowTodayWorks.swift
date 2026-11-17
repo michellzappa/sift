@@ -81,9 +81,10 @@ struct HowTodayWorks: View {
             rule("3", "Hot", "A link that is in two or more of your feeds right now (a Hacker News post about an article another feed has, for example). The more feeds, the higher.")
             rule("4", "Then by score", "Newer is higher: an item loses about half its weight in a day. A rare post counts more than the 30th post of a busy feed. Feeds you read often get up to 80% more. Items that share words with one of your themes get a lift.")
             rule("5", "Fair shares", "A Normal feed has at most \(TodayBuilder.perFeed) unseen items in Today at a time; its next one comes in as you read. A Best Only feed gets 1, and only when the item is Hot, fits a theme or comes from a feed you read often. Not in Today: none.")
-            rule("6", "Two extra slots", "\"New to you\": one item from a feed Sift knows little about yet, so new feeds get a chance. \"Something different\": one item from a feed not in Today yet.")
-            rule("7", "It updates", "New picks go on top after each feed check. Items you have seen stay in their place until they are \(Int(TodayBuilder.windowDays)) days old. Rebuild Today starts again from nothing.")
-            rule("8", "What it learns", "Keeping, opening, reading time and playing raise a feed; a quick skip lowers it a little. It counts the last month most, on this Mac and your iPhone.")
+            rule("6", "Every mode gets its share", "Scan, Watch and Read each get at least \(TodayBuilder.perMode) picks when there are enough. If a mode has fewer, Sift adds unseen items of that mode from the last \(Int(TodayBuilder.fillWindowDays)) days. So on a quiet day for your video feeds, Watch still has something.")
+            rule("7", "Two extra slots per mode", "\"New to you\": one item from a feed Sift knows little about yet, so new feeds get a chance. \"Something different\": one item from a feed not in Today yet.")
+            rule("8", "It updates", "New picks go on top after each feed check. Items you have seen stay in their place until they are \(Int(TodayBuilder.windowDays)) days old (older picks that filled a mode: \(Int(TodayBuilder.fillWindowDays)) days). Rebuild Today starts again from nothing.")
+            rule("9", "What it learns", "Keeping, opening, reading time and playing raise a feed; a quick skip lowers it a little. It counts the last month most, on this Mac and your iPhone.")
         }
     }
 

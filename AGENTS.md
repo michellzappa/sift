@@ -656,7 +656,7 @@ The one exception is anonymous diagnostics (owner, 2026-11-15, below).
   list: `Views/ModePicker.swift` in the toolbar (principal), keys 0-3.
   Watch is the one place with cards (`WatchCard`, tall for Shorts, TikTok,
   reels); Scan rows have no picture or preview; Read rows show reading
-  time and 3 lines. Not yet: Today slots per mode. Phone (1.6.3): tabs
+  time and 3 lines. Today slots per mode (2026-11-17): `TodayBuilder.perMode` = 5; a mode with fewer picks takes its older unseen items (up to `fillWindowDays` = 14, `TodayPick.fill`, kept 14 days by `stillCurrent`), first within the per-feed share, then past it; exploration and the wildcard run once per mode, and `merge` keeps one wildcard per mode. The mode comes from `Input.mode` (`AppModel.mode(of:feeds:)`). Phone (1.6.3): tabs
   Scan, Watch, Read, Library, Lists (Log in Lists' toolbar); the Mac writes
   `TodayPick.mode` into today.json only (`withModes`), the phone falls
   back to its own rule for older files.

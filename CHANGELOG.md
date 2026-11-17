@@ -9,6 +9,16 @@ ships this file and shows it in Settings > About and in Sift > Version
 History. Headings are `## X.Y.Z - YYYY-MM-DD`; groups are `### Added`,
 `### Changed` and `### Fixed`.
 
+## 1.6.8 - 2026-11-17
+
+### Changed
+
+- Scan, Watch and Read each get a fair share of Today. When a mode has
+  fewer than 5 picks, Sift adds unseen items of that mode from the last
+  14 days, so Watch is not empty on a day your video feeds were quiet.
+  Each mode also gets its own "New to you" and "Something different"
+  pick. How Today Works explains the new rule.
+
 ## 1.6.7 - 2026-11-16
 
 ### Added
