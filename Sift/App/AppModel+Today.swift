@@ -157,6 +157,12 @@ extension AppModel {
         await fillDiscussions()
     }
 
+    /// The comments Sift holds for a link (Today's picks are the one store,
+    /// so the Mac's rows and the phone's today.json show the same).
+    func discussion(for url: String) -> Discussion? {
+        state.today?.picks.first { $0.url == url }?.discussion
+    }
+
     /// Top comments for Hacker News and Reddit picks (Feeds/Discussion.swift).
     /// Fetched once; fetched again once after 3 hours while the post is
     /// young and had fewer comments than Sift shows, so a new post gets

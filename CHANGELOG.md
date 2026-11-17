@@ -9,6 +9,14 @@ ships this file and shows it in Settings > About and in Sift > Version
 History. Headings are `## X.Y.Z - YYYY-MM-DD`; groups are `### Added`,
 `### Changed` and `### Fixed`.
 
+## 1.7.0 - 2026-11-17
+
+### Added
+
+- The Mac's Today rows show the top Hacker News and Reddit comments
+  too, the same ones the iPhone shows, in Scan and All. Click the
+  comment count to open the discussion.
+
 ## 1.6.9 - 2026-11-17
 
 ### Added

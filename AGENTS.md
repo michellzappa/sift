@@ -668,7 +668,9 @@ The one exception is anonymous diagnostics (owner, 2026-11-15, below).
   them under Scan rows (`DiscussionBlock`). HN: Algolia search by URL,
   then the Firebase API (kids in HN's rank order). Reddit: the post's
   `.rss?sort=top` (its JSON answers 403 without a login); HostGate paces
-  reddit.com at 4 s and a 429 pauses it an hour. Not on the Mac's rows yet.
+  reddit.com at 4 s and a 429 pauses it an hour. The Mac's Today rows show
+  the same block (`DiscussionBlock` in TodayView.swift, Scan and All) from
+  `AppModel.discussion(for:)`: Today's picks are the one store for both.
 - One stream per mode on the phone (2026-11-17, owner): no Today /
   Library switch. Scan, Watch and Read each show Today's picks in that
   mode, then "From your Library" (`Store.libraryQueue`: unseen saved items

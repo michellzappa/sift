@@ -353,6 +353,9 @@ private struct TodayRow: View {
                 if mode != .scan, let line = lede, !line.isEmpty {
                     Text(line).font(.callout).foregroundStyle(.secondary).lineLimit(mode == .read ? 3 : 2)
                 }
+                if mode != .read, mode != .watch, let d = model.discussion(for: pick.url), !d.comments.isEmpty {
+                    DiscussionBlock(discussion: d)
+                }
                 if !pick.reason.isEmpty {
                     Label {
                         Text(pick.reason)
@@ -468,5 +471,37 @@ struct FeedReader: View {
             quoteNext = false
         }
         return merged
+    }
+}
+
+/// The top comments under a Scan row, the same block as the phone's
+/// (prototypes/ios-deck/App/Today.swift): author and three lines each,
+/// then the site and count, which opens the discussion in Sift.
+struct DiscussionBlock: View {
+    @Environment(AppModel.self) private var model
+    let discussion: Discussion
+
+    var body: some View {
+        VStack(alignment: .leading, spacing: 5) {
+            ForEach(Array(discussion.comments.enumerated()), id: \.offset) { _, c in
+                HStack(alignment: .top, spacing: 8) {
+                    RoundedRectangle(cornerRadius: 1).fill(Color.secondary.opacity(0.35)).frame(width: 2)
+                    VStack(alignment: .leading, spacing: 1) {
+                        Text(c.author).font(.caption2.weight(.semibold)).foregroundStyle(.secondary)
+                        Text(c.text).font(.callout).foregroundStyle(.primary.opacity(0.85)).lineLimit(3)
+                    }
+                }
+                .fixedSize(horizontal: false, vertical: true)
+            }
+            Button {
+                model.openInApp(discussion.url)
+            } label: {
+                Text([discussion.site, discussion.count.map { "\($0) comments" }].compactMap { $0 }.joined(separator: " · "))
+                    .font(.caption2)
+            }
+            .buttonStyle(.link)
+            .foregroundStyle(.tertiary)
+        }
+        .padding(.top, 3)
     }
 }
