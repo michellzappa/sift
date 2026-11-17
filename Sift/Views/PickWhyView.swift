@@ -22,7 +22,11 @@ struct PickWhyView: View {
                             row("Your Graph", String(format: "+ %.2f", why.creatorBonus), "you saved \(why.creatorSaves) from \(c)")
                         }
                         if let t = why.theme {
-                            row("Theme", String(format: "+ %.2f", why.themeBonus), "\(why.themeWords) words shared with \(t)")
+                            if let sim = why.themeSimilarity {
+                                row("Theme", String(format: "+ %.2f", why.themeBonus), String(format: "close in meaning to %@ (%.2f), on this Mac", t, sim))
+                            } else {
+                                row("Theme", String(format: "+ %.2f", why.themeBonus), "\(why.themeWords) words shared with \(t)")
+                            }
                         }
                         if let names = why.linkedBy, !names.isEmpty {
                             row("Linked", String(format: "+ %.2f", why.linkedBonus ?? 0), "posts in \(names.joined(separator: ", ")) link here")

@@ -2,9 +2,11 @@ import SwiftUI
 
 // Trails on the phone: "More like this" from any item. The same rules as
 // the Mac's Sift/Engine/Trail.swift (change both together): same creator 3,
-// same theme 1.5, each shared word 0.6 (up to 5), a score of 1.8 to join,
-// unseen only, at most 4 per creator, 20 in all. The phone uses what it has:
-// your saved items in the deck and Today's picks. Local, no AI.
+// same theme 1.5, closeness in meaning up to 3 (`Meaning.trailScore`, Apple's
+// on-device embeddings, made on this phone) or else 0.6 per shared word (up
+// to 5), a score of 1.8 to join, unseen only, at most 4 per creator, 20 in
+// all. The phone uses what it has: your saved items in the deck and Today's
+// picks. Nothing leaves the phone.
 
 enum PhoneTrail {
     static let size = 20
@@ -15,6 +17,7 @@ enum PhoneTrail {
         var item: Item
         var creator: String
         var theme: String?
+        var vector: [Float]? = nil
     }
 
     /// Lowercased words of five letters or more, without common ones
@@ -33,14 +36,19 @@ enum PhoneTrail {
             let same = !n.creator.isEmpty && n.creator == seed.creator
             let theme = n.theme != nil && n.theme == seed.theme
             let shared = words(n.item.title + " " + n.item.summary).intersection(seedWords).count
-            var score = Double(min(shared, 5)) * 0.6
+            let wordScore = Double(min(shared, 5)) * 0.6
+            var sim: Double?
+            if let a = n.vector, let b = seed.vector { sim = Meaning.Space.cos(a, b) }
+            let meaning = sim.map(Meaning.trailScore) ?? 0
+            var score = max(wordScore, meaning)
             if same { score += 3 }
             if theme { score += 1.5 }
             guard score >= minScore else { continue }
             var parts: [String] = []
             if same { parts.append("Same creator") }
             if theme, let t = n.theme { parts.append("Same theme: \(t)") }
-            if shared > 0 { parts.append("\(shared) word\(shared == 1 ? "" : "s") in common") }
+            if meaning > wordScore, let sim { parts.append(String(format: "Close in meaning (%.2f)", sim)) }
+            else if shared > 0 { parts.append("\(shared) word\(shared == 1 ? "" : "s") in common") }
             scored.append((n, score, parts.joined(separator: " · ")))
         }
         scored.sort { $0.1 > $1.1 }
@@ -60,7 +68,8 @@ extension Store {
     func trailNode(_ item: Item) -> PhoneTrail.Node {
         if let pick = today?.picks.first(where: { $0.url == item.url }) { return trailNode(pick) }
         let creator = (item.author?.isEmpty == false ? item.author! : item.site).lowercased()
-        return PhoneTrail.Node(item: item, creator: creator, theme: deck.themes.contains { $0.name == item.theme } ? item.theme : nil)
+        return PhoneTrail.Node(item: item, creator: creator, theme: deck.themes.contains { $0.name == item.theme } ? item.theme : nil,
+                               vector: meaningSpace.unit[item.url])
     }
 
     /// A Today pick as a trail node: its feed is the creator; "Fits X" is
@@ -69,7 +78,48 @@ extension Store {
         let theme = pick.why?.theme ?? (pick.reason.hasPrefix("Fits ") ? String(pick.reason.dropFirst(5)) : nil)
         var item = pick.item
         if let theme { item.theme = theme }
-        return PhoneTrail.Node(item: item, creator: pick.feedTitle.lowercased(), theme: theme)
+        return PhoneTrail.Node(item: item, creator: pick.feedTitle.lowercased(), theme: theme, vector: meaningSpace.unit[pick.url])
+    }
+
+    private static var meaningFolder: URL {
+        FileManager.default.urls(for: .documentDirectory, in: .userDomainMask)[0].appending(path: "embeddings", directoryHint: .isDirectory)
+    }
+
+    /// Makes vectors for new deck items and Today's picks, in the
+    /// background, and drops ones that left. Runs after each sync.
+    func refreshMeaning() {
+        guard !meaningRunning else { return }
+        var texts: [String: String] = [:]
+        for item in deck.items { texts[item.url] = Meaning.text(title: item.title, preview: item.summary) }
+        for p in today?.picks ?? [] { texts[p.url] = Meaning.text(title: p.title, preview: p.summary) }
+        var themeOf: [String: String] = [:]
+        let names = Set(deck.themes.map(\.name))
+        for item in deck.items where names.contains(item.theme) { themeOf[item.url] = item.theme }
+        let folder = Self.meaningFolder
+        meaningRunning = true
+        Task { [weak self] in
+            let space = await Task.detached(priority: .utility) { () -> Meaning.Space in
+                var raw = Meaning.load(from: folder)
+                let hashes = texts.mapValues(Meaning.hash)
+                let todo = texts.filter { raw.hashes[$0.key] != hashes[$0.key] }
+                var changed = false
+                if !todo.isEmpty, let embedder = Embedder() {
+                    raw.model = embedder.identifier
+                    for (url, text) in todo {
+                        guard let v = embedder.vector(text) else { continue }
+                        raw.vectors[url] = v
+                        raw.hashes[url] = hashes[url]
+                        changed = true
+                    }
+                }
+                let gone = raw.vectors.keys.filter { texts[$0] == nil }
+                for u in gone { raw.vectors[u] = nil; raw.hashes[u] = nil }
+                if changed || !gone.isEmpty { Meaning.save(raw, to: folder) }
+                return Meaning.Space(raw.vectors, themeOf: themeOf)
+            }.value
+            self?.meaningSpace = space
+            self?.meaningRunning = false
+        }
     }
 
     func trail(from item: Item) -> [(Item, String)] {
@@ -94,7 +144,7 @@ struct TrailSheet: View {
                     VStack(alignment: .leading, spacing: 4) {
                         Text("More like").font(.caption).foregroundStyle(.secondary)
                         Text(seed.title).font(.headline).lineLimit(3)
-                        Text("Same creator, same theme or words in common, from your saves and Today. Unseen only. It ends after \(PhoneTrail.size).")
+                        Text("Same creator, same theme, or close in meaning (made on this phone), from your saves and Today. Unseen only. It ends after \(PhoneTrail.size).")
                             .font(.caption).foregroundStyle(.secondary)
                     }
                 }

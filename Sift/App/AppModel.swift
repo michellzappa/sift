@@ -161,6 +161,9 @@ final class AppModel {
     var creators: [Creator] = []
     /// Creator id per followed feed, for Today's ranking.
     @ObservationIgnored var creatorOfFeed: [String: Creator] = [:]
+    /// Meaning on this Mac: link vectors and theme centres (Engine/Embeddings.swift).
+    @ObservationIgnored var embedSpace = Meaning.Space()
+    var isEmbedding = false
     /// The trail the user opened with More Like This (Engine/Trail.swift).
     var trail: TrailState?
     /// Next door: creators your creators link to (Feeds/Creators.swift).

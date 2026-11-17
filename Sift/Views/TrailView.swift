@@ -50,6 +50,6 @@ struct TrailView: View {
     }
 
     private var rules: String {
-        "Same creator counts 3, same theme 1.5, each shared word 0.6 (up to 5). Unseen only, at most \(Trail.perCreator) per creator, \(Trail.size) in all."
+        "Same creator counts 3, same theme 1.5, closeness in meaning up to 3 (on this Mac), else 0.6 per shared word. Unseen only, at most \(Trail.perCreator) per creator, \(Trail.size) in all."
     }
 }

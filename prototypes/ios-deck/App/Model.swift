@@ -162,6 +162,10 @@ final class Store {
     var macFeeds: FeedsFile?
     /// Feed requests made on this phone; written to follows/iphone-<id>.json.
     var feedRequests: [PhoneFeedRequest] = []
+    /// Meaning vectors for deck items and Today's picks, made on this phone
+    /// (Trail.swift, `refreshMeaning`).
+    @ObservationIgnored var meaningSpace = Meaning.Space()
+    @ObservationIgnored var meaningRunning = false
     /// Your Graph from the Mac (Deck/creators.json, Graph.swift).
     var creators: CreatorsFile?
     /// What this phone did with Today picks; written to signals/iphone-<id>.json (Signals.swift).

@@ -9,6 +9,11 @@ ships this file and shows it in Settings > About and in Sift > Version
 History. Headings are `## X.Y.Z - YYYY-MM-DD`; groups are `### Added`,
 `### Changed` and `### Fixed`.
 
+## 1.7.8 - 2026-11-17
+
+### Added
+- Closeness in meaning, on your Mac and iPhone. Sift now reads what each saved link and recent feed item is about with Apple's on-device language model (part of macOS and iOS, no download, nothing sent anywhere). Trails use it to find items close in meaning even when they share no words. Today uses it as a soft theme fit, only when one theme clearly leads. "Why this is here" shows the number. The vectors are plain files in the embeddings folder.
+
 ## 1.7.7 - 2026-11-17
 
 ### Added

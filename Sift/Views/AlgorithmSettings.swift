@@ -12,7 +12,7 @@ struct AlgorithmSettings: View {
     var body: some View {
         ScrollView {
             VStack(alignment: .leading, spacing: 22) {
-                Text("Everything Sift ranks by, with the live numbers. It all runs on this Mac. Today and Your Graph use no AI: they are the plain formulas below.")
+                Text("Everything Sift ranks by, with the live numbers. It all runs on this Mac. Today and Your Graph are the plain formulas below. The only model they use is Apple's on-device embeddings, for closeness in meaning.")
                     .foregroundStyle(.secondary).fixedSize(horizontal: false, vertical: true)
                 section("The Today score") { formula }
                 section("Today's picks, by score") { picks }
@@ -54,6 +54,7 @@ struct AlgorithmSettings: View {
                 line("reading", "1 + 0.8 × affinity", "affinity is -1…1, from what you did with the feed")
                 line("graph", "0.12 × log2(1 + saves), max 0.6", "only for a creator you follow in Your Graph")
                 line("theme", "0.15 × shared words, max 0.6", "needs 3 or more words in common with a theme")
+                line("", "or 2 × (meaning − 0.35), max 0.6", "closeness in meaning to the theme's centre, at least \(String(format: "%.2f", Meaning.themeMin)) and clearly ahead of the next theme; the larger of the two counts")
                 line("linked", "0.3 × feeds, max 0.9", "your other feeds link to it in their posts this week")
                 line("hot", "0.6 × (feeds − 1)", "the same link in 2 or more of your feeds")
             }
@@ -130,7 +131,7 @@ struct AlgorithmSettings: View {
                 .font(.callout).foregroundStyle(.secondary).fixedSize(horizontal: false, vertical: true)
             Text("Farther: on request, per theme, your own Claude reads the theme's newest saved titles and history and names sources one step beyond: deeper, adjacent and one counterpoint. Sift checks each for a feed; only those with one can be followed. Each answer keeps the exact text Claude saw.")
                 .font(.callout).foregroundStyle(.secondary).fixedSize(horizontal: false, vertical: true)
-            Text("Trails: More Like This (T) on any item opens up to \(Trail.size) unseen items near it, from your saves and the last \(Int(Trail.offeredDays)) days of your feeds. Same creator counts 3, same theme 1.5, each shared word 0.6. At most \(Trail.perCreator) per creator. No AI.")
+            Text("Trails: More Like This (T) on any item opens up to \(Trail.size) unseen items near it, from your saves and the last \(Int(Trail.offeredDays)) days of your feeds. Same creator counts 3, same theme 1.5, and closeness in meaning 6 × (cosine − 0.25) up to 3, or 0.6 per shared word when there is no vector. At most \(Trail.perCreator) per creator.")
                 .font(.callout).foregroundStyle(.secondary).fixedSize(horizontal: false, vertical: true)
             Button("Open Your Graph") { model.navigationRequest = .creators }
         }
@@ -140,7 +141,8 @@ struct AlgorithmSettings: View {
         VStack(alignment: .leading, spacing: 6) {
             Text("Claude (your own login or key): finding themes, sorting links that the on-device model is not sure of, connections between themes, and Farther suggestions when you ask. It gets titles, addresses and previews, never full pages.")
             Text("Apple's on-device model: the first sorting pass and summaries, on this Mac.")
-            Text("No AI: Today, Your Graph, Next Door, trails, Scan / Watch / Read, duplicates, search.")
+            Text("Apple's on-device embeddings (NaturalLanguage): closeness in meaning for trails and Today's theme fit. \(model.embedSpace.unit.count) links and feed items have a vector, kept in the embeddings folder.")
+            Text("No AI: Your Graph, Next Door, Scan / Watch / Read, duplicates, search. Today and trails use the on-device embeddings above, nothing else.")
         }
         .font(.callout).foregroundStyle(.secondary).fixedSize(horizontal: false, vertical: true)
     }

@@ -827,3 +827,22 @@ The one exception is anonymous diagnostics (owner, 2026-11-15, below).
   carries becomes its own pick (slot "linked", feed id = the newest
   linker's feed, summary = the linking line), at most 3, outside the
   per-feed caps, exploration and wildcard.
+- Meaning on device (2026-11-17, owner: "lean on local inference").
+  `Engine/Meaning.swift` (compiled into the Mac app and the phone,
+  prototypes/ios-deck/project.yml): Apple's `NLContextualEmbedding`
+  (English model, Latin script, mean-pooled, 512 floats) over title +
+  300 characters of preview; vectors centred on the corpus mean, so
+  cosine by dot product; theme centres = normalized mean of members;
+  store `embeddings/index.json` + `vectors.f32` (float32 LE). Measured on
+  the owner's library: same-theme median cosine 0.17, other 0.01 (p90
+  0.33, p99 0.59); nearest theme centre right 35% held-out (themes
+  overlap). So: trails take max(words, `Meaning.trailScore` = 6 × (cos −
+  0.25), max 3); Today's theme lift takes the larger of words and
+  2 × (cos − 0.35) (max 0.6) only when cos ≥ 0.45 and 0.04 ahead of the
+  next theme (`PickWhy.themeSimilarity`). Mac: `AppModel+Embeddings`
+  (`refreshEmbeddings` with the library jobs, 2,000 a round, not on
+  battery, activity "embeddings", `Engine/Embeddings.swift` for the
+  path). Phone: `Store.refreshMeaning` after each sync, Documents/
+  embeddings. NLEmbedding (the older sentence model) separated worse
+  (0.45 vs 0.36): do not switch back without measuring.
+

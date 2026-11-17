@@ -213,5 +213,7 @@ extension Store {
                 try? data.write(to: dir.appending(path: Self.deviceFile), options: .atomic)
             }
         }
+        // Meaning vectors for trails, on this phone (Trail.swift).
+        refreshMeaning()
     }
 }

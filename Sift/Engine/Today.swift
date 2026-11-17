@@ -81,6 +81,8 @@ struct PickWhy: Codable, Hashable, Sendable {
     var creatorSaves: Int
     var creatorBonus: Double
     var score: Double
+    /// Theme fit by meaning (Embeddings): cosine to the theme's centre.
+    var themeSimilarity: Double? = nil
     /// Social proof: your feeds whose posts link to this item.
     var linkedBy: [String]? = nil
     var linkedBonus: Double? = nil
@@ -150,7 +152,14 @@ enum TodayBuilder {
         /// Your Graph: per feed, the creator it follows and how many of
         /// their links you saved.
         var creators: [String: (name: String, saves: Int)] = [:]
+        /// The theme an item is closest to in meaning, when one clearly
+        /// leads (`Meaning.Space.theme`).
+        var themeByMeaning: (String) -> (name: String, cos: Double)? = { _ in nil }
     }
+
+    /// Theme lift by meaning: 2 × (cosine − 0.35), at most 0.6. Only when the
+    /// cosine is at least `Meaning.themeMin` and leads the next theme.
+    static func meaningBonus(_ cos: Double) -> Double { min(max(cos - 0.35, 0) * 2, 0.6) }
 
     /// Social proof (owner, 2026-11-17): each other feed of yours whose
     /// post links to an item adds this, up to `linkedMaxBonus`.
@@ -338,6 +347,15 @@ enum TodayBuilder {
                     why.themeBonus = min(Double(best.1), 4) * 0.15
                     score += why.themeBonus
                     pick.reason = "Fits \(best.0)"
+                    strong = true
+                }
+                // By meaning, on this Mac: counts when it lifts more than words.
+                if let m = input.themeByMeaning(e.url), meaningBonus(m.cos) > why.themeBonus {
+                    score += meaningBonus(m.cos) - why.themeBonus
+                    why.theme = m.name
+                    why.themeSimilarity = m.cos
+                    why.themeBonus = meaningBonus(m.cos)
+                    pick.reason = "Fits \(m.name)"
                     strong = true
                 }
                 // Social proof: other feeds of yours whose posts link here.

@@ -19,7 +19,7 @@
 	<key>CFBundlePackageType</key>
 	<string>APPL</string>
 	<key>CFBundleShortVersionString</key>
-	<string>1.7.7</string>
+	<string>1.7.8</string>
 	<key>CFBundleURLTypes</key>
 	<array>
 		<dict>
@@ -45,11 +45,11 @@
 	<string></string>
 	<key>NSSpeechRecognitionUsageDescription</key>
 	<string>Sift turns what saved Instagram reels say into text for your library.</string>
+	<key>SUEnableAutomaticChecks</key>
+	<true/>
 	<key>SUFeedURL</key>
 	<string>https://github.com/michellzappa/sift/releases/latest/download/appcast.xml</string>
 	<key>SUPublicEDKey</key>
 	<string>$(SPARKLE_PUBLIC_ED_KEY)</string>
-	<key>SUEnableAutomaticChecks</key>
-	<true/>
 </dict>
 </plist>

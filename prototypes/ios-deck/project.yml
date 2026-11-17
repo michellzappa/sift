@@ -18,6 +18,8 @@ targets:
     sources:
       - path: App
       - path: ../../Sift/Views/ScrollPast.swift
+      # Closeness in meaning (Apple's on-device embeddings), shared with the Mac.
+      - path: ../../Sift/Engine/Meaning.swift
     settings:
       base:
         PRODUCT_BUNDLE_IDENTIFIER: com.centaur-labs.sift

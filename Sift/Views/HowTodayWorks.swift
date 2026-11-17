@@ -77,12 +77,12 @@ struct TodayRules: View {
 
     private var rules: some View {
         VStack(alignment: .leading, spacing: 12) {
-            Text("Today picks from your feeds on this Mac. Nothing goes to a server and no Claude call is made. Every pick says why it is there.")
+            Text("Today picks from your feeds on this Mac. Nothing goes to a server and no Claude call is made. The one model it uses is Apple's on-device embeddings, for closeness in meaning. Every pick says why it is there.")
                 .foregroundStyle(.secondary)
             rule("1", "What can come in", "Items from the last \(Int(TodayBuilder.windowDays)) days that you have not seen or kept. Don't Miss feeds: \(Int(TodayBuilder.mustWindowDays)) days.")
             rule("2", "Don't Miss first", "Every new item from a feed set to Don't Miss, newest first.")
             rule("3", "Hot", "A link that is in two or more of your feeds right now (a Hacker News post about an article another feed has, for example). The more feeds, the higher.")
-            rule("4", "Then by score", "Newer is higher: an item loses about half its weight in a day. A rare post counts more than the 30th post of a busy feed. Feeds you read often get up to 80% more. Items that share words with one of your themes get a lift. A creator from Your Graph gets a lift by how many of their links you saved (14 saves: about +0.47).")
+            rule("4", "Then by score", "Newer is higher: an item loses about half its weight in a day. A rare post counts more than the 30th post of a busy feed. Feeds you read often get up to 80% more. Items that share words with one of your themes, or are close in meaning to it (Apple's embeddings, on this Mac), get a lift. A creator from Your Graph gets a lift by how many of their links you saved (14 saves: about +0.47).")
             rule("5", "Fair shares", "A Normal feed has at most \(TodayBuilder.perFeed) unseen items in Today at a time; its next one comes in as you read. A Best Only feed gets 1, and only when the item is Hot, fits a theme or comes from a feed you read often. Not in Today: none.")
             rule("6", "Every mode gets its share", "Scan, Watch and Read each get at least \(TodayBuilder.perMode) picks when there are enough. If a mode has fewer, Sift adds unseen items of that mode from the last \(Int(TodayBuilder.fillWindowDays)) days. So on a quiet day for your video feeds, Watch still has something.")
             rule("7", "Two extra slots per mode", "\"New to you\": one item from a feed Sift knows little about yet, so new feeds get a chance. \"Something different\": one item from a feed not in Today yet.")
@@ -90,7 +90,7 @@ struct TodayRules: View {
             rule("9", "What it learns", "Keeping, opening, reading time and playing raise a feed; a quick skip lowers it a little. It counts the last month most, on this Mac and your iPhone.")
             rule("10", "Your Graph", "The channels, writers and communities behind what you saved, ranked by your saves (a save counts half after \(Int(Creators.halfLifeDays)) days). Sift only proposes them. A creator reaches Today only after you follow it.")
             rule("11", "Linked by your feeds", "When another feed you follow links to an item in its posts this week, the item gets a lift (+0.3 per feed, up to +0.9). A link that \(TodayBuilder.linkedMinFeeds) or more of your feeds point to, but none carries, gets a place of its own, at most \(TodayBuilder.linkedMaxPicks) at a time.")
-            rule("12", "Trails", "More Like This (T, or the context menu) on any item opens a trail: up to \(Trail.size) unseen items from the same creator, the same theme or with words in common, from your saves and your feeds. It ends. Start a new trail from any item on it.")
+            rule("12", "Trails", "More Like This (T, or the context menu) on any item opens a trail: up to \(Trail.size) unseen items from the same creator, the same theme or close in meaning, from your saves and your feeds. It ends. Start a new trail from any item on it.")
             rule("13", "Check any pick", "Open a pick and look under \"Why this is here\": every number of its score, and which rule gave it its place.")
         }
     }

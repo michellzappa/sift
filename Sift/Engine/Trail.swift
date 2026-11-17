@@ -34,13 +34,20 @@ enum Trail {
         /// The feed for an offered item; nil for a saved link.
         var feedID: String?
         var content: String? = nil
+        /// Unit vector in the meaning space (`Meaning.Space`), if made.
+        var vector: [Float]? = nil
     }
+
 
     /// How a node relates to the seed, and its score.
     struct Relation: Sendable {
         var sameCreator: Bool
         var sameTheme: Bool
         var sharedWords: Int
+        /// Cosine in the meaning space, when both have a vector.
+        var similarity: Double?
+        /// True when meaning, not shared words, gave the content score.
+        var byMeaning: Bool
         var score: Double
     }
 
@@ -48,10 +55,15 @@ enum Trail {
         let same = n.creator != nil && n.creator == seed.creator
         let theme = n.theme != nil && n.theme == seed.theme
         let shared = TodayBuilder.words(n.title + " " + n.summary).intersection(seedWords).count
-        var score = Double(min(shared, 5)) * 0.6
+        let words = Double(min(shared, 5)) * 0.6
+        var sim: Double?
+        if let a = n.vector, let b = seed.vector { sim = Meaning.Space.cos(a, b) }
+        let meaning = sim.map(Meaning.trailScore) ?? 0
+        // Meaning or words, whichever says more; never both.
+        var score = max(words, meaning)
         if same { score += 3 }
         if theme { score += 1.5 }
-        return Relation(sameCreator: same, sameTheme: theme, sharedWords: shared, score: score)
+        return Relation(sameCreator: same, sameTheme: theme, sharedWords: shared, similarity: sim, byMeaning: meaning > words, score: score)
     }
 
     /// The trail from `seed`: unseen nodes by score, at most `perCreator`
@@ -91,7 +103,8 @@ enum Trail {
         if r.sameCreator { parts.append("Same creator") }
         if r.sameTheme, let t = n.theme { parts.append("Same theme: \(t)") }
         if n.feedID != nil, !r.sameCreator { parts.append("From your feeds") }
-        if r.sharedWords > 0 { parts.append("\(r.sharedWords) word\(r.sharedWords == 1 ? "" : "s") in common") }
+        if r.byMeaning, let s = r.similarity { parts.append(String(format: "Close in meaning (%.2f)", s)) }
+        else if r.sharedWords > 0 { parts.append("\(r.sharedWords) word\(r.sharedWords == 1 ? "" : "s") in common") }
         return parts.joined(separator: " · ")
     }
 }

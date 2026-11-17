@@ -130,6 +130,8 @@ extension AppModel {
             await backfillAuthors()
             await refreshNeighbors()
         }
+        // Meaning on this Mac for links and recent feed items (trails, Today).
+        refreshEmbeddings()
         // Saved pages and transcripts get a short summary on this Mac.
         Task { await summarizeLibrary() }
     }

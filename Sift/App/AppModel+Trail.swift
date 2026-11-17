@@ -15,7 +15,8 @@ extension AppModel {
                 let title = FeedParser.Text.title(e.title, body: e.summary)
                 out.append(Trail.Node(url: e.url, title: title.isEmpty ? e.url : title, site: f.title, summary: e.summary,
                                       image: e.image, date: e.date, theme: nil, creator: c?.id ?? "feed:" + f.id,
-                                      creatorName: c?.name ?? f.title, feedID: f.id, content: e.content))
+                                      creatorName: c?.name ?? f.title, feedID: f.id, content: e.content,
+                                      vector: embedSpace.unit[e.url]))
             }
         }
         return out
@@ -26,7 +27,8 @@ extension AppModel {
         let key = Creators.key(l)
         let host = URL(string: l.url)?.host()?.replacingOccurrences(of: "www.", with: "") ?? ""
         return Trail.Node(url: l.url, title: l.title.isEmpty ? l.url : l.title, site: p?.site ?? host, summary: p?.text ?? "",
-                          image: p?.imageURL, date: l.date, theme: l.theme, creator: key?.id, creatorName: key?.name)
+                          image: p?.imageURL, date: l.date, theme: l.theme, creator: key?.id, creatorName: key?.name,
+                          vector: embedSpace.unit[l.url])
     }
 
     /// The node for any address: a saved link, a feed item or a Today pick.
@@ -40,7 +42,8 @@ extension AppModel {
         return Trail.Node(url: url, title: pick?.title ?? url, site: pick?.feedTitle ?? "", summary: pick?.summary ?? "",
                           image: pick?.image, date: pick?.date, theme: themeName,
                           creator: c?.id ?? pick.map { "feed:" + $0.feedID } ?? key?.id,
-                          creatorName: c?.name ?? pick?.feedTitle ?? key?.name, feedID: pick?.feedID)
+                          creatorName: c?.name ?? pick?.feedTitle ?? key?.name, feedID: pick?.feedID,
+                          vector: embedSpace.unit[url])
     }
 
     /// Opens the trail from one item and shows it.
