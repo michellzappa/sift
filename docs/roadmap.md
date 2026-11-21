@@ -70,3 +70,14 @@ for the factory.
   in Your Graph (no feed) (1.8.8).
 - Not built (agent's call, 2026-11-21): Next Door by meaning (its targets
   have no text); lane editing on the phone (lanes are made on the Mac).
+
+## 6. Discovery and virality (ADR 0002, docs/adr/0002-discovery-and-virality.md, 2026-11-21)
+
+GitHub milestone "Discovery and virality (ADR 0002)", after milestone 5.
+
+- [ ] Shared with you: links friends sent you, from Instagram and TikTok
+  exports (#48).
+- [ ] Share sheet: Send to Sift on the iPhone (#49).
+- [ ] Spreading among people you follow, from Bluesky Jetstream (#50).
+- [ ] Trending in the open: a Trending lane from public sources (#51).
+- [ ] Virality dial: Off, A little (default), More (#52).

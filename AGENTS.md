@@ -1103,4 +1103,11 @@ The one exception is anonymous diagnostics (owner, 2026-11-15, below).
   (X bookmarks) are reached through Themes and the Review Deck. A triage
   part in Scan was built and reverted the same day: do not add saved
   items to Scan.
+- Discovery and virality (2026-11-21, ADR 0002
+  `docs/adr/0002-discovery-and-virality.md`): "Shared with you" from
+  export DM links (link and sender only, never message text, off until
+  turned on), an iPhone share extension, Bluesky Jetstream for spreading
+  among people you follow (two steps), public trend sources in a Trending
+  lane, and one virality dial (Off, A little by default, More) that never
+  lets popularity rank alone. Issues #48 to #52.
 
