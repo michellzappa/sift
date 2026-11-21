@@ -95,7 +95,7 @@ struct CreatorsView: View {
 
     @ViewBuilder private func menu(_ c: Creator) -> some View {
         if c.feedID == nil {
-            Button("Follow \(c.name)") { model.followCreator(c) }
+            Button(c.hasFeed ? "Follow \(c.name)" : "\(c.name): no feed") { model.followCreator(c) }.disabled(!c.hasFeed)
         } else {
             Button("Unfollow \(c.name)") { model.unfollowCreator(c) }
         }
@@ -114,6 +114,8 @@ private struct CreatorRow: View {
                     Text(creator.name).fontWeight(.medium).lineLimit(1)
                     if creator.feedID != nil {
                         Text("Following").font(.caption2.weight(.semibold)).foregroundStyle(.tint)
+                    } else if !creator.hasFeed {
+                        Text("No feed").font(.caption2).foregroundStyle(.tertiary)
                     }
                 }
                 Text(detail).font(.caption).foregroundStyle(.secondary).lineLimit(1)
@@ -146,7 +148,11 @@ private struct CreatorPane: View {
                     Text(creator.name).font(.title2.weight(.semibold))
                 }
                 HStack {
-                    if creator.feedID == nil {
+                    if !creator.hasFeed {
+                        Button("Open Profile") { model.openInApp(creator.input) }
+                        Text("No feed to follow on this platform.")
+                            .font(.caption).foregroundStyle(.secondary)
+                    } else if creator.feedID == nil {
                         Button("Follow") { model.followCreator(creator) }.buttonStyle(.borderedProminent)
                     } else {
                         Label("Following", systemImage: "checkmark").foregroundStyle(.tint)
@@ -195,7 +201,7 @@ private struct CreatorPane: View {
             if creator.feedID != nil {
                 Text(String(format: "In Today, its new posts get + %.2f on their score.", TodayBuilder.creatorBonus(creator.count)))
                     .font(.callout).foregroundStyle(.secondary)
-            } else {
+            } else if creator.hasFeed {
                 Text(String(format: "If you follow it, its new posts get + %.2f on their score in Today.", TodayBuilder.creatorBonus(creator.count)))
                     .font(.callout).foregroundStyle(.secondary)
             }

@@ -31,7 +31,7 @@ extension AppModel {
             return []
         case .leanIn:
             let hidden = Set(state.hiddenCreators)
-            return visibleCreators.filter { c in c.feedID == nil && !hidden.contains(c.id) && c.themes.contains { $0.name == theme } }
+            return visibleCreators.filter { c in c.hasFeed && c.feedID == nil && !hidden.contains(c.id) && c.themes.contains { $0.name == theme } }
                 // Central to what you follow first (graph rank), then saves in the theme.
                 .sorted { a, b in
                     ((creatorRank[a.id] ?? 0), (a.themes.first { $0.name == theme }?.count ?? 0))

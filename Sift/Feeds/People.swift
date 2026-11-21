@@ -90,6 +90,10 @@ enum People {
         var name: String
         var found: [Place]
         var evidence: [String]
+        /// The same place under its better name: a YouTube channel seed
+        /// (by channel id) and its @handle. `merge` shows the alias and
+        /// treats both ids as one place.
+        var alias: Place?
     }
 
     static func load() -> File {
@@ -238,14 +242,68 @@ enum People {
         return nil
     }
 
-    private static func get(_ url: URL) async -> String? {
+    /// `gate` and `cookie` for YouTube: gate "youtube.com" and the standard
+    /// consent cookie (no account), as `YouTubeProvider` does.
+    private static func get(_ url: URL, gate: String? = nil, cookie: String? = nil, limit: Int = 1_500_000) async -> String? {
         guard !Demo.isOn, let host = url.host() else { return nil }
-        guard await HostGate.shared.admit(host) else { return nil }
+        guard await HostGate.shared.admit(gate ?? host) else { return nil }
         var req = URLRequest(url: url, timeoutInterval: 20)
         req.setValue("Mozilla/5.0 (Macintosh; Intel Mac OS X 15_0) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/18.0 Safari/605.1.15", forHTTPHeaderField: "User-Agent")
+        if let cookie {
+            req.setValue(cookie, forHTTPHeaderField: "Cookie")
+            req.httpShouldHandleCookies = false
+        }
         guard let (data, response) = try? await URLSession.shared.data(for: req),
-              let http = response as? HTTPURLResponse, (200..<300).contains(http.statusCode) else { return nil }
-        return String(decoding: data.prefix(1_500_000), as: UTF8.self)
+              let http = response as? HTTPURLResponse else { return nil }
+        if http.statusCode == 429 || http.statusCode == 503 { await HostGate.shared.pause(gate ?? host, seconds: 3600) }
+        guard (200..<300).contains(http.statusCode) else { return nil }
+        return String(decoding: data.prefix(limit), as: UTF8.self)
+    }
+
+    /// A YouTube channel's About data without a login (checked live
+    /// 2026-11-21): `/channel/<id>/about` with the consent cookie carries
+    /// `channelMetadataRenderer` (title, vanityChannelUrl) and one
+    /// `channelExternalLinkViewModel` per link the channel lists, near the
+    /// end of a 3 MB page. The plain channel page has no links. Each link's
+    /// redirect carries the full address in `q=`; the shown text is the
+    /// fallback (it has no scheme).
+    struct ChannelAbout {
+        var title: String?
+        var handle: String?
+        var links: [(title: String, url: String)]
+    }
+
+    private static let externalLink = try! NSRegularExpression(
+        pattern: #""channelExternalLinkViewModel":\{"title":\{"content":"((?:[^"\\]|\\.)*)"\},"link":\{"content":"((?:[^"\\]|\\.)*)""#)
+
+    static func channelAbout(html: String) -> ChannelAbout {
+        let ns = html as NSString
+        func first(_ pattern: String) -> String? {
+            guard let re = try? NSRegularExpression(pattern: pattern),
+                  let m = re.firstMatch(in: html, range: NSRange(location: 0, length: ns.length)) else { return nil }
+            return ns.substring(with: m.range(at: 1))
+        }
+        func unescape(_ s: String) -> String {
+            (try? JSONSerialization.jsonObject(with: Data("\"\(s)\"".utf8), options: .fragmentsAllowed) as? String) ?? s
+        }
+        var about = ChannelAbout(title: first(#""channelMetadataRenderer":\{"title":"((?:[^"\\]|\\.)*)""#).map(unescape),
+                                 handle: first(#""vanityChannelUrl":"https?://www\.youtube\.com/(@[^"/?]+)""#), links: [])
+        let matches = externalLink.matches(in: html, range: NSRange(location: 0, length: ns.length))
+        for (i, m) in matches.enumerated() {
+            let title = unescape(ns.substring(with: m.range(at: 1)))
+            var link = unescape(ns.substring(with: m.range(at: 2)))
+            // The redirect's q= before the next link holds the full address.
+            let end = i + 1 < matches.count ? matches[i + 1].range.location : min(ns.length, m.range.upperBound + 4000)
+            let rest = ns.substring(with: NSRange(location: m.range.upperBound, length: max(0, end - m.range.upperBound)))
+            if let r = rest.range(of: #"(?:\\u0026|&|\?)q=([^"\\&]+)"#, options: .regularExpression),
+               let q = String(rest[r]).components(separatedBy: "q=").last?.removingPercentEncoding, q.hasPrefix("http") {
+                link = q
+            } else if !link.hasPrefix("http") {
+                link = "https://" + link
+            }
+            about.links.append((title, link))
+        }
+        return about
     }
 
     /// What one seed says about its person: a site's home page, or a Bluesky
@@ -254,6 +312,7 @@ enum People {
         var found: [Place] = []
         var evidence: [String] = []
         var name = name
+        var alias: Place? = nil
         switch seed.platform {
         case "site", "substack":
             guard let url = URL(string: seed.url), let html = await get(url) else { break }
@@ -286,10 +345,33 @@ enum People {
                 found.append(set.first!)
                 evidence.append("the Bluesky bio of \(seed.handle) links to \(set.first!.handle)")
             }
+        case "youtube":
+            // A channel seed (by channel id): the links the channel lists on
+            // its About page are its own claims, like rel=me. One profile
+            // per platform; a site only when it resembles the channel.
+            guard seed.handle.hasPrefix("UC"), let url = URL(string: "https://www.youtube.com/channel/\(seed.handle)/about"),
+                  let html = await get(url, gate: "youtube.com", cookie: "SOCS=CAI; CONSENT=YES+cb", limit: 8_000_000) else { break }
+            let about = channelAbout(html: html)
+            if let t = about.title, !t.isEmpty { name = t }
+            if let h = about.handle {
+                alias = Place(platform: "youtube", url: "https://www.youtube.com/channel/\(seed.handle)", handle: h)
+            }
+            let shown = "YouTube channel " + (about.title ?? about.handle ?? seed.handle)
+            let owner = [name, about.handle ?? "", about.title ?? ""]
+            var perPlatform: [String: Set<Place>] = [:]
+            for link in about.links {
+                guard let p = profile(link.url, relMe: true), p.platform != "youtube" else { continue }
+                if p.platform == "site", !resembles(p.handle.components(separatedBy: ".").dropLast().joined(), owner) { continue }
+                perPlatform[p.platform, default: []].insert(p)
+            }
+            for (_, set) in perPlatform where set.count == 1 {
+                found.append(set.first!)
+                evidence.append("\(shown) links to \(set.first!.platformName) \(set.first!.handle)")
+            }
         default:
             break
         }
-        return Seed(at: Date(), name: name, found: found, evidence: evidence)
+        return Seed(at: Date(), name: name, found: found, evidence: evidence, alias: alias)
     }
 
     // MARK: Merging
@@ -313,16 +395,22 @@ enum People {
         var profiles: [String: Place] = [:]
         var names: [String: String] = [:]
         var evidence: [String: [String]] = [:]
+        // A seed with an alias (a YouTube channel id and its @handle) is one
+        // place under the alias id, whichever id another seed found.
+        var canon: [String: String] = [:]
+        for (seedID, s) in checked { if let a = s.alias { canon[seedID] = a.id } }
         for (seedID, s) in checked {
             guard let seed = seeds[seedID] else { continue }
-            profiles[seed.id] = profiles[seed.id] ?? seed
-            if parent[seed.id] == nil { parent[seed.id] = seed.id }
-            if !s.name.isEmpty { names[seed.id] = s.name }
+            let me = s.alias ?? seed
+            profiles[me.id] = s.alias ?? profiles[me.id] ?? seed
+            if parent[me.id] == nil { parent[me.id] = me.id }
+            if !s.name.isEmpty { names[me.id] = s.name }
             for p in s.found {
-                if profiles[p.id] == nil { profiles[p.id] = p }
-                union(seed.id, p.id)
+                let id = canon[p.id] ?? p.id
+                if profiles[id] == nil { profiles[id] = p }
+                union(me.id, id)
             }
-            evidence[seed.id, default: []].append(contentsOf: s.evidence)
+            evidence[me.id, default: []].append(contentsOf: s.evidence)
         }
         var groups: [String: [String]] = [:]
         for id in profiles.keys { groups[find(id), default: []].append(id) }
@@ -365,6 +453,13 @@ enum People {
         return Place(platform: "site", url: "https://\(h)", handle: h)
     }
 
+    /// The channel id in a YouTube address or channel feed ("UC" + 22).
+    static func channelID(_ s: String) -> String? {
+        guard let r = s.range(of: #"(?:/channel/|channel_id=)UC[\w-]{22}"#, options: .regularExpression),
+              let id = s[r].range(of: #"UC[\w-]{22}"#, options: .regularExpression) else { return nil }
+        return String(s[r][id])
+    }
+
     /// True when this feed is that profile: the same id, the same host for
     /// sites and newsletters, or a YouTube channel whose name matches.
     static func matches(_ feed: Feed, _ p: Place) -> Bool {
@@ -374,6 +469,7 @@ enum People {
         switch p.platform {
         case "youtube":
             guard feed.provider == "youtube" || feed.url.contains("youtube.com/feeds") else { return false }
+            if let id = channelID(p.url), feed.url.contains("channel_id=" + id) { return true }
             if let site = feed.site, site.lowercased().contains(p.handle.lowercased()) { return true }
             return !feed.url.contains("playlist_id") && flat(feed.title) == flat(p.handle)
         case "medium": return feed.url.lowercased().contains("medium.com/feed/" + p.handle.lowercased())

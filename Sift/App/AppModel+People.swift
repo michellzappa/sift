@@ -9,6 +9,12 @@ extension AppModel {
         var out: [String: (Place, String)] = [:]
         for f in offeredFeeds where f.enabled {
             if let p = People.profile(of: f), ["site", "substack", "bluesky"].contains(p.platform) { out[p.id] = (p, f.title) }
+            // YouTube channels: the About page lists the channel's links.
+            if f.provider == "youtube" || f.url.contains("youtube.com/feeds"), !f.url.contains("playlist_id"),
+               let id = People.channelID(f.url) {
+                let p = Place(platform: "youtube", url: "https://www.youtube.com/channel/\(id)", handle: id)
+                out[p.id] = (p, f.title)
+            }
         }
         for c in creators.prefix(300) where c.id.hasPrefix("site:") {
             let host = String(c.id.dropFirst(5))
@@ -50,7 +56,13 @@ extension AppModel {
         // Seeds no longer followed still count while their check holds.
         for id in peopleFile.checked.keys where seeds[id] == nil {
             let parts = id.split(separator: ":", maxSplits: 1).map(String.init)
-            if parts.count == 2 { seeds[id] = Place(platform: parts[0], url: parts[0] == "bluesky" ? "https://bsky.app/profile/\(parts[1].dropFirst())" : "https://\(parts[1])", handle: parts[1]) }
+            guard parts.count == 2 else { continue }
+            let url = switch parts[0] {
+            case "bluesky": "https://bsky.app/profile/\(parts[1].dropFirst())"
+            case "youtube": "https://www.youtube.com/channel/\(parts[1])"
+            default: "https://\(parts[1])"
+            }
+            seeds[id] = Place(platform: parts[0], url: url, handle: parts[1])
         }
         let hidden = Set(peopleFile.hidden)
         people = People.merge(peopleFile.checked, seeds: seeds).filter { !hidden.contains($0.id) }
@@ -104,9 +116,13 @@ extension AppModel {
     }
 
     /// The person a creator in Your Graph belongs to.
+    /// X, Instagram and TikTok creators match a person's place by handle:
+    /// the creator id ("x:@name") is the `Place.id`.
     func person(forCreator c: Creator) -> Person? {
+        if let fid = c.feedID, let p = people.first(where: { $0.profiles.contains { followedFeed(for: $0)?.id == fid } }) { return p }
         let key: String
         if c.id.hasPrefix("site:") { key = "site:" + c.id.dropFirst(5) }
+        else if !c.hasFeed { key = c.id }
         else if c.id.hasPrefix("youtube:") { return people.first { $0.profiles.contains { $0.platform == "youtube" && $0.handle.lowercased().filter(\.isLetter) == c.name.lowercased().filter(\.isLetter) } } }
         else { return nil }
         return people.first { $0.profiles.contains { $0.id == key } }

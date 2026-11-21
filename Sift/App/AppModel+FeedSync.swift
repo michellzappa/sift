@@ -71,7 +71,9 @@ extension AppModel {
         for r in pending.sorted(by: { $0.at < $1.at }) {
             switch r.kind {
             case "follow":
-                guard let input = r.input?.trimmingCharacters(in: .whitespacesAndNewlines), !input.isEmpty else {
+                // X, Instagram and TikTok authors have no feed: never fetch their pages.
+                guard let input = r.input?.trimmingCharacters(in: .whitespacesAndNewlines), !input.isEmpty,
+                      Creators.hasFeed(r.creator ?? "") else {
                     state.phoneRequests[r.id] = "failed"; continue
                 }
                 state.phoneRequests[r.id] = "working"
@@ -183,6 +185,8 @@ extension AppModel {
             var saves: [Save]
             var rank: Double?
             var closeTo: [String]?
+            /// False for X, Instagram and TikTok authors (no Follow).
+            var hasFeed: Bool
         }
         struct Evidence: Encodable { var from, item, itemURL, link: String }
         struct Near: Encodable {
@@ -222,7 +226,7 @@ extension AppModel {
                 feedID: c.feedID, hidden: hidden.contains(c.id),
                 saves: c.saves.prefix(8).map { Save(url: $0.url, title: $0.title, date: $0.date, theme: $0.theme) },
                 rank: creatorRank[c.id].map { ($0 * 100).rounded() / 100 },
-                closeTo: creatorSimilar[c.id]?.compactMap { n in names[n.id] })
+                closeTo: creatorSimilar[c.id]?.compactMap { n in names[n.id] }, hasFeed: c.hasFeed)
         }
         let e = JSONEncoder(); e.outputFormatting = [.sortedKeys]; e.dateEncodingStrategy = .iso8601
         let near = visibleNeighbors.map { n in
