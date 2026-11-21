@@ -105,7 +105,7 @@ extension Store {
 /// Who the people you follow vouch for, from your Mac. It ends.
 struct DirectoryView: View {
     @Environment(Store.self) private var store
-    private let groups = [("blog", "Blogs"), ("newsletter", "Newsletters"), ("mastodon", "Mastodon")]
+    private let groups = [("blog", "Blogs"), ("newsletter", "Newsletters"), ("bluesky", "Bluesky"), ("mastodon", "Mastodon"), ("podcast", "Podcasts")]
 
     var body: some View {
         let all = store.directoryEntries

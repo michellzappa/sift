@@ -52,6 +52,8 @@ struct SiftState: Codable, Sendable {
     var savedSearches: [String] = []
     /// Custom lanes over feed items (Engine/Lanes.swift).
     var lanes: [Lane] = []
+    /// The directory may search by theme names (owner, 2026-11-21: opt-in).
+    var directoryThemeSearch = false
     /// Where links can be sent: Starlings projects, Obsidian folders, files.
     var destinations: [Destination] = []
     /// Where each link was sent, keyed by URL.
@@ -116,6 +118,7 @@ struct SiftState: Codable, Sendable {
         mergedInto = try c.decodeIfPresent([String: String].self, forKey: .mergedInto) ?? [:]
         savedSearches = try c.decodeIfPresent([String].self, forKey: .savedSearches) ?? []
         lanes = try c.decodeIfPresent([Lane].self, forKey: .lanes) ?? []
+        directoryThemeSearch = try c.decodeIfPresent(Bool.self, forKey: .directoryThemeSearch) ?? false
         destinations = try c.decodeIfPresent([Destination].self, forKey: .destinations) ?? []
         sent = try c.decodeIfPresent([String: [SentRecord]].self, forKey: .sent) ?? [:]
         closeAfterSend = try c.decodeIfPresent(Bool.self, forKey: .closeAfterSend) ?? true

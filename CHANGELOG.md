@@ -9,6 +9,12 @@ ships this file and shows it in Settings > About and in Sift > Version
 History. Headings are `## X.Y.Z - YYYY-MM-DD`; groups are `### Added`,
 `### Changed` and `### Fixed`.
 
+## 1.8.7 - 2026-11-21
+
+### Added
+- Who follows what, from Bluesky. The directory in Follow now lists Bluesky accounts that two or more of the Bluesky accounts you follow also follow, with their names as the reason ("Followed by A and B"). Only the handles of accounts you follow leave your Mac.
+- Theme searches in the directory, off by default. A switch under the directory sends the names of your six biggest themes to Bluesky (starter packs), Apple Podcasts, Hacker News search and ooh.directory, and adds what they find. The directory has new Bluesky and Podcasts groups.
+
 ## 1.8.6 - 2026-11-21
 
 ### Added

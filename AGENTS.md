@@ -1032,4 +1032,16 @@ The one exception is anonymous diagnostics (owner, 2026-11-15, below).
   embed a start item without a vector on the spot.
 - Time budget (2026-11-21): not built, the agent's call with the owner's
   leave ("do what u think is best"): it ends rolling Today.
+- Directory: who follows what and theme searches (2026-11-21, owner's
+  choices: Bluesky follow graph; theme searches opt-in; no YouTube
+  featured channels; no Podcast Index key). `Directory.blueskyFollows`
+  (getFollows, 100 per account, 30 accounts a build): a Bluesky account
+  shows when `coFollowMin` (2) of your followed Bluesky accounts follow it,
+  "Followed by …". `state.directoryThemeSearch` (default off, switch under
+  `DirectoryList`) sends the names of the 6 biggest themes to
+  `starterPacks` (searchStarterPacks → getStarterPack → getList, 2 packs,
+  50 members), `podcasts` (iTunes search, feedUrl), `hackerNews` (Algolia,
+  points > 100, hosts 2+ times) and `oohDirectory` (search page, blog
+  roots). Groups now: blog, newsletter, bluesky, mastodon, podcast (Mac
+  and phone lists).
 

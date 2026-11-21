@@ -37,13 +37,12 @@ order. Items marked "decision" wait for the owner.
 
 ## 4. Discovery (decisions)
 
-- [ ] Who follows what: anonymous counts for public feeds, published OPML
-  follow lists, or Bluesky's public follow graph. Decision: which route.
-- [ ] Directory searches by theme words (Bluesky starter packs, Apple
-  podcasts, Hacker News domains, ooh.directory). Decision: theme words
-  leave the Mac.
-- [ ] Directory extras: YouTube featured channels (page scrape, decision),
-  Podcast Index (key, decision), Bluesky co-follows, FeedLand OPML.
+- [x] Who follows what: Bluesky's public follow graph (owner's choice,
+  2026-11-21), in the directory (1.8.7).
+- [x] Directory searches by theme words, behind an opt-in switch (owner,
+  2026-11-21), 1.8.7.
+- [x] Bluesky co-follows (1.8.7). Owner said no (2026-11-21) to YouTube
+  featured channels and to a Podcast Index key. FeedLand OPML: not built.
 - [ ] People: YouTube channels' own links; Instagram, TikTok and X authors
   in Your Graph.
 

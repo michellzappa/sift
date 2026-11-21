@@ -48,7 +48,13 @@ enum Directory {
     static let rebuildDays: Double = 7
     /// A feed needs a post this recent to be listed.
     static let freshDays: Double = 30
-    static let groups: [(id: String, title: String)] = [("blog", "Blogs"), ("newsletter", "Newsletters"), ("mastodon", "Mastodon")]
+    static let groups: [(id: String, title: String)] = [("blog", "Blogs"), ("newsletter", "Newsletters"), ("bluesky", "Bluesky"),
+                                                         ("mastodon", "Mastodon"), ("podcast", "Podcasts")]
+    /// Who follows what: a Bluesky account shows when this many of the
+    /// Bluesky accounts you follow follow it.
+    static let coFollowMin = 2
+    /// Bluesky accounts whose follows Sift reads per build.
+    static let coFollowVouchers = 30
 
     static var fileURL: URL { StateFile.url.deletingLastPathComponent().appending(path: "directory.json") }
     static var smallWebURL: URL { StateFile.url.deletingLastPathComponent().appending(path: "smallweb.txt") }
@@ -91,6 +97,9 @@ enum Directory {
         var savedHosts: [String: Int]
         /// Hosts your followed feeds link to in recent items, with the feeds.
         var linkedHosts: [String: Set<String>]
+        /// Theme names to search with, only when the user turned on theme
+        /// searches (`state.directoryThemeSearch`); empty otherwise.
+        var themeQueries: [String] = []
     }
 
     static func host(_ s: String) -> String? {
@@ -218,6 +227,72 @@ enum Directory {
         }
     }
 
+    /// Who an account follows on Bluesky (public, first 100).
+    static func blueskyFollows(actor: String) async -> [(handle: String, name: String, about: String)] {
+        guard let obj = await json("https://public.api.bsky.app/xrpc/app.bsky.graph.getFollows?actor=\(actor)&limit=100") as? [String: Any],
+              let list = obj["follows"] as? [[String: Any]] else { return [] }
+        return list.compactMap { s in
+            guard let handle = s["handle"] as? String else { return nil }
+            return (handle, (s["displayName"] as? String).flatMap { $0.isEmpty ? nil : $0 } ?? handle, (s["description"] as? String) ?? "")
+        }
+    }
+
+    private static func query(_ s: String) -> String { s.addingPercentEncoding(withAllowedCharacters: .urlQueryAllowed) ?? s }
+
+    /// Theme search: members of the two best Bluesky starter packs.
+    static func starterPacks(_ q: String) async -> [(handle: String, name: String, about: String, pack: String)] {
+        guard let obj = await json("https://public.api.bsky.app/xrpc/app.bsky.graph.searchStarterPacks?q=\(query(q))&limit=2") as? [String: Any],
+              let packs = obj["starterPacks"] as? [[String: Any]] else { return [] }
+        var out: [(String, String, String, String)] = []
+        for p in packs {
+            guard let uri = p["uri"] as? String,
+                  let sp = (await json("https://public.api.bsky.app/xrpc/app.bsky.graph.getStarterPack?starterPack=\(query(uri))") as? [String: Any])?["starterPack"] as? [String: Any],
+                  let list = (sp["list"] as? [String: Any])?["uri"] as? String,
+                  let items = (await json("https://public.api.bsky.app/xrpc/app.bsky.graph.getList?list=\(query(list))&limit=50") as? [String: Any])?["items"] as? [[String: Any]] else { continue }
+            let name = ((sp["record"] as? [String: Any])?["name"] as? String) ?? "a starter pack"
+            for i in items {
+                guard let s = i["subject"] as? [String: Any], let h = s["handle"] as? String else { continue }
+                out.append((h, (s["displayName"] as? String).flatMap { $0.isEmpty ? nil : $0 } ?? h, (s["description"] as? String) ?? "", name))
+            }
+        }
+        return out
+    }
+
+    /// Theme search: Apple Podcasts (the feed address comes with each result).
+    static func podcasts(_ q: String) async -> [(feed: String, name: String, about: String)] {
+        guard let obj = await json("https://itunes.apple.com/search?media=podcast&limit=10&term=\(query(q))") as? [String: Any],
+              let results = obj["results"] as? [[String: Any]] else { return [] }
+        return results.compactMap { r in
+            guard let feed = r["feedUrl"] as? String, let name = r["collectionName"] as? String else { return nil }
+            return (feed, name, (r["primaryGenreName"] as? String) ?? "")
+        }
+    }
+
+    /// Theme search: sites that well-liked Hacker News stories come from, 2+ times.
+    static func hackerNews(_ q: String) async -> [String] {
+        guard let obj = await json("https://hn.algolia.com/api/v1/search?query=\(query(q))&tags=story&numericFilters=points%3E100&hitsPerPage=50") as? [String: Any],
+              let hits = obj["hits"] as? [[String: Any]] else { return [] }
+        var counts: [String: Int] = [:]
+        for h in hits { if let u = h["url"] as? String, let host = host(u), !isPlatform(host) { counts[host, default: 0] += 1 } }
+        return counts.filter { $0.value >= 2 }.map(\.key)
+    }
+
+    /// Theme search: ooh.directory, a hand-kept directory of blogs.
+    static func oohDirectory(_ q: String) async -> [(host: String, name: String)] {
+        guard let u = URL(string: "https://ooh.directory/search/?q=\(query(q))"), let d = await get(u) else { return [] }
+        let html = String(decoding: d, as: UTF8.self)
+        let re = try! NSRegularExpression(pattern: #"<a[^>]+href="(https?://[^"]+)"[^>]*>([^<]{2,80})</a>"#)
+        let ns = html as NSString
+        var out: [String: String] = [:]
+        for m in re.matches(in: html, range: NSRange(location: 0, length: ns.length)) {
+            let href = ns.substring(with: m.range(at: 1))
+            guard let h = host(href), h != "ooh.directory", !isPlatform(h), let url = URL(string: href),
+                  url.pathComponents.filter({ $0 != "/" }).count <= 1, out[h] == nil else { continue }
+            out[h] = PreviewFetcher.plain(ns.substring(with: m.range(at: 2)))
+        }
+        return out.map { ($0.key, $0.value) }
+    }
+
     /// Mastodon featured profiles of one account.
     static func mastodon(user: String, host: String) async -> [(input: String, name: String, about: String)] {
         guard let acct = await json("https://\(host)/api/v1/accounts/lookup?acct=\(user)") as? [String: Any],
@@ -268,6 +343,30 @@ enum Directory {
                 }
             }
         }
+        // Who follows what: the Bluesky accounts your Bluesky follows follow.
+        for v in input.vouchers.filter({ $0.bluesky != nil }).prefix(coFollowVouchers) {
+            for f in await blueskyFollows(actor: v.bluesky!) {
+                add(id: "bluesky:@" + f.handle.lowercased(), name: f.name, input: "@" + f.handle, group: "bluesky",
+                    via: "Followed by \(v.name)", about: f.about, weight: v.weight)
+            }
+        }
+        // Theme searches (opt-in): starter packs, podcasts, Hacker News, ooh.directory.
+        for q in input.themeQueries {
+            for m in await starterPacks(q) {
+                add(id: "bluesky:@" + m.handle.lowercased(), name: m.name, input: "@" + m.handle, group: "bluesky",
+                    via: "In the starter pack \(m.pack)", about: m.about, weight: 0.3)
+            }
+            for p in await podcasts(q) {
+                add(id: "podcast:" + p.feed.lowercased(), name: p.name, input: p.feed, group: "podcast",
+                    via: "Apple Podcasts for \(q)", about: p.about, weight: 0.3)
+            }
+            for h in await hackerNews(q) {
+                add(id: h, name: h, input: h, group: "blog", via: "Liked on Hacker News for \(q)", about: "", weight: 0.3)
+            }
+            for b in await oohDirectory(q) {
+                add(id: b.host, name: b.name, input: b.host, group: "blog", via: "ooh.directory for \(q)", about: "", weight: 0.3)
+            }
+        }
         // Small web: the personal sites you already save from or your feeds link to.
         let small = await smallWebHosts()
         for (h, n) in input.savedHosts where small.contains(h) {
@@ -281,6 +380,9 @@ enum Directory {
         var list: [DirectoryEntry] = []
         let embedder = space.isEmpty ? nil : Embedder()
         for (id, var e) in acc {
+            // A Bluesky account from follows alone needs 2+ of yours following it.
+            let follows = e.via.filter { $0.hasPrefix("Followed by ") }.count
+            if e.group == "bluesky", follows > 0, follows < coFollowMin, !e.via.contains(where: { !$0.hasPrefix("Followed by ") }) { continue }
             e.smallWeb = small.contains(id)
             var s = 0.0
             for w in weights[id] ?? [] { s += 1 + w }

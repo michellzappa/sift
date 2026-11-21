@@ -22,7 +22,7 @@ struct DirectoryList: View {
             }
             if shown.isEmpty && !model.isBuildingDirectory {
                 Text(model.directory.built == nil
-                     ? "Sift asks the blogs, newsletters and accounts you follow whom they recommend. Only their public addresses leave your Mac."
+                     ? "Sift asks the blogs, newsletters and accounts you follow whom they recommend, and who your Bluesky follows follow. Only their public addresses leave your Mac."
                      : "Nobody new this week.")
                     .font(.callout).foregroundStyle(.secondary)
             }
@@ -33,6 +33,15 @@ struct DirectoryList: View {
                     ForEach(rows) { e in row(e) }
                 }
             }
+            Toggle(isOn: Binding(get: { model.state.directoryThemeSearch },
+                                 set: { model.state.directoryThemeSearch = $0; model.refreshDirectory(force: true) })) {
+                VStack(alignment: .leading, spacing: 1) {
+                    Text("Also search by theme names").font(.callout)
+                    Text("Sends the names of your 6 biggest themes to Bluesky (starter packs), Apple Podcasts, Hacker News search and ooh.directory. Off by default.")
+                        .font(.caption).foregroundStyle(.tertiary).fixedSize(horizontal: false, vertical: true)
+                }
+            }
+            .toggleStyle(.switch).controlSize(.small)
             if !shown.isEmpty {
                 Text("That's all for this week. Each name shows who vouches for it; nothing here is ranked by popularity.")
                     .font(.caption).foregroundStyle(.tertiary)
@@ -43,7 +52,8 @@ struct DirectoryList: View {
 
     private func row(_ e: DirectoryEntry) -> some View {
         HStack(alignment: .firstTextBaseline, spacing: 8) {
-            Image(systemName: e.group == "newsletter" ? "envelope" : e.group == "mastodon" ? "bubble.left" : "globe")
+            Image(systemName: e.group == "newsletter" ? "envelope" : e.group == "mastodon" || e.group == "bluesky" ? "bubble.left"
+                  : e.group == "podcast" ? "mic" : "globe")
                 .foregroundStyle(.secondary).frame(width: 16)
             VStack(alignment: .leading, spacing: 1) {
                 HStack(spacing: 6) {
