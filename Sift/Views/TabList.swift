@@ -453,7 +453,7 @@ struct TabCard: View {
                         .foregroundStyle(seen ? .secondary : .primary)
                         .lineLimit(1)
                     Spacer(minLength: 6)
-                    Circle().fill(Color.accentColor).frame(width: 7, height: 7).opacity(seen ? 0 : 1)
+                    RowMark(seen: seen)
                 }
                     .strikethrough(closing, color: .secondary)
                 HStack(spacing: 5) {

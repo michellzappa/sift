@@ -535,19 +535,11 @@ struct TodayListView: View {
         let kept = store.isKept(pick.url)
         HStack(alignment: .top, spacing: 12) {
             VStack(alignment: .leading, spacing: 4) {
-                // The unseen dot (or the kept star) sits after the title.
-                HStack(alignment: .top, spacing: 6) {
-                    Text(pick.title)
-                        .font(mode == .read ? .headline : .body)
-                        .fontWeight(seen && !kept ? .regular : .semibold)
-                        .foregroundStyle(seen && !kept ? .secondary : .primary)
-                        .lineLimit(mode == .scan ? 3 : 2)
-                    if kept {
-                        Image(systemName: "star.fill").foregroundStyle(.yellow).font(.caption).padding(.top, 3)
-                    } else if !seen {
-                        Circle().fill(Color.accentColor).frame(width: 7, height: 7).padding(.top, 7)
-                    }
-                }
+                Text(pick.title)
+                    .font(mode == .read ? .headline : .body)
+                    .fontWeight(seen && !kept ? .regular : .semibold)
+                    .foregroundStyle(seen && !kept ? .secondary : .primary)
+                    .lineLimit(mode == .scan ? 3 : 2)
                 Text([pick.feedTitle, mode == .read ? pick.minutes.map { "\($0) min read" } : nil,
                       pick.date?.formatted(.relative(presentation: .named))].compactMap { $0 }.joined(separator: " · "))
                     .font(.caption).foregroundStyle(.secondary).lineLimit(1)
@@ -567,6 +559,7 @@ struct TodayListView: View {
                 .clipShape(RoundedRectangle(cornerRadius: 8))
                 .saturation(seen && !kept ? 0 : 1)
             }
+            RowMark(seen: seen, kept: kept)
         }
         .padding(.vertical, mode == .scan ? 2 : 6)
         .contentShape(Rectangle())

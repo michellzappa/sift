@@ -35,7 +35,7 @@ struct LinkList: View {
                         .frame(width: 56)
                         .clipShape(RoundedRectangle(cornerRadius: 8))
                     // The unseen dot at the row's right edge (owner, 2026-11-21).
-                    Circle().fill(Color.accentColor).frame(width: 8, height: 8).padding(.top, 6).opacity(seen ? 0 : 1)
+                    RowMark(seen: seen)
                 }
             }
             .buttonStyle(.plain)

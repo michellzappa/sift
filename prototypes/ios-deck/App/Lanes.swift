@@ -80,7 +80,7 @@ struct LanePage: View {
                                 Text(pick.title).font(.body).fontWeight(seen ? .regular : .semibold)
                                     .foregroundStyle(seen ? .secondary : .primary).lineLimit(3)
                                 Spacer(minLength: 6)
-                                Circle().fill(Color.accentColor).frame(width: 7, height: 7).padding(.top, 7).opacity(seen ? 0 : 1)
+                                RowMark(seen: seen)
                             }
                             Text([pick.feedTitle, pick.date?.formatted(.relative(presentation: .named))].compactMap { $0 }.joined(separator: " · "))
                                 .font(.caption).foregroundStyle(.secondary)

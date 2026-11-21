@@ -57,14 +57,11 @@ struct LibraryRow: View {
         let seen = store.isSeen(item.url)
         HStack(alignment: .top, spacing: 12) {
             VStack(alignment: .leading, spacing: 4) {
-                HStack(alignment: .top, spacing: 6) {
-                    Text(item.title)
-                        .font(mode == .read ? .headline : .body)
-                        .fontWeight(seen ? .regular : .semibold)
-                        .foregroundStyle(seen ? .secondary : .primary)
-                        .lineLimit(mode == .scan ? 3 : 2)
-                    if !seen { Circle().fill(Color.accentColor).frame(width: 7, height: 7).padding(.top, 7) }
-                }
+                Text(item.title)
+                    .font(mode == .read ? .headline : .body)
+                    .fontWeight(seen ? .regular : .semibold)
+                    .foregroundStyle(seen ? .secondary : .primary)
+                    .lineLimit(mode == .scan ? 3 : 2)
                 Text([item.site, item.theme, item.readTime].compactMap { $0?.isEmpty == false ? $0 : nil }.joined(separator: " · "))
                     .font(.caption).foregroundStyle(.secondary).lineLimit(1)
                 if mode == .read, !item.summary.isEmpty {
@@ -77,8 +74,29 @@ struct LibraryRow: View {
                     .clipShape(RoundedRectangle(cornerRadius: 8))
                     .saturation(seen ? 0 : 1)
             }
+            RowMark(seen: seen)
         }
         .padding(.vertical, mode == .scan ? 2 : 6)
         .contentShape(Rectangle())
+    }
+}
+
+/// The unseen dot (or the kept star) in a fixed column at the right edge of
+/// a row, always in the same place (owner, 2026-11-21: "rightmost in row
+/// always"). The column stays when seen, so the text never moves.
+struct RowMark: View {
+    let seen: Bool
+    var kept = false
+
+    var body: some View {
+        ZStack {
+            if kept {
+                Image(systemName: "star.fill").foregroundStyle(.yellow).font(.caption)
+            } else if !seen {
+                Circle().fill(Color.accentColor).frame(width: 8, height: 8)
+            }
+        }
+        .frame(width: 12, height: 12)
+        .padding(.top, 5)
     }
 }

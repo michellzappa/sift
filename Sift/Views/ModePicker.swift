@@ -79,3 +79,24 @@ struct WatchCard: View {
         .contentShape(Rectangle())
     }
 }
+
+/// The unseen dot (or the kept star) in a fixed column at the right edge of
+/// a row, always in the same place (owner, 2026-11-21: "rightmost in row
+/// always"). The column stays when seen, so the text never moves. The phone
+/// has the same view in prototypes/ios-deck/App/Modes.swift.
+struct RowMark: View {
+    let seen: Bool
+    var kept = false
+
+    var body: some View {
+        ZStack {
+            if kept {
+                Image(systemName: "star.fill").foregroundStyle(.yellow).font(.caption)
+            } else if !seen {
+                Circle().fill(Color.accentColor).frame(width: 7, height: 7)
+            }
+        }
+        .frame(width: 12, height: 12)
+        .padding(.top, 3)
+    }
+}

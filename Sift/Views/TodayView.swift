@@ -369,18 +369,10 @@ private struct TodayRow: View {
             }
 
             VStack(alignment: .leading, spacing: 3) {
-                // The unseen dot (or the kept star) sits after the title.
-                HStack(alignment: .top, spacing: 6) {
-                    Text(pick.title)
-                        .font(.body.weight(seen || kept ? .regular : .semibold))
-                        .foregroundStyle(seen && !kept ? .secondary : .primary)
-                        .lineLimit(2)
-                    if kept {
-                        Image(systemName: "star.fill").foregroundStyle(.yellow).font(.caption).padding(.top, 2)
-                    } else if !seen {
-                        Circle().fill(Color.accentColor).frame(width: 7, height: 7).padding(.top, 6)
-                    }
-                }
+                Text(pick.title)
+                    .font(.body.weight(seen || kept ? .regular : .semibold))
+                    .foregroundStyle(seen && !kept ? .secondary : .primary)
+                    .lineLimit(2)
                 Text([pick.feedTitle, pick.date?.formatted(.relative(presentation: .named)), readingTime].compactMap { $0 }.joined(separator: " · "))
                     .font(.caption).foregroundStyle(.secondary)
                 if mode != .scan, let line = lede, !line.isEmpty {
@@ -400,6 +392,8 @@ private struct TodayRow: View {
                     .foregroundStyle(pick.wildcard ? Color.purple : (pick.hot == true ? Color.red : Color.orange))
                 }
             }
+            Spacer(minLength: 0)
+            RowMark(seen: seen, kept: kept)
         }
         .padding(.vertical, mode == .scan ? 2 : 6)
         .opacity(seen && !kept ? 0.7 : 1)
