@@ -22,6 +22,8 @@ targets:
       - path: ../../Sift/Views/ReaderStyle.swift
       # Closeness in meaning (Apple's on-device embeddings), shared with the Mac.
       - path: ../../Sift/Engine/Meaning.swift
+      # What Sift knows about you (Settings > You), built on the Mac.
+      - path: ../../Sift/Engine/Profile.swift
     settings:
       base:
         PRODUCT_BUNDLE_IDENTIFIER: com.centaur-labs.sift

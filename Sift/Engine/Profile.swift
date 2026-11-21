@@ -106,6 +106,8 @@ struct Profile: Codable, Sendable {
 
     // MARK: Inputs
 
+    #if os(macOS)
+
     struct Saved: Sendable {
         var url: String
         /// The source's display name ("Safari tabs", "Reading List").
@@ -268,6 +270,8 @@ struct Profile: Codable, Sendable {
             files: input.files
         )
     }
+
+    #endif
 
     // MARK: Helpers
 

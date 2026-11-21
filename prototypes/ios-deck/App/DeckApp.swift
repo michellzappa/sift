@@ -52,6 +52,7 @@ struct LogView: View {
                     NavigationLink { CreatorGraphView() } label: { Label("Your Graph", systemImage: "person.2") }
                     NavigationLink { FeedsView() } label: { Label("Feeds", systemImage: "dot.radiowaves.up.forward") }
                     NavigationLink { AlgorithmView() } label: { Label("How Today Works", systemImage: "function") }
+                    NavigationLink { YouView() } label: { Label("What Sift Knows About You", systemImage: "person.text.rectangle") }
                 } footer: {
                     Text("How Today Works shows the formula, what each action teaches Sift, and today's picks with their scores.")
                 }

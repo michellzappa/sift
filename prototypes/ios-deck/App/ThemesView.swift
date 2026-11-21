@@ -52,6 +52,7 @@ struct ThemesView: View {
                         NavigationLink { CreatorGraphView() } label: { Label("Your Graph", systemImage: "person.2") }
                         NavigationLink { PeopleListView() } label: { Label("People", systemImage: "person.crop.rectangle.stack") }
                         NavigationLink { DirectoryView() } label: { Label("Directory", systemImage: "books.vertical") }
+                        NavigationLink { LanesListView() } label: { Label("Lanes", systemImage: "line.3.horizontal.decrease.circle") }
                         NavigationLink { FeedsView() } label: { Label("Feeds", systemImage: "dot.radiowaves.up.forward") }
                         Button { showLog = true } label: { Label("Settings", systemImage: "gearshape") }
                     } label: { Image(systemName: "ellipsis.circle") }

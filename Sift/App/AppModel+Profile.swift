@@ -179,3 +179,20 @@ extension AppModel {
         return parts.count > 1 ? "\(label) \(parts[1])" : label
     }
 }
+
+/// Settings > You on the iPhone: the Mac writes the profile to
+/// iCloud Drive/Sift/Deck/you.json once a day.
+extension AppModel {
+    func writeProfileForPhone(force: Bool = false) async {
+        let key = "profile.phoneWritten"
+        guard !Demo.isOn, CloseList.iCloudDriveAvailable else { return }
+        if !force, let last = UserDefaults.standard.object(forKey: key) as? Date, Date().timeIntervalSince(last) < 86_400 { return }
+        let profile = await buildProfile()
+        let e = JSONEncoder(); e.outputFormatting = [.sortedKeys]; e.dateEncodingStrategy = .iso8601
+        guard let data = try? e.encode(profile) else { return }
+        let dir = CloseList.folder.appending(path: "Deck", directoryHint: .isDirectory)
+        try? FileManager.default.createDirectory(at: dir, withIntermediateDirectories: true)
+        try? data.write(to: dir.appending(path: "you.json"), options: .atomic)
+        UserDefaults.standard.set(Date(), forKey: key)
+    }
+}

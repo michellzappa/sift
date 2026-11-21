@@ -85,6 +85,26 @@ extension AppModel {
     /// other file whose text fails `ShellText` becomes title only. The new
     /// or cleared files have no summary, so the summary is made again where
     /// there is text. Files with a transcript are left alone.
+    /// One-time repair for text fetched before `ShellText` existed: feed items
+    /// and Today's picks that hold a shell page or a code dump lose that text
+    /// (the reader fetches the article again, through the guard).
+    func repairFeedText() async {
+        let key = "feeds.shellTextV1"
+        guard !Demo.isOn, !UserDefaults.standard.bool(forKey: key) else { return }
+        let ids = state.feeds.map(\.id)
+        let cleared = await Task.detached(priority: .utility) { ids.reduce(0) { $0 + FeedStore.clearJunk($1) } }.value
+        if var today = state.today {
+            for i in today.picks.indices {
+                if let c = today.picks[i].content, ShellText.isJunk(c) { today.picks[i].content = nil }
+                if ShellText.isJunk(today.picks[i].summary) { today.picks[i].summary = "" }
+            }
+            state.today = today
+            writeTodayForPhone()
+        }
+        UserDefaults.standard.set(true, forKey: key)
+        if cleared > 0 { refreshFeedCounts() }
+    }
+
     func repairCapturedText() async {
         let key = "library.shellTextV1"
         guard !Demo.isOn, !UserDefaults.standard.bool(forKey: key) else { return }
@@ -175,6 +195,7 @@ extension AppModel {
         // shell pages (X posts and other no-JavaScript pages).
         Task {
             await repairCapturedText()
+            await repairFeedText()
             if state.autoCapture, !isCapturing, !linksToCapture.isEmpty { await captureAll() }
         }
         // Older library entries get their author (Your Graph), once; then
@@ -186,6 +207,8 @@ extension AppModel {
             refreshPeople()
             // Theme dials: end and start the sources Sift tries.
             refreshTrials()
+            // Settings > You for the iPhone, once a day.
+            await writeProfileForPhone()
         }
         // Meaning on this Mac for links and recent feed items (trails, Today).
         refreshEmbeddings()

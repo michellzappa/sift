@@ -62,6 +62,23 @@ struct CardView: View {
     }
 
     var body: some View {
+        if item.isXPost {
+            // An X post reads as a post in the deck too (owner, 2026-11-17).
+            VStack(alignment: .leading, spacing: 10) {
+                HStack(spacing: 6) {
+                    Circle().fill(store.color(item.theme)).frame(width: 8, height: 8)
+                    Text(item.theme).font(.caption.weight(.semibold)).foregroundStyle(store.color(item.theme)).lineLimit(1)
+                }
+                XPostCard(post: item.xPost)
+            }
+            .padding(16)
+            .frame(maxWidth: .infinity, alignment: .leading)
+        } else {
+            articleCard
+        }
+    }
+
+    @ViewBuilder private var articleCard: some View {
         let color = store.color(item.theme)
         let picture = item.imageFile != nil || item.image != nil || og?.image != nil
         let summary = item.summary.isEmpty ? (og?.description ?? "") : item.summary

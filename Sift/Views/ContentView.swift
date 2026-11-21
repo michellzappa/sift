@@ -10,6 +10,8 @@ enum SidebarItem: Hashable {
     /// One followed feed, by id; one feed folder, by name.
     case feed(String)
     case feedFolder(String)
+    /// A custom lane over feed items, by id (Engine/Lanes.swift).
+    case lane(String)
     case overview
     case unsorted
     case closeQueue
@@ -34,31 +36,35 @@ struct ContentView: View {
     @Environment(\.openWindow) private var openWindow
     @Environment(\.openSettings) private var openSettings
 
+    /// The detail column for a sidebar place.
+    @ViewBuilder private func detail(_ item: SidebarItem) -> some View {
+        if item == .today {
+            TodayView()
+        } else if item == .creators {
+            CreatorsView()
+        } else if item == .trail {
+            TrailView()
+        } else if case .feed(let id) = item, let feed = model.state.feeds.first(where: { $0.id == id }) {
+            FeedItemsView(title: feed.title, feeds: [feed]).id(item)
+        } else if case .lane(let id) = item, let lane = model.state.lanes.first(where: { $0.id == id }) {
+            LaneView(lane: lane).id(item)
+        } else if case .feedFolder(let name) = item {
+            FeedItemsView(title: name, feeds: model.feeds(inFolder: name)).id(item)
+        } else if !model.hasReadableSource {
+            NoSourcesView()
+        } else if showsGraph(item) {
+            GraphView(selection: $selection)
+        } else {
+            TabList(item: item).id(item)
+        }
+    }
+
     var body: some View {
         NavigationSplitView {
             Sidebar(selection: $selection)
                 .navigationSplitViewColumnWidth(min: 200, ideal: 240)
         } detail: {
-            Group {
-                let item = selection ?? .overview
-                if item == .today {
-                    TodayView()
-                } else if item == .creators {
-                    CreatorsView()
-                } else if item == .trail {
-                    TrailView()
-                } else if case .feed(let id) = item, let feed = model.state.feeds.first(where: { $0.id == id }) {
-                    FeedItemsView(title: feed.title, feeds: [feed]).id(item)
-                } else if case .feedFolder(let name) = item {
-                    FeedItemsView(title: name, feeds: model.feeds(inFolder: name)).id(item)
-                } else if !model.hasReadableSource {
-                    NoSourcesView()
-                } else if showsGraph(item) {
-                    GraphView(selection: $selection)
-                } else {
-                    TabList(item: item).id(item)
-                }
-            }
+            Group { detail(selection ?? .overview) }
             .onChange(of: selection) { _, new in
                 if let new, !showsGraph(new) { model.graphTheme = nil }
             }
@@ -96,6 +102,7 @@ struct ContentView: View {
         .animation(.snappy, value: model.notice)
         .overlay { if model.showPalette { CommandPalette() } }
         .sheet(isPresented: Binding(get: { model.showAddFeed }, set: { model.showAddFeed = $0 })) { AddFeedSheet() }
+        .sheet(item: Binding(get: { model.editingLane }, set: { model.editingLane = $0 })) { LaneEditor(lane: $0) }
         // With feeds, Today is the start view: it is the primary input.
         .onAppear { if selection == .overview, !model.state.feeds.isEmpty, !Demo.isOn { selection = .today } }
         // First run, or steps added since the user last saw the guide.
@@ -298,6 +305,22 @@ private struct Sidebar: View {
                     }
                 }
                 ForEach(model.feeds(inFolder: "")) { feedRow($0) }
+                // Custom lanes: saved rules over feed items.
+                ForEach(model.state.lanes) { lane in
+                    Label(lane.name, systemImage: "line.3.horizontal.decrease.circle")
+                        .tag(SidebarItem.lane(lane.id))
+                        .help(lane.rule)
+                        .contextMenu {
+                            Button("Edit Lane…") { model.editingLane = lane }
+                            Button("Delete Lane", role: .destructive) { model.deleteLane(lane) }
+                        }
+                }
+                Button { model.editingLane = Lane(id: UUID().uuidString.prefix(8).lowercased(), name: "") } label: {
+                    Label("New Lane…", systemImage: "plus.square.on.square")
+                }
+                .buttonStyle(.plain)
+                .foregroundStyle(.secondary)
+                .help("A saved rule over your feed items: words, a folder, a theme or a type.")
                 Button { model.showAddFeed = true } label: {
                     Label("Follow…", systemImage: "plus.circle")
                 }

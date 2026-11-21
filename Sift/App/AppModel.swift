@@ -164,6 +164,8 @@ final class AppModel {
     /// Meaning on this Mac: link vectors and theme centres (Engine/Embeddings.swift).
     @ObservationIgnored var embedSpace = Meaning.Space()
     var isEmbedding = false
+    /// The lane open in the lane editor sheet (Views/LaneView.swift).
+    var editingLane: Lane?
     /// The directory in Follow (Feeds/Directory.swift).
     var directory = Directory.load()
     var isBuildingDirectory = false

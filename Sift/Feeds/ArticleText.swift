@@ -20,6 +20,21 @@ enum ArticleText {
 }
 
 extension FeedStore {
+    /// Drops item text that is a "turn on JavaScript" shell or a code dump
+    /// (`ShellText.isJunk`). Returns how many items it cleared.
+    static func clearJunk(_ feedID: String) -> Int {
+        var entries = entries(feedID)
+        var n = 0
+        for i in entries.indices {
+            if let c = entries[i].content, ShellText.isJunk(c) { entries[i].content = nil; n += 1 }
+            if ShellText.isJunk(entries[i].summary) { entries[i].summary = ""; n += 1 }
+        }
+        guard n > 0 else { return 0 }
+        let e = JSONEncoder(); e.dateEncodingStrategy = .iso8601; e.outputFormatting = [.sortedKeys]
+        if let data = try? e.encode(entries) { try? data.write(to: folder.appending(path: "\(feedID).json"), options: .atomic) }
+        return n
+    }
+
     /// Saves the full text of one item in its feed's file.
     static func setContent(_ content: String, url: String, feedID: String) {
         var entries = entries(feedID)

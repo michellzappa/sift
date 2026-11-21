@@ -194,6 +194,10 @@ final class Store {
     /// (Trail.swift, `refreshMeaning`).
     @ObservationIgnored var meaningSpace = Meaning.Space()
     @ObservationIgnored var meaningRunning = false
+    /// Custom lanes from the Mac (Deck/lanes.json, Lanes.swift).
+    var lanes: LanesFile?
+    /// What Sift knows about you, from the Mac (Deck/you.json, You.swift).
+    var you: Profile?
     /// Your Graph from the Mac (Deck/creators.json, Graph.swift).
     var creators: CreatorsFile?
     /// What this phone did with Today picks; written to signals/iphone-<id>.json (Signals.swift).
@@ -224,6 +228,8 @@ final class Store {
         feedRequests = Store.loadFeedRequests()
         macFeeds = Store.loadMacFeeds()
         creators = Store.loadCreators()
+        lanes = Store.loadLanes()
+        you = Store.loadYou()
         sync()
     }
 

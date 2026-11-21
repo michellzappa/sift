@@ -45,7 +45,7 @@ extension AppModel {
         await fetchMissingIcons()
         // New items can only reach Today; they never enter sources or themes.
         // A forced check rebuilds Today so picks carry the newest text.
-        if added > 0 || force { refreshToday() }
+        if added > 0 || force { refreshToday(); writeLanesForPhone() }
     }
 
     // MARK: Adding and removing

@@ -13,15 +13,15 @@ order. Items marked "decision" wait for the owner.
 - [x] Snooze discovery for a week, and "Forget what you learned" for one
   feed (1.8.4). One theme: use "Less about" or the Stay dial.
 - [x] Theme pills in the Mac sidebar (1.8.4).
-- [ ] Loose ends: X junk text already in feed files and Today picks; X
-  posts as post cards in the iPhone deck; run `export-deck.py` after the
-  owner's first launch of 1.8.0 or later.
+- [x] Loose ends: X junk text in feed files and Today picks; X posts as
+  post cards in the iPhone deck (1.8.5).
+- [ ] Run `export-deck.py` after the owner's first launch of 1.8.0 or
+  later (needs the Mac's repair to have run).
 
 ## 2. Lanes
 
-- [ ] Custom lanes: a saved search or rule as its own stream over feed
-  items.
-- [ ] Settings > You on the iPhone.
+- [x] Custom lanes: a saved rule over feed items, Mac and iPhone (1.8.5).
+- [x] Settings > You on the iPhone (1.8.5).
 - [ ] Daily time budget: Today fills to your minutes, then ends.
   Decision: it ends "rolling" Today.
 

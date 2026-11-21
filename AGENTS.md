@@ -998,4 +998,23 @@ The one exception is anonymous diagnostics (owner, 2026-11-15, below).
   older signals in `signalEvents()`, which every affinity call uses.
   Phone: Today row menu, request "less" (input URL, priority reason).
   Mac sidebar `TypePill` under each theme.
+- Lanes (2026-11-21, owner; roadmap 2). `Engine/Lanes.swift`: `Lane`
+  (words, folder, theme, mode; all set parts must match; words as whole
+  words, any of them) in `state.lanes`; `Lanes.items` over the last 14
+  days of feed items, unseen first, 60 at most. `AppModel+Lanes.swift`:
+  `laneItems` (theme by meaning, else 3+ shared words), save/delete,
+  `writeLanesForPhone` (Deck/lanes.json, 30 picks per lane without
+  content; after each feed check and edit). Mac: `SidebarItem.lane`,
+  `Views/LaneView.swift` (`LaneView` on `OfferedList`, `LaneEditor` sheet
+  via `model.editingLane`). Phone: `App/Lanes.swift` (read only; lanes
+  are made on the Mac).
+- You on the phone (2026-11-21, roadmap 2). `Engine/Profile.swift` is
+  compiled into the phone too (keep it Foundation only). The Mac writes
+  Deck/you.json once a day from the library jobs
+  (`writeProfileForPhone`); the phone's `App/You.swift` shows a short
+  version under Settings.
+- Feed text repair (2026-11-21): `repairFeedText` (UserDefaults
+  `feeds.shellTextV1`) clears `ShellText.isJunk` text in every feed file
+  (`FeedStore.clearJunk`) and in Today's picks, once. The phone's deck
+  cards show X posts with `XPostCard`.
 

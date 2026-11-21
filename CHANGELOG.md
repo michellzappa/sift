@@ -9,6 +9,16 @@ ships this file and shows it in Settings > About and in Sift > Version
 History. Headings are `## X.Y.Z - YYYY-MM-DD`; groups are `### Added`,
 `### Changed` and `### Fixed`.
 
+## 1.8.5 - 2026-11-21
+
+### Added
+- Lanes: a saved rule over your feed items, with its own place under Feeds. A lane matches words, a folder, a theme or a type (Scan, Watch, Read), shows the last two weeks newest first, and ends after 60 items. New Lane… is in the sidebar; the editor shows how many items match while you type. On the iPhone, Lanes is in the Themes menu.
+- What Sift Knows About You on the iPhone, in Settings: the same profile as Settings > You on the Mac, written by your Mac once a day.
+
+### Fixed
+- Feed items and Today picks that still held a "turn on JavaScript" page or a dump of code lose that text once; the reader fetches the article again.
+- X posts in the iPhone's Review Deck show as posts, not as articles.
+
 ## 1.8.4 - 2026-11-17
 
 ### Added

@@ -31,7 +31,7 @@ struct TabList: View {
         case .today: "Today"
         case .creators: "Your Graph"
         case .trail: "Trail"
-        case .feed, .feedFolder: "Feeds"
+        case .feed, .feedFolder, .lane: "Feeds"
         case .overview: "Overview"
         case .source(let id): model.sourceTitle(id)
         case .unsorted: "Unsorted"
@@ -49,7 +49,7 @@ struct TabList: View {
 
     private var all: [SafariTab] {
         switch item {
-        case .today, .creators, .trail, .feed, .feedFolder: []
+        case .today, .creators, .trail, .feed, .feedFolder, .lane: []
         case .overview, .source: model.tabs
         case .unsorted: model.tabs(in: nil)
         case .closeQueue: model.closeQueueTabs
