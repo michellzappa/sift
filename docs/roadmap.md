@@ -47,4 +47,4 @@ order. Items marked "decision" wait for the owner.
 
 ## Outside the code
 
-- [ ] TestFlight: submit the newest build once Apple clears build 215.
+- [x] TestFlight: build 243 (1.8.5) submitted for beta review on 2026-11-21.
