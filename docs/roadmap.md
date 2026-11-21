@@ -49,3 +49,24 @@ order. Items marked "decision" wait for the owner.
 ## Outside the code
 
 - [x] TestFlight: build 243 (1.8.5) submitted for beta review on 2026-11-21.
+
+## 5. Multisocial (owner, 2026-11-21: "a multisocial app that leans on
+existing SNS data, but lets the user have control and visibility of
+their algo"; Sift's next phase)
+
+- [ ] Your graph from every network: import who you follow from each
+  network's own data export (YouTube Takeout subscriptions, Instagram
+  following, TikTok Following, X archive following) and directly from
+  Bluesky and Mastodon. Each account becomes a People place; follow where a
+  feed exists; nothing leaves the Mac.
+- [ ] Network mix: one visible control per network (More, Normal, Less,
+  Off) for its share of Today, in "Why this is here" and Algorithm.
+- [ ] Sub-clusters per theme, named by the on-device model.
+- [ ] Co-save edges in the creator graph.
+- [ ] People: YouTube channels' own links; Instagram, TikTok and X authors
+  in Your Graph.
+- [ ] Published OPML follow lists (FeedLand and others) as a "who follows
+  what" source.
+- [ ] Not Interested on the phone's Watch cards.
+- Not built (agent's call, 2026-11-21): Next Door by meaning (its targets
+  have no text); lane editing on the phone (lanes are made on the Mac).
