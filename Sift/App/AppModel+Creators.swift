@@ -29,6 +29,7 @@ extension AppModel {
     /// remembers the creator it came from.
     func followCreator(_ creator: Creator) {
         guard !Demo.isOn else { exportMessage = Demo.offMessage; return }
+        guard creator.hasFeed else { note("\(creator.name) has no feed to follow"); return }
         Task {
             guard let found = await FeedProviders.resolve(creator.input).first else {
                 note("No feed found for \(creator.name)")

@@ -1045,3 +1045,25 @@ The one exception is anonymous diagnostics (owner, 2026-11-15, below).
   roots). Groups now: blog, newsletter, bluesky, mastodon, podcast (Mac
   and phone lists).
 
+- People and Your Graph across networks (2026-11-21, owner: roadmap 5).
+  YouTube: followed channel feeds (`People.channelID`) are People seeds.
+  `People.check` reads `/channel/<id>/about` with the consent cookie,
+  gate "youtube.com", up to 8 MB (the plain channel page has no links;
+  checked live 2026-11-21). `People.channelAbout` takes
+  `channelMetadataRenderer` (title, `vanityChannelUrl` = @handle) and each
+  `channelExternalLinkViewModel` (full address from the redirect's `q=`).
+  The links are the channel's own claims: one profile per platform, a
+  site only when it `resembles` the channel. `Seed.alias` is the @handle:
+  `merge` shows it and treats the channel-id place and the @handle as one.
+  `People.get` pauses a host an hour on 429/503. Your Graph:
+  `Creators.socialKey` adds `x:@handle` (from the status address),
+  `instagram:@user` (the export's owner username; `InstagramReader` titles
+  are now "Name (@user)", like TikTok) and `tiktok:@user` (the TikTok
+  title or URL); `Creators.handle(inTitle:)`. No fetching. These have no
+  feed: `Creator.hasFeed` (from `Creators.noFeedPrefixes`), creators.json
+  `Row.hasFeed`, Follow disabled on Mac and phone, left out of Lean In,
+  Next Door and phone follow requests (never resolve an x.com page). The
+  id after the prefix is the `Place.id`, so `person(forCreator:)` joins
+  them to a person; a followed creator also joins through its feed.
+  Owner's data 2026-11-21: 11 X authors and 32 Instagram owners with 2+
+  saves; no TikTok export.

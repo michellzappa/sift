@@ -20,6 +20,10 @@ struct CreatorsFile: Codable {
         /// The Mac's graph rank (0…1) and the creators closest in meaning.
         var rank: Double?
         var closeTo: [String]?
+        /// False for X, Instagram and TikTok authors: no feed, no Follow.
+        /// Nil in files from older Macs (all creators had feeds then).
+        var hasFeed: Bool?
+        var canFollow: Bool { hasFeed ?? true }
 
         var symbol: String {
             switch kind {
@@ -231,7 +235,10 @@ extension Store {
         return status(of: r)
     }
 
-    func follow(_ c: CreatorsFile.Row) { request("follow", input: c.input, creator: c.id) }
+    func follow(_ c: CreatorsFile.Row) {
+        guard c.canFollow else { return }
+        request("follow", input: c.input, creator: c.id)
+    }
     func unfollow(_ c: CreatorsFile.Row) {
         guard let id = c.feedID else { return }
         request("unfollow", feedID: id, creator: c.id)
@@ -300,7 +307,7 @@ struct CreatorGraphView: View {
                 NavigationLink { CreatorPage(creator: c) } label: { CreatorRow(creator: c) }
                     .swipeActions {
                         Button(hidden ? "Show" : "Hide") { store.setHidden(c, !hidden) }.tint(.gray)
-                        if !store.isFollowing(c) { Button("Follow") { store.follow(c) }.tint(.accentColor) }
+                        if c.canFollow, !store.isFollowing(c) { Button("Follow") { store.follow(c) }.tint(.accentColor) }
                     }
             }
             if store.creators == nil {
@@ -353,8 +360,10 @@ struct CreatorPage: View {
                 if store.isFollowing(creator) {
                     Label("Following", systemImage: "checkmark").foregroundStyle(.tint)
                     if creator.feedID != nil { Button("Unfollow", role: .destructive) { store.unfollow(creator) } }
-                } else {
+                } else if creator.canFollow {
                     Button("Follow") { store.follow(creator) }.bold()
+                } else {
+                    Text("No feed to follow on this platform.").foregroundStyle(.secondary)
                 }
                 Button(store.isHidden(creator) ? "Show in Your Graph" : "Hide") { store.setHidden(creator, !store.isHidden(creator)) }
                 if let s = store.creatorStatus(creator) { Text(s).font(.caption).foregroundStyle(.secondary) }

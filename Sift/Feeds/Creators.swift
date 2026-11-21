@@ -65,6 +65,9 @@ struct Creator: Identifiable, Hashable, Sendable {
 
     var count: Int { saves.count }
     var lastSaved: Date? { saves.first?.date }
+    /// False for X, Instagram and TikTok authors: Sift shows them, but
+    /// they have no feed to follow.
+    var hasFeed: Bool { Creators.hasFeed(id) }
 }
 
 enum Creators {
@@ -88,13 +91,52 @@ enum Creators {
         var author: String?
     }
 
-    /// The creator a link belongs to, if Sift can follow it: a YouTube
-    /// channel (by the library's author), a subreddit, a GitHub repository,
-    /// a Medium or Substack writer, or a site.
+    /// Creator ids on platforms without feeds (X, Instagram, TikTok). The
+    /// part after the prefix matches `Place.id`, so People can join them.
+    static let noFeedPrefixes = ["x:", "instagram:", "tiktok:"]
+    static func hasFeed(_ id: String) -> Bool { !noFeedPrefixes.contains { id.hasPrefix($0) } }
+
+    private static let titleHandle = try! NSRegularExpression(pattern: #"(?:^@|\(@)([A-Za-z0-9_.]{1,30})\)?$"#)
+
+    /// The handle in a title Sift wrote for a saved post: "Name (@user)" or
+    /// "@user" (`InstagramReader`, `AppModel.fetchTikTokDetails`).
+    static func handle(inTitle title: String) -> String? {
+        let t = title.trimmingCharacters(in: .whitespaces)
+        let ns = t as NSString
+        guard let m = titleHandle.firstMatch(in: t, range: NSRange(location: 0, length: ns.length)) else { return nil }
+        return ns.substring(with: m.range(at: 1))
+    }
+
+    /// The author of an X post, Instagram post or TikTok video, from what
+    /// Sift already has: the handle in an X status address, the owner that
+    /// Instagram's export names, the author TikTok's page named. No fetch.
+    static func socialKey(_ link: Link, host: String, parts: [String]) -> (id: String, kind: Creator.Kind, name: String, input: String)? {
+        switch host {
+        case "x.com", "twitter.com":
+            guard parts.count >= 3, parts[1] == "status", !["i", "home", "search", "intent"].contains(parts[0].lowercased()),
+                  parts[0].range(of: #"^[A-Za-z0-9_]{1,15}$"#, options: .regularExpression) != nil else { return nil }
+            let h = parts[0]
+            return ("x:@" + h.lowercased(), .writing, "@" + h, "https://x.com/\(h)")
+        case "instagram.com":
+            guard let h = handle(inTitle: link.title) ?? handle(inTitle: link.author ?? "") else { return nil }
+            return ("instagram:@" + h.lowercased(), .video, "@" + h, "https://www.instagram.com/\(h)/")
+        case "tiktok.com":
+            let fromURL = parts.first.flatMap { $0.hasPrefix("@") && $0.count > 1 ? String($0.dropFirst()) : nil }
+            guard let h = fromURL ?? handle(inTitle: link.title) ?? handle(inTitle: link.author ?? "") else { return nil }
+            return ("tiktok:@" + h.lowercased(), .video, "@" + h, "https://www.tiktok.com/@\(h)")
+        default:
+            return nil
+        }
+    }
+
+    /// The creator a link belongs to: a YouTube channel (by the library's
+    /// author), a subreddit, a GitHub repository, a Medium or Substack
+    /// writer, an X, Instagram or TikTok author (no feed), or a site.
     static func key(_ link: Link) -> (id: String, kind: Creator.Kind, name: String, input: String)? {
         guard let u = URL(string: link.url), let h = u.host()?.lowercased() else { return nil }
-        let host = h.replacingOccurrences(of: #"^(www\.|m\.|old\.)"#, with: "", options: .regularExpression)
+        let host = h.replacingOccurrences(of: #"^(www\.|m\.|old\.|mobile\.)"#, with: "", options: .regularExpression)
         let parts = u.pathComponents.filter { $0 != "/" }
+        if ["x.com", "twitter.com", "instagram.com", "tiktok.com"].contains(host) { return socialKey(link, host: host, parts: parts) }
         if host.hasSuffix("youtube.com") || host == "youtu.be" {
             guard let name = link.author?.trimmingCharacters(in: .whitespaces), !name.isEmpty,
                   TranscriptTool.videoID(link.url) != nil else { return nil }
@@ -139,7 +181,7 @@ enum Creators {
             var score = 0.0
             for save in saves { score += weight(save.date, now: now) }
             let recent = saves.filter { $0.date >= recentCutoff }.count
-            let input = g.kind == .video ? saves[0].url : g.input
+            let input = g.kind == .video && hasFeed(id) ? saves[0].url : g.input
             out.append(Creator(id: id, kind: g.kind, name: g.name, input: input, saves: saves, themes: themes,
                                score: score, recent: recent, feedID: followed[id]))
         }
@@ -242,7 +284,9 @@ enum NextDoor {
             return ("bluesky:" + parts[1].lowercased(), .writing, "@" + parts[1], "@" + parts[1])
         }
         guard !noise.contains(host), !noise.contains(where: { host.hasSuffix("." + $0) && !host.hasSuffix(".substack.com") && !host.hasSuffix(".medium.com") }) else { return nil }
-        return Creators.key(Creators.Link(url: link, title: "", date: Date(), theme: nil, author: nil))
+        // Next Door proposes only creators with a feed.
+        guard let k = Creators.key(Creators.Link(url: link, title: "", date: Date(), theme: nil, author: nil)), Creators.hasFeed(k.id) else { return nil }
+        return k
     }
 
     /// True when the target is the creator's own site: "Lex Fridman" and

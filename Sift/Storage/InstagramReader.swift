@@ -44,7 +44,10 @@ enum InstagramReader {
         var out: [Item] = []
         for post in postEntries(posts) {
             guard seen.insert(post.url).inserted else { continue }
-            let author = post.name.isEmpty ? (post.username.isEmpty ? "Instagram" : "@\(post.username)") : post.name
+            // "Name (@user)", as TikTok titles: Your Graph reads the handle
+            // from it (`Creators.handle(inTitle:)`).
+            let author = post.username.isEmpty ? (post.name.isEmpty ? "Instagram" : post.name)
+                : post.name.isEmpty ? "@\(post.username)" : "\(post.name) (@\(post.username))"
             let tab = SafariTab(url: post.url, title: author, lastViewed: post.saved)
             let names = inCollection[post.url] ?? []
             var text = names.isEmpty ? "" : "Saved in \(names.joined(separator: ", ")). "
