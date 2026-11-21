@@ -164,6 +164,34 @@ enum LocalModel {
         #endif
     }
 
+    // MARK: Sub-cluster names
+
+    /// A 1 to 4 word name for one part of a theme, from the titles nearest
+    /// its centre (Engine/SubClusters.swift). Nil when the model cannot
+    /// answer; the caller then uses the TF-IDF words.
+    static func nameCluster(theme: String, titles: [String]) async -> String? {
+        #if canImport(FoundationModels)
+        guard #available(macOS 26, *), isAvailable, !titles.isEmpty else { return nil }
+        let session = LanguageModelSession(instructions: """
+            You name one group of saved links inside a person's theme. Answer with a short topic name of one \
+            to four words that says what these links have in common and sets them apart within the theme. \
+            Do not repeat the theme's name. No quotes, no punctuation at the end, nothing else.
+            """)
+        let list = titles.map { "- " + String($0.prefix(140)).replacingOccurrences(of: "\n", with: " ") }.joined(separator: "\n")
+        do {
+            let text = try await session.respond(
+                to: "Theme: \(theme)\nTitles:\n\(list)",
+                options: GenerationOptions(sampling: .greedy, maximumResponseTokens: 16)
+            ).content
+            return SubClusters.clean(text)
+        } catch {
+            return nil
+        }
+        #else
+        return nil
+        #endif
+    }
+
     // MARK: Summaries
 
     enum SummaryOutcome: Sendable {

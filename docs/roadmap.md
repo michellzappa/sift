@@ -29,7 +29,7 @@ order. Items marked "decision" wait for the owner.
 ## 3. On-device intelligence
 
 - [x] Subterms per theme: TF-IDF on the Mac, shown and used in Today's
-  theme fit (1.8.6). Sub-clusters named by the on-device model: not built.
+  theme fit (1.8.6). Sub-clusters named by the on-device model: built (milestone 5).
 - [x] A richer graph: creators close in meaning, personal PageRank from
   the creators you follow; Lean In uses the rank (1.8.6).
 - [x] Meaning for trail starts without a vector (1.8.6). Next Door by
@@ -64,6 +64,14 @@ order. Items marked "decision" wait for the owner.
   "Open in <app>" for the rest.
 - [ ] Watch Downloads for new exports; a monthly reminder per stale network.
 - [x] Sub-clusters per theme, named by the on-device model (1.8.8).
+- [ ] Your graph from every network: import who you follow from each
+  network's own data export (YouTube Takeout subscriptions, Instagram
+  following, TikTok Following, X archive following) and directly from
+  Bluesky and Mastodon. Each account becomes a People place; follow where a
+  feed exists; nothing leaves the Mac.
+- [ ] Network mix: one visible control per network (More, Normal, Less,
+  Off) for its share of Today, in "Why this is here" and Algorithm.
+- [x] Sub-clusters per theme, named by the on-device model (Mac chips filter the list; phone shows them).
 - [ ] Co-save edges in the creator graph.
 - [ ] People: YouTube channels' own links; Instagram, TikTok and X authors
   in Your Graph.

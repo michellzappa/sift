@@ -63,7 +63,7 @@ extension AppModel {
 }
 
 /// Subterms and the creator graph (Engine/ThemeGraph.swift), after each
-/// embeddings round.
+/// embeddings round; then the sub-clusters (AppModel+SubClusters).
 extension AppModel {
     func refreshThemeGraph() {
         var texts: [String: [String]] = [:]
@@ -80,6 +80,7 @@ extension AppModel {
             self.creatorSimilar = graph.similar
             self.creatorRank = graph.rank
             self.writeCreatorsForPhone()
+            self.refreshSubClusters()
         }
     }
 

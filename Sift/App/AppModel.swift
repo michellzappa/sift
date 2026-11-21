@@ -169,6 +169,13 @@ final class AppModel {
     var themeTerms: [String: [String]] = [:]
     var creatorSimilar: [String: [(id: String, cos: Double)]] = [:]
     var creatorRank: [String: Double] = [:]
+    /// Sub-clusters: the parts of each theme by meaning, named on this Mac
+    /// (Engine/SubClusters.swift, AppModel+SubClusters). Theme → parts.
+    var subClusters: [String: [SubCluster]] = SubClusterStore.load().parts
+    @ObservationIgnored var subClusterNames = SubClusterStore.load().names
+    var isNamingSubClusters = false
+    /// The part a theme's list is filtered to (a chip in ThemeHeader).
+    var subClusterFilter: SubClusterFilter?
     /// The lane open in the lane editor sheet (Views/LaneView.swift).
     var editingLane: Lane?
     /// The directory in Follow (Feeds/Directory.swift).
