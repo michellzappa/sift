@@ -427,8 +427,14 @@ struct TodayListView: View {
     @State private var past = ScrollPast()
     @State private var library: [String] = []
     @State private var trailFrom: Item?
+    /// Scan has two parts (owner, 2026-11-21: "Scan as triage"): New (today's
+    /// headlines) and Saved (your short saved posts, to keep, let go or send).
+    @AppStorage("scan.part") private var part = "new"
 
     private var picks: [TodayPick] { (store.today?.picks ?? []).filter { $0.readingMode == mode } }
+
+    /// Saved posts still to sort: unseen, in the order the tab opened with.
+    private var toSort: [Item] { saved.filter { !store.isSeen($0.url) } }
 
     private var saved: [Item] {
         var byURL: [String: Item] = [:]
@@ -439,11 +445,21 @@ struct TodayListView: View {
     var body: some View {
         NavigationStack {
             List {
-                if !picks.isEmpty {
+                if mode == .scan {
+                    Picker("", selection: $part) {
+                        Text("New").tag("new")
+                        Text(toSort.isEmpty ? "Saved" : "Saved (\(toSort.count))").tag("saved")
+                    }
+                    .pickerStyle(.segmented)
+                    .listRowSeparator(.hidden)
+                }
+                if mode == .scan && part == "saved" {
+                    triageSection
+                } else if !picks.isEmpty {
                     Section { todayRows } header: { Text("Today") }
                 }
                 let saved = saved
-                if !saved.isEmpty {
+                if mode != .scan, !saved.isEmpty {
                     Section {
                         ForEach(Array(saved.enumerated()), id: \.element.url) { i, item in
                             Button { openSaved(item) } label: { LibraryRow(item: item, mode: mode) }
@@ -496,6 +512,43 @@ struct TodayListView: View {
         let fresh = store.libraryQueue(mode, excluding: Set(picks.map(\.url)))
         let kept = library.filter { url in store.deck.items.contains { $0.url == url } }
         library = kept + fresh.filter { !kept.contains($0) }
+    }
+
+    /// Scan's Saved part: sort your short saved posts fast. Swipe right keeps
+    /// (it stays in its theme), swipe left lets it go (it leaves your
+    /// library) or sends it to the theme's destination. Your Mac does it.
+    @ViewBuilder private var triageSection: some View {
+        let rows = toSort
+        Section {
+            ForEach(rows, id: \.url) { item in
+                Button { openSaved(item) } label: { LibraryRow(item: item, mode: .scan) }
+                    .buttonStyle(.plain)
+                    .swipeActions(edge: .leading, allowsFullSwipe: true) {
+                        Button { store.triage(item, .keep) } label: { Label("Keep", systemImage: "checkmark") }.tint(.green)
+                    }
+                    .swipeActions(edge: .trailing, allowsFullSwipe: true) {
+                        Button(role: .destructive) { store.triage(item, .letGo) } label: { Label("Let Go", systemImage: "xmark") }
+                        Button { store.triage(item, .send) } label: { Label("Send", systemImage: "paperplane") }.tint(.blue)
+                    }
+                    .contextMenu {
+                        Button { store.triage(item, .keep) } label: { Label("Keep", systemImage: "checkmark") }
+                        Button { store.triage(item, .send) } label: { Label("Send to Its Theme's Destination", systemImage: "paperplane") }
+                        Button(role: .destructive) { store.triage(item, .letGo) } label: { Label("Let Go", systemImage: "xmark") }
+                        Button { trailFrom = item } label: { Label("More Like This", systemImage: "point.topleft.down.to.point.bottomright.curvepath") }
+                    }
+            }
+        } header: {
+            Text(rows.isEmpty ? "Saved" : "\(rows.count) saved posts to sort")
+        } footer: {
+            VStack(spacing: 6) {
+                Text(rows.isEmpty
+                     ? "All sorted. New saves show here."
+                     : "Swipe right to keep, left to let go or send. Your Mac carries it out.")
+                    .font(.footnote).foregroundStyle(.tertiary)
+                if rows.isEmpty { ThemesButton() }
+            }
+            .frame(maxWidth: .infinity).padding(.vertical, 16)
+        }
     }
 
     private func openSaved(_ item: Item) {

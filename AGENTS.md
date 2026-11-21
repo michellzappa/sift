@@ -1097,4 +1097,13 @@ The one exception is anonymous diagnostics (owner, 2026-11-15, below).
   "sift") renders README.md and the docs pages listed there from this
   repo. A change to what the app does updates the matching page in the same
   commit. Open work for this: issue #47.
+- Scan as triage (2026-11-21, owner: "Scan as triage"). The phone's Scan
+  tab has two parts (`scan.part`): New (today's headlines) and Saved (the
+  unseen saved items of Scan shape, mostly X posts: about 225 in the
+  owner's deck). Saved rows sort by swipe: right Keep, left Let Go or Send
+  (`Store.triage`, request "triage", input URL, priority keep/letGo/send).
+  The Mac (AppModel+FeedSync): letGo moves the link to `Project.drop`
+  (hand move), send goes to the theme's destination, keep leaves it in
+  its theme; all mark it seen. Nothing in Saved is marked seen by
+  scrolling past: only a decision or opening it.
 

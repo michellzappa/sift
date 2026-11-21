@@ -113,6 +113,21 @@ extension AppModel {
                     }
                     writeFeedsForPhone()
                 }
+            case "triage":
+                // Scan's Saved part on the phone: keep, letGo or send one saved link.
+                if let url = r.input, let tab = tabs.first(where: { $0.url == url }) ?? archive[url]?.asTab {
+                    switch r.priority {
+                    case "letGo":
+                        move(tab, to: Project.drop)
+                    case "send":
+                        if let d = defaultDestination(for: tab) { Task { await send(tab, to: d) } }
+                        else { note("\(tab.title) has no destination: its theme sends nowhere") }
+                    default:
+                        break
+                    }
+                    setSeen([url], true)
+                }
+                state.phoneRequests[r.id] = "done"
             case "less":
                 // Not interested from the phone: input = the pick's URL, priority = source, topic or story.
                 if let url = r.input, let pick = state.today?.picks.first(where: { $0.url == url }),
