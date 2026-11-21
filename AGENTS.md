@@ -674,8 +674,9 @@ The one exception is anonymous diagnostics (owner, 2026-11-15, below).
   (HN, Reddit, News, Bluesky, Mastodon, GitHub, arXiv) = scan, Substack and
   Medium = read (`Modes.providerMode`), aggregator pages and posts (X,
   Bluesky, Threads, Instagram) = scan unless a post has 600+ words, all
-  else read (owner: Daring Fireball is Read). Unseen dots sit after the
-  title. In Scan a row scrolled off the top counts as seen
+  else read (owner: Daring Fireball is Read). Unseen dots sit at the row's right edge, in a
+  column kept even when seen (owner, 2026-11-21; they used to follow the
+  title). In Scan a row scrolled off the top counts as seen
   (`Views/ScrollPast.swift`, also compiled into the phone app).
   `App/AppModel+Modes.swift`: `mode(of:)` for picks and tabs (library
   transcript or duration = watch), `inMode` filters, `Feed.mode` override

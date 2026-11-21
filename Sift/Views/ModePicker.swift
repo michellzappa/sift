@@ -67,6 +67,7 @@ struct WatchCard: View {
                 Text(title).font(.callout.weight(seen && !kept ? .regular : .semibold))
                     .foregroundStyle(seen && !kept ? .secondary : .primary)
                     .lineLimit(2)
+                Spacer(minLength: 6)
                 if kept {
                     Image(systemName: "star.fill").foregroundStyle(.yellow).font(.caption).padding(.top, 2)
                 } else if !seen {

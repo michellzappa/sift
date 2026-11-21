@@ -444,14 +444,16 @@ struct TabCard: View {
                 .overlay(RoundedRectangle(cornerRadius: 8).strokeBorder(Color.primary.opacity(0.06)))
             }
             VStack(alignment: .leading, spacing: 3) {
-                // Unseen reads like unread mail: a dot and a heavier title.
+                // Unseen reads like unread mail: a heavier title and a dot at the
+                // row's right edge (owner, 2026-11-21: rightmost, not next to the text).
                 let seen = model.isSeen(tab.url)
                 HStack(spacing: 6) {
                     Text(cardTitle(preview))
                         .font(.body.weight(seen ? .regular : .semibold))
                         .foregroundStyle(seen ? .secondary : .primary)
                         .lineLimit(1)
-                    if !seen { Circle().fill(Color.accentColor).frame(width: 7, height: 7) }
+                    Spacer(minLength: 6)
+                    Circle().fill(Color.accentColor).frame(width: 7, height: 7).opacity(seen ? 0 : 1)
                 }
                     .strikethrough(closing, color: .secondary)
                 HStack(spacing: 5) {

@@ -20,14 +20,10 @@ struct LinkList: View {
             } label: {
                 HStack(alignment: .top, spacing: 10) {
                     VStack(alignment: .leading, spacing: 3) {
-                        // The unseen dot sits after the title.
-                        HStack(alignment: .top, spacing: 6) {
-                            Text(item.title)
-                                .font(.body.weight(seen ? .regular : .semibold))
-                                .foregroundStyle(seen ? .secondary : .primary)
-                                .lineLimit(2)
-                            if !seen { Circle().fill(Color.accentColor).frame(width: 8, height: 8).padding(.top, 6) }
-                        }
+                        Text(item.title)
+                            .font(.body.weight(seen ? .regular : .semibold))
+                            .foregroundStyle(seen ? .secondary : .primary)
+                            .lineLimit(2)
                         Text([item.site, item.readTime].compactMap { $0?.isEmpty == false ? $0 : nil }.joined(separator: " · "))
                             .font(.caption).foregroundStyle(.secondary)
                         if !item.summary.isEmpty {
@@ -38,6 +34,8 @@ struct LinkList: View {
                     ItemImage(item: item, height: 56)
                         .frame(width: 56)
                         .clipShape(RoundedRectangle(cornerRadius: 8))
+                    // The unseen dot at the row's right edge (owner, 2026-11-21).
+                    Circle().fill(Color.accentColor).frame(width: 8, height: 8).padding(.top, 6).opacity(seen ? 0 : 1)
                 }
             }
             .buttonStyle(.plain)
