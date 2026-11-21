@@ -1091,3 +1091,9 @@ The one exception is anonymous diagnostics (owner, 2026-11-15, below).
   them to a person; a followed creator also joins through its feed.
   Owner's data 2026-11-21: 11 X authors and 32 Instagram owners with 2+
   saves; no TikTok export.
+- Docs follow the app (owner, 2026-11-21: "docs remain 1:1 with app
+  thinking on website"). The site (michellzappa/blog, `lib/apps.ts`, id
+  "sift") renders README.md and the docs pages listed there from this
+  repo. A change to what the app does updates the matching page in the same
+  commit. Open work for this: issue #47.
+

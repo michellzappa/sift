@@ -9,6 +9,16 @@ ships this file and shows it in Settings > About and in Sift > Version
 History. Headings are `## X.Y.Z - YYYY-MM-DD`; groups are `### Added`,
 `### Changed` and `### Fixed`.
 
+## 1.8.8 - 2026-11-21
+
+### Added
+- Parts of a theme. Sift splits each larger theme into two to five parts by meaning and names them with Apple's on-device model, all on your Mac. The parts sit as chips under the theme's header; a click shows only that part. On the iPhone they show on the theme page.
+- People reads a followed YouTube channel's own links (its About page): its Instagram, TikTok, X and website join the creator's other places.
+- Your Graph now includes the people behind your X, Instagram and TikTok saves. They have no feed, so they cannot be followed in Sift; their profile opens instead.
+
+### Changed
+- Instagram saves are titled "Name (@user)", like TikTok saves.
+
 ## 1.8.7 - 2026-11-21
 
 ### Added

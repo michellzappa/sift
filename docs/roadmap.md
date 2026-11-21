@@ -52,31 +52,21 @@ order. Items marked "decision" wait for the owner.
 
 ## 5. Multisocial (ADR 0001, docs/adr/0001-multisocial.md, 2026-11-21)
 
-- [ ] Your graph from every network: import whom you follow from each
-  network's export (YouTube Takeout, Instagram, TikTok, X archive) and
-  directly from Bluesky and Mastodon; each account a People place,
-  followed where a feed exists.
-- [ ] Network dials (More, Normal, Less, Off) trained by use: the learned
-  share shown beside each; the network in "Why this is here".
-- [ ] Today themes first: grouped and coloured by theme, network badges,
-  Mac and iPhone.
-- [ ] Light actions: Bluesky and Mastodon sign-in for like and bookmark;
-  "Open in <app>" for the rest.
-- [ ] Watch Downloads for new exports; a monthly reminder per stale network.
-- [x] Sub-clusters per theme, named by the on-device model (1.8.8).
-- [ ] Your graph from every network: import who you follow from each
-  network's own data export (YouTube Takeout subscriptions, Instagram
-  following, TikTok Following, X archive following) and directly from
-  Bluesky and Mastodon. Each account becomes a People place; follow where a
-  feed exists; nothing leaves the Mac.
-- [ ] Network mix: one visible control per network (More, Normal, Less,
-  Off) for its share of Today, in "Why this is here" and Algorithm.
-- [x] Sub-clusters per theme, named by the on-device model (Mac chips filter the list; phone shows them).
-- [ ] Co-save edges in the creator graph.
-- [ ] People: YouTube channels' own links; Instagram, TikTok and X authors
-  in Your Graph.
-- [ ] Published OPML follow lists (FeedLand and others) as a "who follows
-  what" source.
-- [ ] Not Interested on the phone's Watch cards.
+Open items are GitHub issues in the milestone "Multisocial (ADR 0001)",
+for the factory.
+
+- [ ] Your graph from every network: import following lists (#39).
+- [ ] Network dials, trained by use (#40).
+- [ ] Today themes first, with network badges (#41).
+- [ ] Light actions: like and bookmark on Bluesky and Mastodon (#42).
+- [ ] Watch Downloads for new exports; monthly reminder (#43).
+- [ ] Co-save edges in the creator graph (#44).
+- [ ] Published OPML follow lists (#45).
+- [ ] Not Interested on the iPhone's Watch cards (#46).
+- [ ] Docs 1:1 with the app on the website (#47).
+- [x] Sub-clusters per theme, named by the on-device model; Mac chips
+  filter the list, the phone shows them (1.8.8).
+- [x] People: YouTube channels' own links; X, Instagram and TikTok authors
+  in Your Graph (no feed) (1.8.8).
 - Not built (agent's call, 2026-11-21): Next Door by meaning (its targets
   have no text); lane editing on the phone (lanes are made on the Mac).
