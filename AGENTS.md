@@ -1097,4 +1097,10 @@ The one exception is anonymous diagnostics (owner, 2026-11-15, below).
   "sift") renders README.md and the docs pages listed there from this
   repo. A change to what the app does updates the matching page in the same
   commit. Open work for this: issue #47.
+- Scan is browsing (2026-11-21, owner: "I don't WANT saved in scan; scan
+  means I'm not saving, just browsing"). The phone's Scan tab shows only
+  Today's headlines: no "From your Library" section. Saved short posts
+  (X bookmarks) are reached through Themes and the Review Deck. A triage
+  part in Scan was built and reverted the same day: do not add saved
+  items to Scan.
 

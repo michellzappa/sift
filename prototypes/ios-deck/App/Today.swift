@@ -440,10 +440,15 @@ struct TodayListView: View {
         NavigationStack {
             List {
                 if !picks.isEmpty {
-                    Section { todayRows } header: { Text("Today") }
+                    Section { todayRows } header: { Text("Today") } footer: {
+                        // Scan has no saved part, so its end sits under Today.
+                        if mode == .scan { StreamFooter() }
+                    }
                 }
                 let saved = saved
-                if !saved.isEmpty {
+                // Scan is browsing, never saving (owner, 2026-11-21: "scan means
+                // I'm not saving, just browsing"): no saved items in Scan.
+                if mode != .scan, !saved.isEmpty {
                     Section {
                         ForEach(Array(saved.enumerated()), id: \.element.url) { i, item in
                             Button { openSaved(item) } label: { LibraryRow(item: item, mode: mode) }
