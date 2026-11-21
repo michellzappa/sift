@@ -50,18 +50,20 @@ order. Items marked "decision" wait for the owner.
 
 - [x] TestFlight: build 243 (1.8.5) submitted for beta review on 2026-11-21.
 
-## 5. Multisocial (owner, 2026-11-21: "a multisocial app that leans on
-existing SNS data, but lets the user have control and visibility of
-their algo"; Sift's next phase)
+## 5. Multisocial (ADR 0001, docs/adr/0001-multisocial.md, 2026-11-21)
 
-- [ ] Your graph from every network: import who you follow from each
-  network's own data export (YouTube Takeout subscriptions, Instagram
-  following, TikTok Following, X archive following) and directly from
-  Bluesky and Mastodon. Each account becomes a People place; follow where a
-  feed exists; nothing leaves the Mac.
-- [ ] Network mix: one visible control per network (More, Normal, Less,
-  Off) for its share of Today, in "Why this is here" and Algorithm.
-- [ ] Sub-clusters per theme, named by the on-device model.
+- [ ] Your graph from every network: import whom you follow from each
+  network's export (YouTube Takeout, Instagram, TikTok, X archive) and
+  directly from Bluesky and Mastodon; each account a People place,
+  followed where a feed exists.
+- [ ] Network dials (More, Normal, Less, Off) trained by use: the learned
+  share shown beside each; the network in "Why this is here".
+- [ ] Today themes first: grouped and coloured by theme, network badges,
+  Mac and iPhone.
+- [ ] Light actions: Bluesky and Mastodon sign-in for like and bookmark;
+  "Open in <app>" for the rest.
+- [ ] Watch Downloads for new exports; a monthly reminder per stale network.
+- [x] Sub-clusters per theme, named by the on-device model (1.8.8).
 - [ ] Co-save edges in the creator graph.
 - [ ] People: YouTube channels' own links; Instagram, TikTok and X authors
   in Your Graph.

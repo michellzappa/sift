@@ -1044,4 +1044,12 @@ The one exception is anonymous diagnostics (owner, 2026-11-15, below).
   points > 100, hosts 2+ times) and `oohDirectory` (search page, blog
   roots). Groups now: blog, newsletter, bluesky, mastodon, podcast (Mac
   and phone lists).
+- Multisocial (2026-11-21, ADR 0001 `docs/adr/0001-multisocial.md`): Sift
+  becomes a multisocial reader for heavy readers. Data only from exports
+  and public sources (never log in to Instagram, TikTok or X; never
+  browser cookies). Light actions only on Bluesky and Mastodon (OAuth).
+  Control = dials trained by use; visibility through themes, numbers one
+  click away; Today themes first with network badges; no algorithm
+  sharing; Downloads watched for new exports. Read the ADR before changing
+  any of these.
 
