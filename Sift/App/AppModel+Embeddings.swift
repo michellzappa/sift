@@ -27,6 +27,7 @@ extension AppModel {
             guard let self else { return }
             self.embedSpace = space
             self.isEmbedding = false
+            self.refreshThemeGraph()
             if changed { self.refreshToday() }
         }
     }
@@ -58,5 +59,34 @@ extension AppModel {
     /// The best theme by meaning for an address, if one clearly leads.
     func themeByMeaning(_ url: String) -> (name: String, cos: Double)? {
         embedSpace.unit[url].flatMap { embedSpace.theme(for: $0) }
+    }
+}
+
+/// Subterms and the creator graph (Engine/ThemeGraph.swift), after each
+/// embeddings round.
+extension AppModel {
+    func refreshThemeGraph() {
+        var texts: [String: [String]] = [:]
+        for l in savedLinks() {
+            guard let t = l.theme else { continue }
+            texts[t, default: []].append(l.title + " " + String((previews[l.url]?.text ?? "").prefix(300)))
+        }
+        let nodes = creators.map { CreatorGraph.Node(id: $0.id, urls: $0.saves.map(\.url), followed: $0.feedID != nil, score: $0.score) }
+        let vectors = embedSpace.unit
+        Task { [weak self] in
+            let (terms, graph) = await Self.computeThemeGraph(texts: texts, nodes: nodes, vectors: vectors)
+            guard let self else { return }
+            self.themeTerms = terms
+            self.creatorSimilar = graph.similar
+            self.creatorRank = graph.rank
+            self.writeCreatorsForPhone()
+        }
+    }
+
+    nonisolated private static func computeThemeGraph(texts: [String: [String]], nodes: [CreatorGraph.Node],
+                                                      vectors: [String: [Float]]) async -> ([String: [String]], CreatorGraph.Result) {
+        await Task.detached(priority: .utility) {
+            (Subterms.build(texts), CreatorGraph.build(nodes, vectors: vectors))
+        }.value
     }
 }

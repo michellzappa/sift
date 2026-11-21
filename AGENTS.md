@@ -1017,4 +1017,19 @@ The one exception is anonymous diagnostics (owner, 2026-11-15, below).
   `feeds.shellTextV1`) clears `ShellText.isJunk` text in every feed file
   (`FeedStore.clearJunk`) and in Today's picks, once. The phone's deck
   cards show X posts with `XPostCard`.
+- Theme terms and creator graph (2026-11-21, roadmap 3).
+  `Engine/ThemeGraph.swift`: `Subterms.build` (TF-IDF over saved titles +
+  300 characters of preview per theme, `TodayBuilder.words`, 3+ links,
+  `filler` words out, 8 per theme) and `CreatorGraph.build` (top 400
+  creators; centre = normalized mean of their saves' unit vectors; edges
+  at cos ≥ 0.35; 5 closest shown; personal PageRank, damping 0.85, 20
+  rounds, restart at followed creators by 1 + score, else every creator
+  by score; rank scaled to 0…1). `AppModel.refreshThemeGraph` runs after
+  each embeddings round (`themeTerms`, `creatorSimilar`, `creatorRank`).
+  Today's word fit reads theme name + summary + terms. Lean In candidates
+  sort by rank. Mac: terms under `ThemeHeader`, "Close to" in the creator
+  pane. creators.json: `themeTerms`, `Row.rank`, `Row.closeTo`. Trails
+  embed a start item without a vector on the spot.
+- Time budget (2026-11-21): not built, the agent's call with the owner's
+  leave ("do what u think is best"): it ends rolling Today.
 

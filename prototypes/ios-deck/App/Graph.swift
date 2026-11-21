@@ -17,6 +17,9 @@ struct CreatorsFile: Codable {
         var feedID: String?
         var hidden: Bool
         var saves: [Save]
+        /// The Mac's graph rank (0…1) and the creators closest in meaning.
+        var rank: Double?
+        var closeTo: [String]?
 
         var symbol: String {
             switch kind {
@@ -86,6 +89,8 @@ struct CreatorsFile: Codable {
     var farther: [String: FartherResult]?
     var fartherAsking: [String]?
     var people: [PersonRow]?
+    /// The words that set each theme apart (the Mac's Subterms).
+    var themeTerms: [String: [String]]?
     var directory: [DirectoryEntry]?
     var directoryBuilt: Date?
     /// Theme dials (the Mac's Engine/Dials.swift): theme → leanIn or explore.
@@ -355,6 +360,15 @@ struct CreatorPage: View {
                 if let s = store.creatorStatus(creator) { Text(s).font(.caption).foregroundStyle(.secondary) }
             } footer: {
                 Text("Your Mac finds the feed and follows it.")
+            }
+            if let near = creator.closeTo, !near.isEmpty {
+                Section("Close to") {
+                    Text(near.joined(separator: ", ")).font(.callout)
+                    if let r = creator.rank {
+                        Text(String(format: "Graph rank %.2f: how central this creator is to the ones you follow, by closeness in meaning.", r))
+                            .font(.caption).foregroundStyle(.secondary)
+                    }
+                }
             }
             Section("Why it is here") {
                 let half = Int(store.creators?.halfLifeDays ?? 90)

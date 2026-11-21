@@ -181,6 +181,8 @@ extension AppModel {
             var feedID: String?
             var hidden: Bool
             var saves: [Save]
+            var rank: Double?
+            var closeTo: [String]?
         }
         struct Evidence: Encodable { var from, item, itemURL, link: String }
         struct Near: Encodable {
@@ -200,6 +202,7 @@ extension AppModel {
             var farther: [String: FartherResult]
             var fartherAsking: [String]
             var people: [PersonRow]
+            var themeTerms: [String: [String]]
             var directory: [DirectoryEntry]
             var directoryBuilt: Date?
             var dials: [String: String]
@@ -209,12 +212,15 @@ extension AppModel {
         struct PlaceRow: Encodable { var id, platform, platformName, url, handle: String; var hasFeed, followed: Bool }
         struct PersonRow: Encodable { var id, name: String; var places: [PlaceRow]; var evidence: [String] }
         let hidden = Set(state.hiddenCreators)
+        let names = Dictionary(creators.map { ($0.id, $0.name) }, uniquingKeysWith: { a, _ in a })
         let rows = creators.map { c in
             Row(id: c.id, kind: c.kind.rawValue, name: c.name, input: c.input, count: c.count, recent: c.recent,
                 score: (c.score * 100).rounded() / 100, bonus: (TodayBuilder.creatorBonus(c.count) * 100).rounded() / 100,
                 lastSaved: c.lastSaved, themes: Dictionary(c.themes.map { ($0.name, $0.count) }, uniquingKeysWith: { a, _ in a }),
                 feedID: c.feedID, hidden: hidden.contains(c.id),
-                saves: c.saves.prefix(8).map { Save(url: $0.url, title: $0.title, date: $0.date, theme: $0.theme) })
+                saves: c.saves.prefix(8).map { Save(url: $0.url, title: $0.title, date: $0.date, theme: $0.theme) },
+                rank: creatorRank[c.id].map { ($0 * 100).rounded() / 100 },
+                closeTo: creatorSimilar[c.id]?.compactMap { n in names[n.id] })
         }
         let e = JSONEncoder(); e.outputFormatting = [.sortedKeys]; e.dateEncodingStrategy = .iso8601
         let near = visibleNeighbors.map { n in
@@ -230,7 +236,7 @@ extension AppModel {
             }, evidence: person.evidence)
         }
         guard let data = try? e.encode(File(creators: rows, nextDoor: near, farther: farther, fartherAsking: fartherAsking.sorted(),
-                                            people: peopleRows, directory: directoryShown, directoryBuilt: directory.built,
+                                            people: peopleRows, themeTerms: themeTerms, directory: directoryShown, directoryBuilt: directory.built,
                                             dials: themeDials.filter { $0.value != .stay }.mapValues(\.rawValue),
                                             trials: trialFeeds.map { TrialRow(feedID: $0.id, title: $0.title, url: $0.url, theme: $0.trial ?? "",
                                                                               source: $0.trialSource, until: $0.trialUntil) })) else { return }

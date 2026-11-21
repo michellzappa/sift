@@ -32,7 +32,11 @@ extension AppModel {
         case .leanIn:
             let hidden = Set(state.hiddenCreators)
             return visibleCreators.filter { c in c.feedID == nil && !hidden.contains(c.id) && c.themes.contains { $0.name == theme } }
-                .sorted { a, b in (a.themes.first { $0.name == theme }?.count ?? 0) > (b.themes.first { $0.name == theme }?.count ?? 0) }
+                // Central to what you follow first (graph rank), then saves in the theme.
+                .sorted { a, b in
+                    ((creatorRank[a.id] ?? 0), (a.themes.first { $0.name == theme }?.count ?? 0))
+                        > ((creatorRank[b.id] ?? 0), (b.themes.first { $0.name == theme }?.count ?? 0))
+                }
                 .map { Trials.Candidate(id: $0.id, name: $0.name, input: $0.input, source: "you saved \($0.count) from them") }
         case .explore:
             let near = visibleNeighbors.filter { n in n.themes.contains { $0.name == theme } }

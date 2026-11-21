@@ -48,7 +48,12 @@ extension AppModel {
 
     /// Opens the trail from one item and shows it.
     func openTrail(url: String, pick: TodayPick? = nil) {
-        let seed = trailNode(url: url, pick: pick)
+        var seed = trailNode(url: url, pick: pick)
+        // A start with no vector yet gets one now, on this Mac.
+        if seed.vector == nil, !embedSpace.isEmpty, let e = Embedder(),
+           let raw = e.vector(Meaning.text(title: seed.title, preview: seed.summary)) {
+            seed.vector = embedSpace.place(raw)
+        }
         let picks = Trail.build(seed: seed, pool: trailPool(), isSeen: { self.isSeen($0) })
         let followedIDs = Creators.followed(state.feeds)
         var creatorID = seed.creator

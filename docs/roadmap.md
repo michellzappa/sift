@@ -22,16 +22,18 @@ order. Items marked "decision" wait for the owner.
 
 - [x] Custom lanes: a saved rule over feed items, Mac and iPhone (1.8.5).
 - [x] Settings > You on the iPhone (1.8.5).
-- [ ] Daily time budget: Today fills to your minutes, then ends.
-  Decision: it ends "rolling" Today.
+- [ ] Daily time budget. Not built: the agent's call on 2026-11-21 (owner:
+  "do what u think is best"). It goes against "rolling" Today (owner,
+  2026-11-15); Snooze Discovery and lanes that end keep Today finite.
 
 ## 3. On-device intelligence
 
-- [ ] Subterms per theme: key terms computed on the Mac, sub-clusters named
-  by the on-device model.
-- [ ] A richer graph: creators linked by co-saves and meaning, ranked with a
-  personal PageRank.
-- [ ] Meaning for Next Door, and for trail starts that have no vector yet.
+- [x] Subterms per theme: TF-IDF on the Mac, shown and used in Today's
+  theme fit (1.8.6). Sub-clusters named by the on-device model: not built.
+- [x] A richer graph: creators close in meaning, personal PageRank from
+  the creators you follow; Lean In uses the rank (1.8.6).
+- [x] Meaning for trail starts without a vector (1.8.6). Next Door by
+  meaning: not built (its targets have no text of their own).
 
 ## 4. Discovery (decisions)
 

@@ -43,6 +43,11 @@ struct ThemeHeader: View {
             }
             .font(.caption)
             .foregroundStyle(.secondary)
+            if let terms = model.themeTerms[theme], !terms.isEmpty {
+                // Subterms: what sets this theme apart, counted on this Mac.
+                Text(terms.joined(separator: " · ")).font(.caption).foregroundStyle(.tertiary).lineLimit(2)
+                    .help("The words that set this theme apart from your other themes, from the titles and previews of its links.")
+            }
             if project?.isTheme == true { ThemeDialRow(theme: theme) }
         }
     }

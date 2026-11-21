@@ -49,7 +49,8 @@ extension AppModel {
         let events = signalEvents()
         let input = TodayBuilder.Input(
             feeds: offeredFeeds, entries: entries,
-            themes: themes.map { ($0.name, $0.summary) },
+            // Subterms sharpen the word fit (Engine/ThemeGraph.swift).
+            themes: themes.map { ($0.name, $0.summary + " " + (themeTerms[$0.name] ?? []).joined(separator: " ")) },
             kept: state.kept, isSeen: { [seenMarks] in seenMarks[$0]?.seen ?? false },
             affinity: FeedSignals.affinity(events), evidence: FeedSignals.evidence(events), mode: modeOf,
             creators: creatorOfFeed.mapValues { ($0.name, $0.count) },

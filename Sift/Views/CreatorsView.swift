@@ -155,6 +155,18 @@ private struct CreatorPane: View {
                     let hidden = model.state.hiddenCreators.contains(creator.id)
                     Button(hidden ? "Show in Your Graph" : "Hide") { model.setCreatorHidden(creator, !hidden) }
                 }
+                if let near = model.creatorSimilar[creator.id], !near.isEmpty {
+                    VStack(alignment: .leading, spacing: 4) {
+                        Text("Close to").font(.headline)
+                        Text(near.compactMap { n in model.creators.first { $0.id == n.id }.map { "\($0.name) (\(String(format: "%.2f", n.cos)))" } }
+                            .joined(separator: ", "))
+                            .font(.callout).foregroundStyle(.secondary).fixedSize(horizontal: false, vertical: true)
+                        if let r = model.creatorRank[creator.id] {
+                            Text(String(format: "Graph rank %.2f: how central this creator is to the ones you follow, through closeness in meaning (1 = most).", r))
+                                .font(.caption).foregroundStyle(.tertiary).fixedSize(horizontal: false, vertical: true)
+                        }
+                    }
+                }
                 if let person = model.person(forCreator: creator) {
                     VStack(alignment: .leading, spacing: 6) {
                         Text("Also publishes on").font(.headline)

@@ -9,6 +9,13 @@ ships this file and shows it in Settings > About and in Sift > Version
 History. Headings are `## X.Y.Z - YYYY-MM-DD`; groups are `### Added`,
 `### Changed` and `### Fixed`.
 
+## 1.8.6 - 2026-11-21
+
+### Added
+- Each theme shows the words that set it apart from your other themes, counted on your Mac from the titles and previews of its links. Today uses them too, so items fit a theme more often when they share its words. On the iPhone they sit on the theme page.
+- Your Graph knows which creators are close to each other in meaning. A creator's page shows who is close and a graph rank: how central the creator is to the ones you follow. Lean In tries the most central creators first.
+- A trail that starts from an item without a meaning vector makes one on the spot, so it finds items close in meaning too.
+
 ## 1.8.5 - 2026-11-21
 
 ### Added

@@ -164,6 +164,11 @@ final class AppModel {
     /// Meaning on this Mac: link vectors and theme centres (Engine/Embeddings.swift).
     @ObservationIgnored var embedSpace = Meaning.Space()
     var isEmbedding = false
+    /// Subterms per theme, creators close in meaning and their personal rank
+    /// (Engine/ThemeGraph.swift, `refreshThemeGraph`).
+    var themeTerms: [String: [String]] = [:]
+    var creatorSimilar: [String: [(id: String, cos: Double)]] = [:]
+    var creatorRank: [String: Double] = [:]
     /// The lane open in the lane editor sheet (Views/LaneView.swift).
     var editingLane: Lane?
     /// The directory in Follow (Feeds/Directory.swift).

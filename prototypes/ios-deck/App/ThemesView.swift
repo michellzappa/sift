@@ -169,6 +169,9 @@ struct ThemePage: View {
                 if !theme.summary.isEmpty {
                     Text(theme.summary).font(.callout).foregroundStyle(.secondary)
                 }
+                if let terms = store.creators?.themeTerms?[theme.name], !terms.isEmpty {
+                    Text(terms.joined(separator: " · ")).font(.caption).foregroundStyle(.secondary)
+                }
                 ThemeDialSection(theme: theme.name)
                 let picks = store.todayPicks(theme: theme.name)
                 if !picks.isEmpty {
