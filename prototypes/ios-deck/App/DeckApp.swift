@@ -25,6 +25,8 @@ struct DeckApp: App {
                 ThemesView().tabItem { Label("Themes", systemImage: "circle.hexagongrid") }.tag("themes")
             }
             .environment(store)
+            // A view asks for another tab (the end of a stream goes to Themes).
+            .onChange(of: store.tabRequest) { _, t in if let t { tab = t; store.tabRequest = nil } }
             // Seen marks from the Mac, and a newer Deck, whenever the app comes back.
             .onChange(of: phase) { _, p in if p == .active { store.sync() } }
         }

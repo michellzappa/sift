@@ -387,13 +387,34 @@ private struct TodayEnd: View {
 private struct StreamEnd: View {
     let mode: ReadingMode
     var body: some View {
-        VStack(spacing: 12) {
-            Image(systemName: "checkmark.circle").font(.system(size: 40)).foregroundStyle(.green)
-            Text("You're through").font(.title3.weight(.semibold))
-            Text("Your themes are in Themes.").font(.callout).foregroundStyle(.secondary)
+        VStack(spacing: 10) {
+            Image(systemName: "checkmark.circle").font(.title2).foregroundStyle(.tertiary)
+            Text("You're through").font(.subheadline).foregroundStyle(.secondary)
+            ThemesButton()
         }
         .padding(24)
         .frame(maxWidth: .infinity, maxHeight: .infinity)
+    }
+}
+
+/// The quiet end of a stream: a short grey line and a standard button to the
+/// Themes tab (owner, 2026-11-21: less contrast, a button for the link).
+struct StreamFooter: View {
+    var body: some View {
+        VStack(spacing: 8) {
+            Text("You're through").font(.footnote).foregroundStyle(.tertiary)
+            ThemesButton()
+        }
+        .frame(maxWidth: .infinity)
+        .padding(.vertical, 20)
+    }
+}
+
+struct ThemesButton: View {
+    @Environment(Store.self) private var store
+    var body: some View {
+        Button { store.tabRequest = "themes" } label: { Label("Go to Themes", systemImage: "circle.hexagongrid") }
+            .buttonStyle(.bordered).controlSize(.small).tint(.secondary)
     }
 }
 
@@ -446,8 +467,7 @@ struct TodayListView: View {
                                 }
                         }
                     } header: { Text("From your Library") } footer: {
-                        Text("You're through. Your themes are in Themes.")
-                            .frame(maxWidth: .infinity).padding(.vertical, 24)
+                        StreamFooter()
                     }
                 }
             }

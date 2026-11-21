@@ -196,6 +196,8 @@ final class Store {
     @ObservationIgnored var meaningRunning = false
     /// Custom lanes from the Mac (Deck/lanes.json, Lanes.swift).
     var lanes: LanesFile?
+    /// A tab a view asks to show ("themes"); DeckApp switches and clears it.
+    var tabRequest: String?
     /// What Sift knows about you, from the Mac (Deck/you.json, You.swift).
     var you: Profile?
     /// Your Graph from the Mac (Deck/creators.json, Graph.swift).
