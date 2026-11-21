@@ -207,7 +207,9 @@ extension AppModel {
             var directoryBuilt: Date?
             var dials: [String: String]
             var trials: [TrialRow]
+            var subClusters: [String: [SubClusterRow]]
         }
+        struct SubClusterRow: Encodable { var name: String; var count: Int }
         struct TrialRow: Encodable { var feedID, title, url, theme: String; var source: String?; var until: Date? }
         struct PlaceRow: Encodable { var id, platform, platformName, url, handle: String; var hasFeed, followed: Bool }
         struct PersonRow: Encodable { var id, name: String; var places: [PlaceRow]; var evidence: [String] }
@@ -239,7 +241,8 @@ extension AppModel {
                                             people: peopleRows, themeTerms: themeTerms, directory: directoryShown, directoryBuilt: directory.built,
                                             dials: themeDials.filter { $0.value != .stay }.mapValues(\.rawValue),
                                             trials: trialFeeds.map { TrialRow(feedID: $0.id, title: $0.title, url: $0.url, theme: $0.trial ?? "",
-                                                                              source: $0.trialSource, until: $0.trialUntil) })) else { return }
+                                                                              source: $0.trialSource, until: $0.trialUntil) },
+                                            subClusters: subClusters.mapValues { $0.map { SubClusterRow(name: $0.name, count: $0.size) } })) else { return }
         let dir = CloseList.folder.appending(path: "Deck", directoryHint: .isDirectory)
         try? FileManager.default.createDirectory(at: dir, withIntermediateDirectories: true)
         let url = dir.appending(path: "creators.json")

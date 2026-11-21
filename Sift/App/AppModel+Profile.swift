@@ -139,6 +139,7 @@ extension AppModel {
             ("x-posts.json", XStore.url, "Text of saved X posts"),
             ("signals.json", FeedSignals.localURL, "What you did with Today picks on this Mac"),
             ("farther.json", Farther.fileURL, "Claude's suggestions per theme, with the prompt it saw"),
+            ("subclusters.json", SubClusterStore.fileURL, "The parts of each theme and their names"),
             ("Telemetry", Telemetry.folder, "The weekly report waiting to go out, and its secret"),
             ("iCloud Drive/Sift", CloseList.folder, "Shared with your iPhone: close list, Today, kept, follows"),
             ("Seen marks", SeenStore.folder, "Seen and unseen, one file per device"),

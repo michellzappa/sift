@@ -48,6 +48,7 @@ struct ThemeHeader: View {
                 Text(terms.joined(separator: " · ")).font(.caption).foregroundStyle(.tertiary).lineLimit(2)
                     .help("The words that set this theme apart from your other themes, from the titles and previews of its links.")
             }
+            if let parts = model.subClusters[theme], parts.count >= 2 { SubClusterChips(theme: theme, parts: parts) }
             if project?.isTheme == true { ThemeDialRow(theme: theme) }
         }
     }
@@ -84,6 +85,40 @@ struct ThemeHeader: View {
                 }
             }
         }
+    }
+}
+
+/// The parts of a theme by meaning (Engine/SubClusters.swift) as chips.
+/// A chip narrows the theme's list to that part; All, or the chip again,
+/// shows every link.
+struct SubClusterChips: View {
+    @Environment(AppModel.self) private var model
+    let theme: String
+    let parts: [SubCluster]
+
+    var body: some View {
+        let current = model.subClusterFilter?.theme == theme ? model.subClusterFilter?.name : nil
+        ScrollView(.horizontal, showsIndicators: false) {
+            HStack(spacing: 6) {
+                chip("All", on: current == nil) { model.subClusterFilter = nil }
+                ForEach(parts) { part in
+                    chip("\(part.name) (\(part.size))", on: current == part.name) {
+                        model.subClusterFilter = current == part.name ? nil : SubClusterFilter(theme: theme, name: part.name)
+                    }
+                }
+            }
+        }
+        .help("The parts of this theme, grouped by meaning on this Mac. Click one to show only its links.")
+    }
+
+    private func chip(_ title: String, on: Bool, action: @escaping () -> Void) -> some View {
+        Button(action: action) {
+            Text(title).font(.caption).lineLimit(1)
+                .padding(.horizontal, 8).padding(.vertical, 3)
+                .background(Capsule().fill(on ? Color.accentColor.opacity(0.2) : Color.secondary.opacity(0.1)))
+                .foregroundStyle(on ? Color.accentColor : Color.secondary)
+        }
+        .buttonStyle(.plain)
     }
 }
 

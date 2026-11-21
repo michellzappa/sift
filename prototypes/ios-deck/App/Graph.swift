@@ -97,6 +97,9 @@ struct CreatorsFile: Codable {
     var dials: [String: String]?
     /// Sources the Mac is trying for a theme set to Lean In or Explore.
     var trials: [TrialRow]?
+    /// The parts of each theme by meaning (the Mac's Engine/SubClusters.swift).
+    var subClusters: [String: [SubClusterRow]]?
+    struct SubClusterRow: Codable, Hashable { var name: String; var count: Int }
     struct TrialRow: Codable, Identifiable, Hashable {
         var feedID, title, url, theme: String
         var source: String?

@@ -73,6 +73,7 @@ struct TabList: View {
 
     private var rows: [SafariTab] {
         var base = siteFilter.map { host in all.filter { $0.host == host } } ?? all
+        if let project, let members = model.subClusterMembers(theme: project) { base = base.filter { members.contains($0.url) } }
         if unseenOnly { base = base.filter { !model.isSeen($0.url) } }
         base = model.inMode(base)
         guard !search.isEmpty else { return base }

@@ -1045,3 +1045,19 @@ The one exception is anonymous diagnostics (owner, 2026-11-15, below).
   roots). Groups now: blog, newsletter, bluesky, mastodon, podcast (Mac
   and phone lists).
 
+- Sub-clusters (2026-11-21, owner: roadmap 5). `Engine/SubClusters.swift`
+  (pure): spherical k-means over `embedSpace.unit` per theme, k-means++
+  seeding, 5 restarts with a fixed seed (`SplitMix`), k = clamp(links / 25,
+  2, 5), themes under 20 links with a vector are not split. Names:
+  `LocalModel.nameCluster` (Foundation Models, the 8 titles nearest the
+  centre, 1 to 4 words, `SubClusters.clean`), not on battery, not in demo
+  mode; else the part's top 2 words by `Subterms.build` against the
+  theme's other parts (not cached, so the model names it later). Cache:
+  `subclusters.json` (`SubClusterStore`: name per theme + hash of sorted
+  members, and the last parts so chips show at launch); a part that keeps
+  70% of an old part's links (Jaccard) keeps its name. `AppModel+SubClusters`
+  `refreshSubClusters` runs after `refreshThemeGraph` (activity
+  "subclusters"). Mac: `SubClusterChips` under the terms in `ThemeHeader`;
+  a chip sets `subClusterFilter` and `TabList` shows only that part.
+  creators.json `subClusters` (theme → name, count); the phone shows them
+  as chips on the theme page, display only.

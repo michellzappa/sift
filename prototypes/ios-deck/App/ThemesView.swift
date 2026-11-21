@@ -172,6 +172,16 @@ struct ThemePage: View {
                 if let terms = store.creators?.themeTerms?[theme.name], !terms.isEmpty {
                     Text(terms.joined(separator: " · ")).font(.caption).foregroundStyle(.secondary)
                 }
+                if let parts = store.creators?.subClusters?[theme.name], parts.count >= 2 {
+                    // The parts of this theme by meaning, named on the Mac. Display only.
+                    FlowLayout(spacing: 6) {
+                        ForEach(parts, id: \.name) { part in
+                            Text("\(part.name) (\(part.count))").font(.caption2).foregroundStyle(.secondary)
+                                .padding(.horizontal, 8).padding(.vertical, 3)
+                                .background(Capsule().fill(Color.secondary.opacity(0.12)))
+                        }
+                    }
+                }
                 ThemeDialSection(theme: theme.name)
                 let picks = store.todayPicks(theme: theme.name)
                 if !picks.isEmpty {
