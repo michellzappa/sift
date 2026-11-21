@@ -253,3 +253,40 @@ struct FollowSheet: View {
         dismiss()
     }
 }
+
+/// The "…" menu on Scan, Watch and Read (owner, 2026-11-21: "don't we have
+/// a … menu to add a new source?"): follow a source, and the places to
+/// find more, without going through Themes.
+struct StreamMenu: View {
+    @Environment(Store.self) private var store
+    @State private var sheet: String?
+
+    private var folders: [String] { Array(Set(store.macFeeds?.feeds.compactMap(\.folder) ?? [])).sorted() }
+
+    var body: some View {
+        Menu {
+            Button { sheet = "follow" } label: { Label("Follow a Source…", systemImage: "plus") }
+            Divider()
+            Button { sheet = "directory" } label: { Label("Directory", systemImage: "books.vertical") }
+            Button { sheet = "feeds" } label: { Label("Feeds", systemImage: "dot.radiowaves.up.forward") }
+            Button { sheet = "lanes" } label: { Label("Lanes", systemImage: "line.3.horizontal.decrease.circle") }
+        } label: {
+            Image(systemName: "ellipsis.circle")
+        }
+        .sheet(item: Binding(get: { sheet.map(SheetID.init) }, set: { sheet = $0?.id })) { s in
+            switch s.id {
+            case "follow":
+                FollowSheet(folders: folders)
+            default:
+                NavigationStack {
+                    Group {
+                        if s.id == "directory" { DirectoryView() } else if s.id == "feeds" { FeedsView() } else { LanesListView() }
+                    }
+                    .toolbar { ToolbarItem(placement: .confirmationAction) { Button("Done") { sheet = nil } } }
+                }
+            }
+        }
+    }
+
+    private struct SheetID: Identifiable { let id: String }
+}

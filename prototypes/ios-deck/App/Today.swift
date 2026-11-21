@@ -221,6 +221,7 @@ struct TodayView: View {
             .background(Color(.systemGroupedBackground))
             .navigationTitle("Watch")
             .navigationBarTitleDisplayMode(.inline)
+            .toolbar { ToolbarItem(placement: .topBarTrailing) { StreamMenu() } }
             .refreshable { store.sync() }
             .sheet(item: $browsing) { InAppBrowser(url: URL(string: $0.url)!).ignoresSafeArea() }
             .sheet(item: $reading) { ReaderView(item: $0) }
@@ -488,6 +489,7 @@ struct TodayListView: View {
             }
             .navigationTitle(mode.title)
             .navigationBarTitleDisplayMode(.inline)
+            .toolbar { ToolbarItem(placement: .topBarTrailing) { StreamMenu() } }
             .refreshable { store.sync() }
             .sheet(item: $reading) { ReaderView(item: $0) }
             .background { Color.clear.sheet(item: $trailFrom) { TrailSheet(seed: $0) } }
