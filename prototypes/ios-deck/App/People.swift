@@ -218,21 +218,3 @@ extension Store {
         setSeen([pick.item], true, mode: "today")
     }
 }
-
-// MARK: Triage (Scan's Saved part)
-
-extension Store {
-    /// Keep, let go or send a saved post. It counts as seen here at once;
-    /// the Mac carries it out (request "triage": input URL, priority decision).
-    func triage(_ item: Item, _ decision: Decision) {
-        let kind: String
-        switch decision {
-        case .letGo: kind = "letGo"
-        case .send: kind = "send"
-        default: kind = "keep"
-        }
-        request("triage", input: item.url, priority: kind)
-        record(item, decision, mode: "triage", position: 0)
-        setSeen([item], true, mode: "triage")
-    }
-}
