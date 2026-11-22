@@ -1111,3 +1111,22 @@ The one exception is anonymous diagnostics (owner, 2026-11-15, below).
   lane, and one virality dial (Off, A little by default, More) that never
   lets popularity rank alone. Issues #48 to #52.
 
+- Network dials (2026-11-22, issue #40, ADR 0001 decision 6).
+  `Engine/NetworkDial.swift` (Foundation only, also in the phone's
+  project.yml) is the one list: `Network` (youtube, podcasts, bluesky,
+  mastodon, reddit, hackernews, blogs = web/Substack/Medium/Tumblr, news,
+  github, arxiv; `of(provider:)`, `of(url:)` for Linked by picks),
+  `NetworkDial` (more 1.5, normal 1, less 0.5, off 0) and `NetworkStats`.
+  `state.networkDials` (network id → dial, missing = Normal).
+  `FeedSignals.networks` learns per network over 30 days: shown = items
+  with a signal plus seen Today picks, opened, kept, skipped; learned =
+  tanh(mean weight per item − mean over all networks) × n/(n+10), 0 under
+  5 items. `TodayBuilder.build`: score × dial × (1 + 0.3 × learned)
+  (`PickWhy.network/networkDial/networkLearned/networkFactor`); More: 5
+  unseen per feed (Best Only 2); Less: 1 per feed, no relaxed fill, no
+  New to you or wildcard; Off: no picks, Don't Miss feeds too.
+  `App/AppModel+Networks.swift`, `Views/NetworkSettings.swift`
+  (`NetworkDialsSection` in Settings > Algorithm and How Today Works,
+  `NetworkDialMenu` in Today's toolbar). Phone: `App/Networks.swift`
+  (Settings > Networks), request kind "network" (input = id, priority =
+  dial), creators.json `networks` (id, dial, feeds, stats).

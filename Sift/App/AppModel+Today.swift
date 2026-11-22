@@ -58,7 +58,9 @@ extension AppModel {
             personOf: personOfFeed,
             dials: themeDials,
             muted: state.muted.filter { $0.until > Date() },
-            snoozed: (state.discoverySnoozedUntil ?? .distantPast) > Date())
+            snoozed: (state.discoverySnoozedUntil ?? .distantPast) > Date(),
+            networkOf: networkOfFeed, networkDials: networkDials,
+            networkLearned: networkStats(events: events).mapValues(\.learned))
         let fresh = TodayBuilder.build(input)
         // Old digests (URL titles, "New from") are dropped, not merged.
         let stale = state.today?.picks.contains { $0.title.hasPrefix("http") || $0.reason.hasPrefix("New from ") } ?? false

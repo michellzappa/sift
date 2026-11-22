@@ -103,6 +103,10 @@ struct CreatorsFile: Codable {
     var trials: [TrialRow]?
     /// The parts of each theme by meaning (the Mac's Engine/SubClusters.swift).
     var subClusters: [String: [SubClusterRow]]?
+    /// Network dials (Sift/Engine/NetworkDial.swift): each network in use,
+    /// its dial and what the Mac learned. Nil from older Macs.
+    var networks: [NetworkRow]?
+    struct NetworkRow: Codable, Hashable { var id, dial: String; var feeds: Int; var stats: NetworkStats }
     struct SubClusterRow: Codable, Hashable { var name: String; var count: Int }
     struct TrialRow: Codable, Identifiable, Hashable {
         var feedID, title, url, theme: String
@@ -190,6 +194,12 @@ struct PickWhy: Codable, Hashable, Sendable {
     /// Social proof: your feeds whose posts link to this item.
     var linkedBy: [String]? = nil
     var linkedBonus: Double? = nil
+    /// Network dials: the network, its dial when not Normal, what the Mac
+    /// learned (-1…1) and the factor on the score.
+    var network: String? = nil
+    var networkDial: String? = nil
+    var networkLearned: Double? = nil
+    var networkFactor: Double? = nil
 }
 
 extension Store {
@@ -426,7 +436,7 @@ struct AlgorithmView: View {
     var body: some View {
         List {
             Section {
-                Text("score = fresh × volume × reading + graph + theme + linked + hot").font(.system(.callout, design: .monospaced))
+                Text("score = (fresh × volume × reading + graph + theme + linked + hot) × network").font(.system(.callout, design: .monospaced))
                 row("fresh", "exp(-hours / 36)", "1 when new, about 0.5 after a day")
                 row("volume", "1 / √(posts a day)", "a rare post counts more")
                 row("reading", "1 + 0.8 × affinity", "affinity is -1…1, from what you did with the feed")
@@ -434,6 +444,7 @@ struct AlgorithmView: View {
                 row("theme", "0.15 × shared words", "3 or more words shared with a theme, max 0.6")
                 row("linked", "0.3 × feeds, max 0.9", "your other feeds link to it in their posts this week")
                 row("hot", "0.6 × (feeds − 1)", "the same link in 2 or more of your feeds")
+                row("network", "dial × (1 + 0.3 × learned)", "More 1.5, Normal 1, Less 0.5, Off none; learned from what you open, keep and skip per network")
             } header: { Text("The Today score") } footer: {
                 Text("Don't Miss items come first, then Hot, then by score. Each of Scan, Watch and Read gets at least 5 picks; unseen items up to 14 days old fill a mode that has fewer. One \"New to you\" and one random \"Something different\" per mode. A link 2 or more of your feeds point to, but none carries, gets its own place (\"Linked by\"), at most 3. More Like This on any item opens a trail: same creator, same theme or shared words, 20 at most. Today, trails and Your Graph use no AI.")
             }

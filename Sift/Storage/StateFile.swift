@@ -34,6 +34,9 @@ struct SiftState: Codable, Sendable {
     var discoverySnoozedUntil: Date?
     /// Feed id → when the user told Sift to forget what it learned there.
     var forgotSignals: [String: Date] = [:]
+    /// Network dials (Engine/NetworkDial.swift): network id → more, less
+    /// or off. A missing network is Normal.
+    var networkDials: [String: String] = [:]
     /// The current Today digest.
     var today: TodayDigest?
     /// Capture new links into the library in the background.
@@ -109,6 +112,7 @@ struct SiftState: Codable, Sendable {
         muted = try c.decodeIfPresent([Muted].self, forKey: .muted) ?? []
         discoverySnoozedUntil = try c.decodeIfPresent(Date.self, forKey: .discoverySnoozedUntil)
         forgotSignals = try c.decodeIfPresent([String: Date].self, forKey: .forgotSignals) ?? [:]
+        networkDials = try c.decodeIfPresent([String: String].self, forKey: .networkDials) ?? [:]
         today = try c.decodeIfPresent(TodayDigest.self, forKey: .today)
         autoCapture = try c.decodeIfPresent(Bool.self, forKey: .autoCapture) ?? true
         youtubeTranscripts = try c.decodeIfPresent(Bool.self, forKey: .youtubeTranscripts) ?? true

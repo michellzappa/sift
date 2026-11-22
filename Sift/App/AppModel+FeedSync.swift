@@ -15,7 +15,8 @@ import Foundation
 /// One request from the phone.
 struct PhoneFeedRequest: Codable, Sendable, Hashable {
     var id: String
-    /// "follow", "unfollow", "priority" or "folder".
+    /// "follow", "unfollow", "priority", "folder", "network" (input =
+    /// network id, priority = dial) and the others in `mergeDeviceFollows`.
     var kind: String
     /// For follow: what the user typed (a site, r/swift, @name.bsky.social).
     var input: String?
@@ -124,6 +125,10 @@ extension AppModel {
                 // A theme dial set on the phone: input = theme, priority = dial.
                 if let theme = r.input, let d = ThemeDial(rawValue: r.priority ?? "") { setDial(d, for: theme) }
                 state.phoneRequests[r.id] = "done"
+            case "network":
+                // A network dial set on the phone: input = network id, priority = dial.
+                if let n = Network(rawValue: r.input ?? ""), let d = NetworkDial(rawValue: r.priority ?? "") { setNetworkDial(d, for: n) }
+                state.phoneRequests[r.id] = "done"
             case "trial-follow", "trial-stop":
                 if let f = state.feeds.first(where: { $0.id == r.feedID && $0.trial != nil }) {
                     if r.kind == "trial-follow" { followTrial(f) } else { stopTrial(f) }
@@ -212,11 +217,18 @@ extension AppModel {
             var dials: [String: String]
             var trials: [TrialRow]
             var subClusters: [String: [SubClusterRow]]
+            /// Network dials: each network in use, its dial and what Sift learned.
+            var networks: [NetworkRow]
         }
+        struct NetworkRow: Encodable { var id, dial: String; var feeds: Int; var stats: NetworkStats }
         struct SubClusterRow: Encodable { var name: String; var count: Int }
         struct TrialRow: Encodable { var feedID, title, url, theme: String; var source: String?; var until: Date? }
         struct PlaceRow: Encodable { var id, platform, platformName, url, handle: String; var hasFeed, followed: Bool }
         struct PersonRow: Encodable { var id, name: String; var places: [PlaceRow]; var evidence: [String] }
+        let netStats = networkStats(), netFeeds = feedsPerNetwork
+        let networkRows = networksInUse.map { n in
+            NetworkRow(id: n.rawValue, dial: networkDial(n).rawValue, feeds: netFeeds[n, default: 0], stats: netStats[n] ?? .empty)
+        }
         let hidden = Set(state.hiddenCreators)
         let names = Dictionary(creators.map { ($0.id, $0.name) }, uniquingKeysWith: { a, _ in a })
         let rows = creators.map { c in
@@ -246,7 +258,8 @@ extension AppModel {
                                             dials: themeDials.filter { $0.value != .stay }.mapValues(\.rawValue),
                                             trials: trialFeeds.map { TrialRow(feedID: $0.id, title: $0.title, url: $0.url, theme: $0.trial ?? "",
                                                                               source: $0.trialSource, until: $0.trialUntil) },
-                                            subClusters: subClusters.mapValues { $0.map { SubClusterRow(name: $0.name, count: $0.size) } })) else { return }
+                                            subClusters: subClusters.mapValues { $0.map { SubClusterRow(name: $0.name, count: $0.size) } },
+                                            networks: networkRows)) else { return }
         let dir = CloseList.folder.appending(path: "Deck", directoryHint: .isDirectory)
         try? FileManager.default.createDirectory(at: dir, withIntermediateDirectories: true)
         let url = dir.appending(path: "creators.json")

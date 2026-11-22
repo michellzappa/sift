@@ -35,6 +35,7 @@ struct TodayView: View {
                       ? "Discovery is snoozed until \(model.state.discoverySnoozedUntil?.formatted(date: .abbreviated, time: .omitted) ?? ""). Click to bring it back."
                       : "For a week, Today shows only your feeds' own picks: no Linked by, New to you, Something different or tried sources.")
             }
+            ToolbarItem { NetworkDialMenu() }
             ToolbarItem {
                 Button { model.showHowToday = true } label: { Label("How Today Works", systemImage: "questionmark.circle") }
                     .help("How Today picks and orders items, and what it learned about each feed")
