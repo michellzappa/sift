@@ -1096,7 +1096,12 @@ The one exception is anonymous diagnostics (owner, 2026-11-15, below).
   thinking on website"). The site (michellzappa/blog, `lib/apps.ts`, id
   "sift") renders README.md and the docs pages listed there from this
   repo. A change to what the app does updates the matching page in the same
-  commit. Open work for this: issue #47.
+  commit (README.md, docs/mcp.md, docs/telemetry.md). docs/how-sift-ranks.md
+  states Today's ranking in words and every number from `TodayBuilder`,
+  `NetworkDial`, `ThemeDial`/`Trials`, `Meaning` and `FeedSignals`: a change
+  to the ranking changes it in the same commit, with How Today Works,
+  Settings > Algorithm and `PickWhyView`. The site's docs pages are listed
+  in `lib/apps.ts` (id "sift"); a new docs page needs a row there.
 - Scan is browsing (2026-11-21, owner: "I don't WANT saved in scan; scan
   means I'm not saving, just browsing"). The phone's Scan tab shows only
   Today's headlines: no "From your Library" section. Saved short posts
