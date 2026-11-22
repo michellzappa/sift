@@ -77,19 +77,55 @@ enum FeedSignals {
         for e in events where !e.feedID.isEmpty {
             let days = max(0, now.timeIntervalSince(e.at) / 86_400)
             let decay = exp(-days / 30)
-            let w: Double
-            switch e.kind {
-            case "keep": w = 3
-            case "open", "play", "unseen": w = 1
-            case "dwell": w = min((e.seconds ?? 0) / 10, 2) * 0.5
-            case "skip": w = -0.4
-            // Not interested: less from this source.
-            case "less": w = -1.5
-            default: w = 0
-            }
-            sum[e.feedID, default: 0] += w * decay
+            sum[e.feedID, default: 0] += weight(e) * decay
         }
         return sum.mapValues { tanh($0 / 5) }
+    }
+
+    /// The weight of one signal, shared by feed and network learning.
+    static func weight(_ e: SignalEvent) -> Double {
+        switch e.kind {
+        case "keep": 3
+        case "open", "play", "unseen": 1
+        case "dwell": min((e.seconds ?? 0) / 10, 2) * 0.5
+        case "skip": -0.4
+        // Not interested: less from this source.
+        case "less": -1.5
+        default: 0
+        }
+    }
+
+    /// What Sift learned per network (Engine/NetworkDial.swift) from the
+    /// last `NetworkStats.days` days. `seenPicks` are Today picks you saw
+    /// without a signal (scrolled past in Scan): they count as shown.
+    /// Learned = tanh(mean weight per item − the mean over all networks),
+    /// shrunk by n / (n + 10), so a network needs evidence to move.
+    static func networks(_ events: [SignalEvent], networkOf: [String: Network], seenPicks: [(url: String, network: Network)],
+                         now: Date = Date()) -> [Network: NetworkStats] {
+        let since = now.addingTimeInterval(-NetworkStats.days * 86_400)
+        struct Item { var weight = 0.0; var opened = false; var kept = false; var skipped = false }
+        var items: [Network: [String: Item]] = [:]
+        for e in events where e.at >= since {
+            guard let n = networkOf[e.feedID] else { continue }
+            let decay = exp(-max(0, now.timeIntervalSince(e.at)) / 86_400 / 30)
+            var it = items[n]?[e.url] ?? Item()
+            it.weight += weight(e) * decay
+            if ["open", "play", "keep"].contains(e.kind) { it.opened = true }
+            if e.kind == "keep" { it.kept = true }
+            if e.kind == "skip" { it.skipped = true }
+            items[n, default: [:]][e.url] = it
+        }
+        for p in seenPicks where items[p.network]?[p.url] == nil { items[p.network, default: [:]][p.url] = Item() }
+        let all = items.values.flatMap(\.values)
+        let overall = all.isEmpty ? 0 : all.map(\.weight).reduce(0, +) / Double(all.count)
+        return items.mapValues { byURL in
+            let list = Array(byURL.values)
+            let n = list.count
+            let mean = list.map(\.weight).reduce(0, +) / Double(max(n, 1))
+            let learned = n < NetworkStats.minShown ? 0 : tanh(mean - overall) * Double(n) / Double(n + 10)
+            return NetworkStats(shown: n, opened: list.filter(\.opened).count, kept: list.filter(\.kept).count,
+                                skipped: list.filter(\.skipped).count, learned: learned)
+        }
     }
 
     /// How many signals a feed has: few means Sift knows little about it yet.

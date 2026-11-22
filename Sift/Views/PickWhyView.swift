@@ -43,6 +43,9 @@ struct PickWhyView: View {
                         if why.mentions > 1 {
                             row("Hot", String(format: "+ %.2f", why.hotBonus), "in \(why.mentions) of your feeds")
                         }
+                        if let raw = why.network, let n = Network(rawValue: raw), let f = why.networkFactor {
+                            row("Network", String(format: "× %.2f", f), networkText(n))
+                        }
                         Divider().gridCellColumns(3)
                         row("Score", String(format: "%.2f", why.score), "higher comes first")
                     }
@@ -63,6 +66,16 @@ struct PickWhyView: View {
             Text(value).monospacedDigit().gridColumnAlignment(.trailing)
             Text(note).foregroundStyle(.secondary).lineLimit(2)
         }
+    }
+
+    private func networkText(_ n: Network) -> String {
+        let dial = NetworkDial(why.networkDial)
+        let set = dial == .normal ? "\(n.title) is Normal" : "\(n.title) is set to \(dial.title) (× \(String(format: "%.1f", dial.factor)))"
+        let learned = why.networkLearned ?? 0
+        let lean = abs(learned) < 0.05 ? "no lean from use yet"
+            : String(format: "%@ from use (× %.2f)", learned > 0 ? "you use it more than others" : "you use it less than others",
+                     1 + NetworkDial.learnedWeight * learned)
+        return set + "; " + lean
     }
 
     private var age: String {

@@ -24,6 +24,8 @@ targets:
       - path: ../../Sift/Engine/Meaning.swift
       # What Sift knows about you (Settings > You), built on the Mac.
       - path: ../../Sift/Engine/Profile.swift
+      # The networks and their dials (Today's network factor), shared with the Mac.
+      - path: ../../Sift/Engine/NetworkDial.swift
     settings:
       base:
         PRODUCT_BUNDLE_IDENTIFIER: com.centaur-labs.sift

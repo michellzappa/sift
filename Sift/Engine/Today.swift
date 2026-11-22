@@ -108,6 +108,13 @@ struct PickWhy: Codable, Hashable, Sendable {
     /// Social proof: your feeds whose posts link to this item.
     var linkedBy: [String]? = nil
     var linkedBonus: Double? = nil
+    /// Network dials (Engine/NetworkDial.swift): the pick's network, its
+    /// dial when not Normal, what Sift learned (-1…1) and the factor on
+    /// the score (dial × (1 + 0.3 × learned)).
+    var network: String? = nil
+    var networkDial: String? = nil
+    var networkLearned: Double? = nil
+    var networkFactor: Double? = nil
 }
 
 struct TodayDigest: Codable, Hashable, Sendable {
@@ -189,6 +196,23 @@ enum TodayBuilder {
         /// Discovery snoozed: no Linked by, New to you, Something different
         /// or tried-source places.
         var snoozed = false
+        /// Network dials: the network of each feed, the dial per network
+        /// (missing = Normal) and the learned term per network (-1…1).
+        var networkOf: [String: Network] = [:]
+        var networkDials: [Network: NetworkDial] = [:]
+        var networkLearned: [Network: Double] = [:]
+    }
+
+    /// The network factor on a score: the dial × (1 + 0.3 × learned).
+    static func networkFactor(_ dial: NetworkDial, learned: Double) -> Double {
+        dial.factor * (1 + NetworkDial.learnedWeight * learned)
+    }
+
+    /// Applies the network factor; a negative score (a muted theme) is
+    /// divided, so Less still pushes it down.
+    static func applyNetwork(_ score: Double, factor: Double) -> Double {
+        guard factor > 0 else { return score }
+        return score >= 0 ? score * factor : score / factor
     }
 
     static let mutedPenalty = 0.5
@@ -342,6 +366,9 @@ enum TodayBuilder {
     ///    counts more than the 30th of a busy one) × learned affinity, plus
     ///    theme fit and the same link in several feeds. Best Only feeds need
     ///    such a signal and get one slot; Normal feeds two; Not in Today none.
+    ///    The network dial multiplies the score (More 1.5, Less 0.5, times
+    ///    1 + 0.3 × what Sift learned) and sets the share: More 5 per feed,
+    ///    Less 1 per feed and no extra slots, Off nothing.
     /// 3. Per mode: a mode with fewer than `perMode` picks takes older
     ///    unseen items of that mode (up to 14 days), then one slot for a
     ///    feed Sift knows little about and one wildcard.
@@ -381,7 +408,9 @@ enum TodayBuilder {
         let themeWords: [(name: String, words: Set<String>)] = input.themes.map { ($0.name, words($0.name + " " + $0.summary)) }
 
         struct Candidate { var pick: TodayPick; var score: Double; var priority: FeedPriority; var strong: Bool; var mentions: Int; var mode: ReadingMode; var older: Bool
-                           var linked = false; var trial: String? = nil }
+                           var linked = false; var trial: String? = nil
+                           /// Unseen picks its feed may have; Less networks: 1, no extra slots.
+                           var cap: Int = TodayBuilder.perFeed; var less = false }
         var must: [TodayPick] = []
         var candidates: [Candidate] = []
         var seenURL = Set<String>()
@@ -390,6 +419,19 @@ enum TodayBuilder {
             let rate = postsPerDay(entries, now: now)
             let priority = priority(feed, postsPerDay: rate)
             guard priority != .off else { continue }
+            let network = input.networkOf[feed.id] ?? .blogs
+            let netDial = input.networkDials[network] ?? .normal
+            // Network dial Off: nothing from this network, Don't Miss feeds too.
+            guard netDial != .off else { continue }
+            let netLearned = input.networkLearned[network] ?? 0
+            let netFactor = networkFactor(netDial, learned: netLearned)
+            let cap: Int = switch (netDial, priority) {
+            case (.less, _): 1
+            case (.more, .best): 2
+            case (.more, _): NetworkDial.morePerFeed
+            case (_, .best): 1
+            default: perFeed
+            }
             let damping = 1 / sqrt(max(rate, 0.3))
             let affinity = input.affinity[feed.id] ?? 0
             for e in entries {
@@ -491,10 +533,15 @@ enum TodayBuilder {
                     pick.reason = "Trying for \(t)" + (feed.trialSource.map { ": \($0)" } ?? "")
                 }
                 if affinity > 0.4 { strong = true }
+                score = applyNetwork(score, factor: netFactor)
+                why.network = network.rawValue
+                why.networkDial = netDial == .normal ? nil : netDial.rawValue
+                why.networkLearned = netLearned
+                why.networkFactor = netFactor
                 why.score = score
                 pick.why = why
                 candidates.append(Candidate(pick: pick, score: score, priority: priority, strong: strong, mentions: mentions,
-                                            mode: input.mode(pick), older: date < cutoff, trial: feed.trial))
+                                            mode: input.mode(pick), older: date < cutoff, trial: feed.trial, cap: cap, less: netDial == .less))
             }
         }
 
@@ -511,14 +558,21 @@ enum TodayBuilder {
             let names = l.feeds.values.sorted()
             let hours = max(now.timeIntervalSince(l.newest) / 3600, 0)
             let bonus = min(Double(names.count) * linkedBonusEach, linkedMaxBonus)
+            let network = Network.of(url: l.url)
+            let netDial = input.networkDials[network] ?? .normal
+            guard netDial != .off else { continue }
+            let netLearned = input.networkLearned[network] ?? 0
+            let netFactor = networkFactor(netDial, learned: netLearned)
             let why = PickWhy(slot: "linked", hoursOld: hours, freshness: exp(-hours / 36), postsPerDay: 0, volume: 1, affinity: 0,
                               theme: nil, themeWords: 0, themeBonus: 0, mentions: 0, hotBonus: 0, creator: nil, creatorSaves: 0,
-                              creatorBonus: 0, score: exp(-hours / 36) + bonus, linkedBy: names, linkedBonus: bonus)
+                              creatorBonus: 0, score: applyNetwork(exp(-hours / 36) + bonus, factor: netFactor), linkedBy: names, linkedBonus: bonus,
+                              network: network.rawValue, networkDial: netDial == .normal ? nil : netDial.rawValue,
+                              networkLearned: netLearned, networkFactor: netFactor)
             var pick = TodayPick(url: l.url, title: title, date: l.newest, feedID: l.firstFeed, feedTitle: host,
                                  summary: l.context, image: nil, reason: linkedReason(names))
             pick.why = why
             candidates.append(Candidate(pick: pick, score: why.score, priority: .normal, strong: true, mentions: 0,
-                                        mode: input.mode(pick), older: false, linked: true))
+                                        mode: input.mode(pick), older: false, linked: true, less: netDial == .less))
         }
 
         must.sort { ($0.date ?? .distantPast) > ($1.date ?? .distantPast) }
@@ -552,8 +606,7 @@ enum TodayBuilder {
                 continue
             }
             if c.priority == .best && !c.strong { continue }
-            let cap = c.priority == .best ? 1 : perFeed
-            guard perFeedCount[c.pick.feedID, default: 0] < cap else { continue }
+            guard perFeedCount[c.pick.feedID, default: 0] < c.cap else { continue }
             perFeedCount[c.pick.feedID, default: 0] += 1
             picks.append(c.pick)
         }
@@ -568,8 +621,8 @@ enum TodayBuilder {
                 for c in candidates where c.older && c.trial == nil && c.mode == mode && modeCount[mode, default: 0] < perMode {
                     if c.priority == .best && !c.strong { continue }
                     if picks.contains(where: { $0.url == c.pick.url }) { continue }
-                    let cap = c.priority == .best ? 1 : perFeed
-                    if !relaxed && perFeedCount[c.pick.feedID, default: 0] >= cap { continue }
+                    // A Less network never fills past its share.
+                    if (!relaxed || c.less) && perFeedCount[c.pick.feedID, default: 0] >= c.cap { continue }
                     var p = c.pick
                     p.fill = true
                     p.why?.slot = "fill"
@@ -583,7 +636,8 @@ enum TodayBuilder {
 
         // Exploration and the wildcard, once per mode, so each tab gets them.
         for mode in ReadingMode.allCases where !input.snoozed {
-            let pool = candidates.filter { $0.mode == mode && !$0.older && !$0.linked && $0.trial == nil }
+            // Less networks get no extra slots.
+            let pool = candidates.filter { $0.mode == mode && !$0.older && !$0.linked && $0.trial == nil && !$0.less }
             // Exploration: the newest item of a feed Sift has little evidence on.
             if let explore = pool.first(where: { c in !picks.contains { $0.url == c.pick.url } && c.priority == .normal
                 && (input.evidence[c.pick.feedID] ?? 0) < 3 && perFeedCount[c.pick.feedID] == nil }) {

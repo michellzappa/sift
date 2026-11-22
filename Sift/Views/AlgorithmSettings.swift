@@ -15,6 +15,7 @@ struct AlgorithmSettings: View {
                 Text("Everything Sift ranks by, with the live numbers. It all runs on this Mac. Today and Your Graph are the plain formulas below. The only model they use is Apple's on-device embeddings, for closeness in meaning.")
                     .foregroundStyle(.secondary).fixedSize(horizontal: false, vertical: true)
                 section("The Today score") { formula }
+                section("Networks") { NetworkDialsSection() }
                 section("Today's picks, by score") { picks }
                 section("The rules") { TodayRules() }
                 section("What Sift learns from you") { signals }
@@ -44,7 +45,7 @@ struct AlgorithmSettings: View {
 
     private var formula: some View {
         VStack(alignment: .leading, spacing: 8) {
-            Text("score = fresh × volume × reading + graph + theme + linked + vouched + hot")
+            Text("score = (fresh × volume × reading + graph + theme + linked + vouched + hot) × network")
                 .font(.system(.body, design: .monospaced))
                 .padding(8)
                 .background(RoundedRectangle(cornerRadius: 6).fill(Color.secondary.opacity(0.1)))
@@ -60,6 +61,7 @@ struct AlgorithmSettings: View {
                 line("dial", "Lean In: theme × 2", "per theme, in its header or the sidebar menu; Explore and Lean In also try a few sources")
                 line("vouched", "0.1 × log2(1 + vouchers), max 0.3", "a feed you followed from the directory, for its first \(Int(TodayBuilder.vouchDays)) days")
                 line("hot", "0.6 × (feeds − 1)", "the same link in 2 or more of your feeds")
+                line("network", "dial × (1 + \(String(format: "%.1f", NetworkDial.learnedWeight)) × learned)", "dial: More 1.5, Normal 1, Less 0.5, Off no picks; learned is -1…1, from what you open, keep and skip per network compared with the others")
             }
             .font(.callout)
             Text("Places: Don't Miss items first, then Hot, then by score. A Normal feed gets up to \(TodayBuilder.perFeed) unseen picks at a time, a Best Only feed 1. Each mode (Scan, Watch, Read) gets at least \(TodayBuilder.perMode); if it has fewer, unseen items up to \(Int(TodayBuilder.fillWindowDays)) days old fill it. Then one \"New to you\" and one random \"Something different\" per mode. A link that \(TodayBuilder.linkedMinFeeds) or more of your feeds point to, but none carries, gets its own place (\"Linked by\"), at most \(TodayBuilder.linkedMaxPicks).")

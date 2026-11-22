@@ -61,6 +61,9 @@ struct HowTodayWorks: View {
                 VStack(alignment: .leading, spacing: 18) {
                     TodayRules()
                     Divider()
+                    Text("Networks").font(.headline)
+                    NetworkDialsSection()
+                    Divider()
                     FeedStandingsList()
                 }
                 .padding(20)
@@ -93,7 +96,8 @@ struct TodayRules: View {
             rule("12", "Trails", "More Like This (T, or the context menu) on any item opens a trail: up to \(Trail.size) unseen items from the same creator, the same theme or close in meaning, from your saves and your feeds. It ends. Start a new trail from any item on it.")
             rule("13", "Theme dials", "Each theme is Stay, Lean In or Explore. Lean In doubles its lift and tries up to 2 creators you save from there. Explore tries up to 3 sources one step out (Next Door, the directory, Farther). Tried sources are not follows: their items say \"Trying for\", at most a few per theme, and they go after \(Int(Trials.days)) days unless you follow them.")
             rule("14", "Not interested", "In an item's menu: less from its source (its feed's affinity drops by 1.5, fading over a month), less about its theme (30 days), or seen enough of the story (7 days). Snooze Discovery in the toolbar turns off everything but your feeds' own picks for a week. Forget What Sift Learned on a feed resets it.")
-            rule("15", "Check any pick", "Open a pick and look under \"Why this is here\": every number of its score, and which rule gave it its place.")
+            rule("15", "Network dials", "Each network (YouTube, Bluesky, Reddit, blogs and newsletters…) is More, Normal, Less or Off, in Today's toolbar or Settings > Algorithm. More multiplies the score by 1.5 and lets a feed have up to \(NetworkDial.morePerFeed) unseen items. Less multiplies it by 0.5, allows 1 item per feed and no extra slots. Off shows nothing from it. Sift also learns from use: a network you open and keep more than the others gets up to \(Int(NetworkDial.learnedWeight * 100))% more, one you skip up to \(Int(NetworkDial.learnedWeight * 100))% less.")
+            rule("16", "Check any pick", "Open a pick and look under \"Why this is here\": every number of its score, and which rule gave it its place.")
         }
     }
 
