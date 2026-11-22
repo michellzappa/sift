@@ -9,6 +9,18 @@ ships this file and shows it in Settings > About and in Sift > Version
 History. Headings are `## X.Y.Z - YYYY-MM-DD`; groups are `### Added`,
 `### Changed` and `### Fixed`.
 
+## 1.8.9 - 2026-11-22
+
+### Added
+- Who you follow, from every network. Settings > Inputs reads your YouTube Takeout subscriptions, the Instagram and TikTok exports and the X archive, and your Bluesky and Mastodon follows from your handle. YouTube, Bluesky and Mastodon accounts become feeds in their own folders; Instagram, TikTok and X accounts join People. Sift never logs in to those networks.
+- Sift can watch your Downloads folder and pick up a new export by itself, and reminds you once a month when an export is older than 30 days.
+- Network dials: More, Normal, Less or Off for YouTube, Podcasts, Bluesky, Mastodon, Reddit, Hacker News, blogs and newsletters and more, in Today's toolbar, Settings > Algorithm and the iPhone's Settings. Beside each dial, what Sift learned from what you open, keep and skip. "Why this is here" names the network.
+- Today is grouped by theme, each in its colour, and every item has a small badge for its network. Group by Theme turns it off. On the iPhone, Scan and Read are grouped the same way and Watch cards show their theme.
+- Like and Save on Bluesky and Mastodon. Sign in under Settings > Inputs (Bluesky with an app password, Mastodon through your instance). Instagram, TikTok, X and YouTube items get Open in <app>.
+- Lists you watch: add a FeedLand name or any OPML list in the directory, and its feeds show as "In <name>'s list".
+- Your Graph counts creators you save in the same theme and week as close to each other.
+- On the iPhone, Watch cards have Not Interested.
+
 ## 1.8.8 - 2026-11-21
 
 ### Added

@@ -55,14 +55,14 @@ order. Items marked "decision" wait for the owner.
 Open items are GitHub issues in the milestone "Multisocial (ADR 0001)",
 for the factory.
 
-- [ ] Your graph from every network: import following lists (#39).
-- [ ] Network dials, trained by use (#40).
-- [ ] Today themes first, with network badges (#41).
-- [ ] Light actions: like and bookmark on Bluesky and Mastodon (#42).
-- [ ] Watch Downloads for new exports; monthly reminder (#43).
-- [ ] Co-save edges in the creator graph (#44).
-- [ ] Published OPML follow lists (#45).
-- [ ] Not Interested on the iPhone's Watch cards (#46).
+- [x] Your graph from every network: import following lists (#39) (1.8.9).
+- [x] Network dials, trained by use (#40) (1.8.9).
+- [x] Today themes first, with network badges (#41) (1.8.9).
+- [x] Light actions: like and bookmark on Bluesky and Mastodon (#42) (1.8.9).
+- [x] Watch Downloads for new exports; monthly reminder (#43) (1.8.9).
+- [x] Co-save edges in the creator graph (#44) (1.8.9).
+- [x] Published OPML follow lists (#45) (1.8.9).
+- [x] Not Interested on the iPhone's Watch cards (#46) (1.8.9).
 - [ ] Docs 1:1 with the app on the website (#47).
 - [x] Sub-clusters per theme, named by the on-device model; Mac chips
   filter the list, the phone shows them (1.8.8).
