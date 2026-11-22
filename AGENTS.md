@@ -1168,3 +1168,23 @@ The one exception is anonymous diagnostics (owner, 2026-11-15, below).
   `today.groupByTheme`, on by default. Watch cards on the phone have a
   Not Interested menu (thumbs down, beside Keep) with the three choices
   of the Scan and Read rows (`Store.notInterested`).
+- Light actions (2026-11-22, issue #42, ADR 0001 decision 5).
+  `Sift/Social/`: `Networks.swift` (pure, also compiled into the phone:
+  `appName` for Instagram, TikTok, X, YouTube; `blueskyPost`;
+  `isMastodonStatus`), `BlueskyAccount.swift`, `MastodonAccount.swift`,
+  `LightActions.swift` (`SocialAccounts.shared`, `LightActionsButtons`
+  in the Today/feed reader header, `SocialAccountsSettings` in Settings >
+  Inputs). Bluesky uses an app password, not OAuth: atproto OAuth needs
+  PAR, DPoP and an https client-metadata document that Sift has no
+  server for; the loopback client is optional per server. Keychain
+  `app.sift.bluesky` keeps handle, DID, PDS, app password and tokens;
+  refreshSession, else createSession again. Like =
+  `app.bsky.feed.like` record; Save = `app.bsky.bookmark.createBookmark`
+  (private, through `atproto-proxy: did:web:api.bsky.app#bsky_appview`).
+  Mastodon: POST /api/v1/apps per sign-in, OAuth with PKCE on
+  `LoopbackServer` port 53684, scopes `read:accounts read:search
+  write:favourites write:bookmarks` (search with resolve=true needs
+  read:search), keychain `app.sift.mastodon.<host>`, UserDefaults
+  `social.mastodonInstance`; Sign Out revokes. Mac "Open in <App>" uses
+  NSWorkspace; the phone's ReaderView uses openURL (universal link).
+  Off in demo mode. No sign-in on the phone.

@@ -175,6 +175,7 @@ struct CardView: View {
 struct ReaderView: View {
     @Environment(Store.self) private var store
     @Environment(\.dismiss) private var dismiss
+    @Environment(\.openURL) private var openURL
     let item: Item
     @State private var browsing: BrowserLink?
     @State private var trailFrom: Item?
@@ -182,6 +183,15 @@ struct ReaderView: View {
     @State private var content: CGRect = .zero
     @State private var viewport: CGFloat = 0
     private static let space = "reader"
+
+    /// "Open in Instagram", TikTok, X or YouTube: the system hands the link
+    /// to that app (its universal link), else to the website. Sift holds no
+    /// login for these networks (ADR 0001, decision 5).
+    @ViewBuilder private var openInApp: some View {
+        if let app = Networks.appName(for: item.url), let url = URL(string: item.url) {
+            Button { openURL(url) } label: { Label("Open in \(app)", systemImage: "arrow.up.forward.app") }
+        }
+    }
 
     var body: some View {
         NavigationStack {
@@ -191,10 +201,7 @@ struct ReaderView: View {
                     VStack(alignment: .leading, spacing: 14) {
                         Text(item.theme).font(.caption.weight(.semibold)).foregroundStyle(store.color(item.theme))
                         XPostCard(post: item.xPost)
-                        if let url = URL(string: item.url) {
-                            Button { browsing = BrowserLink(url: url) } label: { Label("Open on X", systemImage: "arrow.up.forward.square") }
-                                .padding(.top, 6)
-                        }
+                        openInApp.padding(.top, 6)
                         Button { trailFrom = item } label: { Label("More like this", systemImage: "point.topleft.down.to.point.bottomright.curvepath") }
                     }
                     .padding(20)
@@ -230,6 +237,7 @@ struct ReaderView: View {
                             Text("Transcript").font(.headline).padding(.top, 6)
                         }
                         ReaderText(markdown: source)
+                        openInApp.padding(.top, 10)
                         if let url = URL(string: item.url) {
                             // Safari inside the app, never the Safari app: a page
                             // opened there becomes a tab and comes back to Sift.
