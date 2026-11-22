@@ -6,6 +6,8 @@ import SwiftUI
 /// there into the library. Nothing here is saved until you keep it.
 struct TodayView: View {
     @Environment(AppModel.self) private var model
+    /// Themes first (issue #41): sections per theme; off = the plain ranked list.
+    @AppStorage("today.groupByTheme") private var groupByTheme = true
 
     private var picks: [TodayPick] { model.todayPicks }
     private var open: [TodayPick] { model.inMode(picks).filter { !model.isSeen($0.url) && !model.isKept($0.url) } }
@@ -17,11 +19,15 @@ struct TodayView: View {
             Text(model.state.feeds.isEmpty
                  ? "Follow feeds with Add Feed in the toolbar. Today shows the best of what they offer and updates as they post."
                  : "Your feeds have nothing new from the last \(Int(TodayBuilder.windowDays)) days that you have not seen.")
-        })
+        }, grouped: groupByTheme)
         .navigationTitle("Today")
         .navigationSubtitle(subtitle)
         .toolbar {
             ToolbarItem(placement: .principal) { ModePicker() }
+            ToolbarItem {
+                Toggle(isOn: $groupByTheme) { Label("Group by Theme", systemImage: "square.stack.3d.up") }
+                    .help(groupByTheme ? "Today in sections per theme. Click for one ranked list." : "One ranked list. Click to group Today by theme.")
+            }
             ToolbarItem {
                 Button { model.refreshToday(force: true) } label: { Label("Rebuild Today", systemImage: "arrow.triangle.2.circlepath") }
                     .help("Build Today again from nothing. It also updates by itself when feeds bring new items.")
@@ -87,12 +93,17 @@ struct FeedItemsView: View {
 struct OfferedList<Header: View, Empty: View>: View {
     @Environment(AppModel.self) private var model
     let picks: [TodayPick]
-    /// The picks in the current mode (Scan, Watch, Read or All).
-    private var shown: [TodayPick] { model.inMode(picks) }
+    /// The picks in the current mode (Scan, Watch, Read or All), in the
+    /// order on screen: theme sections first when grouped.
+    private var shown: [TodayPick] { grouped ? sections.flatMap(\.items) : model.inMode(picks) }
+    /// Today by theme (issue #41): one section per theme, "Other" last.
+    private var sections: [TodayThemes.Group<TodayPick>] { model.todaySections(model.inMode(picks)) }
     @State private var gridOwner = UUID()
     @State private var past = ScrollPast()
     let header: Header
     let empty: Empty
+    /// Sections per theme with coloured headers (Today only).
+    var grouped = false
     @State private var selected: String?
     @State private var showPane = false
     @State private var showPage = false
@@ -246,18 +257,17 @@ struct OfferedList<Header: View, Empty: View>: View {
         ScrollViewReader { proxy in
             ScrollView {
                 LazyVGrid(columns: [WatchCard.column], alignment: .leading, spacing: 22) {
-                    ForEach(shown) { pick in
-                        WatchCard(title: pick.title,
-                                  byline: [pick.feedTitle, pick.date?.formatted(.relative(presentation: .named))].compactMap { $0 }.joined(separator: " · "),
-                                  image: pick.image,
-                                  vertical: pick.vertical == true || Modes.isVertical(pick.url),
-                                  seconds: nil,
-                                  seen: model.isSeen(pick.url),
-                                  selected: selected == pick.url,
-                                  kept: model.isKept(pick.url))
-                            .id(pick.url)
-                            .onTapGesture { selected = pick.url }
-                            .contextMenu { menu(pick) }
+                    if grouped {
+                        ForEach(sections, id: \.title) { section in
+                            Section {
+                                ForEach(section.items) { card($0) }
+                            } header: {
+                                ThemeSectionHeader(title: section.title, color: sectionColor(section.theme), count: section.items.count)
+                                    .padding(.top, 6)
+                            }
+                        }
+                    } else {
+                        ForEach(shown) { card($0) }
                     }
                 }
                 .padding(16)
@@ -284,20 +294,57 @@ struct OfferedList<Header: View, Empty: View>: View {
         }
     }
 
+    /// One Watch card, with its network on the picture.
+    private func card(_ pick: TodayPick) -> some View {
+        WatchCard(title: pick.title,
+                  byline: [pick.feedTitle, pick.date?.formatted(.relative(presentation: .named))].compactMap { $0 }.joined(separator: " · "),
+                  image: pick.image,
+                  vertical: pick.vertical == true || Modes.isVertical(pick.url),
+                  seconds: nil,
+                  seen: model.isSeen(pick.url),
+                  selected: selected == pick.url,
+                  kept: model.isKept(pick.url))
+            .overlay(alignment: .topLeading) { NetworkBadge(network: model.network(of: pick), onImage: true).padding(6) }
+            .id(pick.url)
+            .onTapGesture { selected = pick.url }
+            .contextMenu { menu(pick) }
+    }
+
+    /// A theme's colour, the same as in the graph; "Other" is grey.
+    private func sectionColor(_ theme: String?) -> Color {
+        theme.map { model.themeColor($0) } ?? .secondary
+    }
+
+    /// One list row. `i` is its place in `shown`, for Scan's scrolled-past rule.
+    private func row(_ pick: TodayPick, _ i: Int) -> some View {
+        TodayRow(pick: pick, mode: model.listMode)
+            .tag(pick.url)
+            .id(pick.url)
+            .contextMenu { menu(pick) }
+            // Scan: a headline scrolled past counts as seen.
+            .onAppear { if model.listMode == .scan { past.appear(pick.url, at: i) } }
+            .onDisappear {
+                guard model.listMode == .scan else { return }
+                past.disappear(pick.url, at: i) { model.setSeen([$0], true) }
+            }
+    }
+
     private var list: some View {
         ScrollViewReader { proxy in
             List(selection: $selected) {
-                ForEach(Array(shown.enumerated()), id: \.element.id) { i, pick in
-                    TodayRow(pick: pick, mode: model.listMode)
-                        .tag(pick.url)
-                        .id(pick.url)
-                        .contextMenu { menu(pick) }
-                        // Scan: a headline scrolled past counts as seen.
-                        .onAppear { if model.listMode == .scan { past.appear(pick.url, at: i) } }
-                        .onDisappear {
-                            guard model.listMode == .scan else { return }
-                            past.disappear(pick.url, at: i) { model.setSeen([$0], true) }
+                if grouped {
+                    let sections = sections
+                    // Each section's first place in `shown`.
+                    let starts = sections.indices.map { j in sections[..<j].reduce(0) { $0 + $1.items.count } }
+                    ForEach(Array(sections.enumerated()), id: \.element.title) { j, section in
+                        Section {
+                            ForEach(Array(section.items.enumerated()), id: \.element.id) { k, pick in row(pick, starts[j] + k) }
+                        } header: {
+                            ThemeSectionHeader(title: section.title, color: sectionColor(section.theme), count: section.items.count)
                         }
+                    }
+                } else {
+                    ForEach(Array(shown.enumerated()), id: \.element.id) { i, pick in row(pick, i) }
                 }
             }
             .listStyle(.inset)
@@ -374,8 +421,11 @@ private struct TodayRow: View {
                     .font(.body.weight(seen || kept ? .regular : .semibold))
                     .foregroundStyle(seen && !kept ? .secondary : .primary)
                     .lineLimit(2)
-                Text([pick.feedTitle, pick.date?.formatted(.relative(presentation: .named)), readingTime].compactMap { $0 }.joined(separator: " · "))
-                    .font(.caption).foregroundStyle(.secondary)
+                HStack(spacing: 6) {
+                    NetworkBadge(network: model.network(of: pick))
+                    Text([pick.feedTitle, pick.date?.formatted(.relative(presentation: .named)), readingTime].compactMap { $0 }.joined(separator: " · "))
+                        .font(.caption).foregroundStyle(.secondary).lineLimit(1)
+                }
                 if mode != .scan, let line = lede, !line.isEmpty {
                     Text(line).font(.callout).foregroundStyle(.secondary).lineLimit(mode == .read ? 3 : 2)
                 }

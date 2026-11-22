@@ -1150,3 +1150,21 @@ The one exception is anonymous diagnostics (owner, 2026-11-15, below).
   `NetworkDialMenu` in Today's toolbar). Phone: `App/Networks.swift`
   (Settings > Networks), request kind "network" (input = id, priority =
   dial), creators.json `networks` (id, dial, feeds, stats).
+- Today themes first (2026-11-22, issues #41 and #46; ADR 0001 decisions 7
+  and 8). `Engine/TodayThemes.swift` (Foundation only, also in the phone):
+  `Network.of(url:provider:)` (host first, then the feed's provider, then a
+  Mastodon status address, else "web") and `TodayThemes.group` (sections
+  by the best `PickWhy.score`, rank order inside, "Other" last).
+  `Views/NetworkBadge.swift` (also in the phone): `NetworkBadge`,
+  `ThemeSectionHeader`. A pick's theme: `PickWhy.theme`, else the top
+  theme of the Your Graph creator its feed came from
+  (`AppModel.todayThemes`, `AppModel+TodayThemes.swift`; phone
+  `Store.todaySections` from creators.json). Colours: Mac
+  `themeColor` (the graph's), phone `Store.color`. Mac: `OfferedList`
+  `grouped` (Today only), list and Watch grid in sections, j/k follow the
+  section order; toolbar switch Group by Theme. Phone: Scan and Read in
+  sections, Watch cards show theme and network at the top left, Group by
+  Theme in the "…" menu. One switch on each device: AppStorage
+  `today.groupByTheme`, on by default. Watch cards on the phone have a
+  Not Interested menu (thumbs down, beside Keep) with the three choices
+  of the Scan and Read rows (`Store.notInterested`).
