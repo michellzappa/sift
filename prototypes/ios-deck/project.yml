@@ -30,7 +30,7 @@ targets:
       - path: ../../Sift/Engine/TodayThemes.swift
       - path: ../../Sift/Views/NetworkBadge.swift
       # Which links open in their own app (Instagram, TikTok, X, YouTube).
-      - path: ../../Sift/Social/Networks.swift
+      - path: ../../Sift/Social/OpenInApp.swift
     settings:
       base:
         PRODUCT_BUNDLE_IDENTIFIER: com.centaur-labs.sift
