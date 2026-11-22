@@ -750,6 +750,8 @@ private struct LibraryStatus: View {
                     .help("Sort puts each link into one of your themes. New Themes from Unsorted proposes themes for links that fit none and keeps your themes. Discover Themes Again is rare: Claude reads everything and rebuilds the theme set.")
                 }
             }
+            // A stale export, once a month per network (FollowingSettings.swift).
+            ExportReminderRow()
             // Every running or paused job, from the one list (Activity.swift).
             ForEach(model.activities) { ActivityRow(activity: $0) }
         }

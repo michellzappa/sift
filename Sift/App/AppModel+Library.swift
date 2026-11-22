@@ -191,6 +191,10 @@ extension AppModel {
         if !isFetchingTikTok, !tiktokNeedingDetails.isEmpty { Task { await fetchTikTokDetails() } }
         // YouTube links with no title get one from YouTube's oEmbed.
         if !isFetchingVideoTitles, !videosWithoutTitle.isEmpty { Task { await fetchVideoTitles() } }
+        // Who you follow on each network, when an export or handle changed;
+        // then one reminder for a stale export (AppModel+Following).
+        refreshFollowing()
+        checkExportReminders()
         // New links go into the library, after the one-time repair of
         // shell pages (X posts and other no-JavaScript pages).
         Task {

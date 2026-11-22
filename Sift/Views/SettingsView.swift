@@ -38,7 +38,7 @@ struct SettingsView: View {
     }
 }
 
-private func abbreviated(_ path: String) -> String {
+func abbreviated(_ path: String) -> String {
     (path as NSString).abbreviatingWithTildeInPath
 }
 
@@ -192,6 +192,9 @@ private struct InputSettings: View {
                 Text(model.tiktokError ?? "Reads your favourite videos (and, if you turn it on, liked videos) from TikTok's data export: Settings and privacy > Account > Download your data, format JSON. Choose the zip or the folder it unpacks to. Captions and covers come from each video's public page; speech becomes text like Instagram reels.")
                     .foregroundStyle(.secondary)
             }
+
+            // Who you follow on each network, and the Downloads watcher.
+            FollowingSettings()
 
             Section {
                 StatusRow(icon: "at", name: "X", status: model.xStatus)

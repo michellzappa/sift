@@ -83,7 +83,7 @@ enum TikTokReader {
 
     // MARK: Files
 
-    private static func read(_ path: String) throws -> Any {
+    static func read(_ path: String) throws -> Any {
         var isDir: ObjCBool = false
         guard FileManager.default.fileExists(atPath: path, isDirectory: &isDir) else {
             throw Failure(message: "The TikTok export was not found at \(path).")
@@ -97,7 +97,7 @@ enum TikTokReader {
             data = FileManager.default.contents(atPath: path)
         } else {
             for name in names {
-                if let d = try unzip(path, member: "*\(name)"), !d.isEmpty { data = d; break }
+                if let d = try ExportFile.unzip(path, member: "*\(name)"), !d.isEmpty { data = d; break }
             }
         }
         guard let data, !data.isEmpty else {
@@ -106,23 +106,10 @@ enum TikTokReader {
         return try JSONSerialization.jsonObject(with: data)
     }
 
-    private static func unzip(_ zip: String, member: String) throws -> Data? {
-        let process = Process()
-        process.executableURL = URL(filePath: "/usr/bin/unzip")
-        process.arguments = ["-p", zip, member]
-        let out = Pipe()
-        process.standardOutput = out
-        process.standardError = FileHandle.nullDevice
-        try process.run()
-        let data = out.fileHandleForReading.readDataToEndOfFile()
-        process.waitUntilExit()
-        return process.terminationStatus == 0 ? data : nil
-    }
-
     // MARK: Shapes
 
     /// Calls `found` for every list of objects in the tree, with its key.
-    private static func walk(_ node: Any, key: String = "", _ found: (String, [[String: Any]]) -> Void) {
+    static func walk(_ node: Any, key: String = "", _ found: (String, [[String: Any]]) -> Void) {
         if let dict = node as? [String: Any] {
             for (k, v) in dict { walk(v, key: k, found) }
         } else if let list = node as? [Any] {
@@ -131,14 +118,14 @@ enum TikTokReader {
         }
     }
 
-    private static func value(_ entry: [String: Any], _ keys: [String]) -> String? {
+    static func value(_ entry: [String: Any], _ keys: [String]) -> String? {
         for (k, v) in entry where keys.contains(k.lowercased()) {
             if let s = v as? String, !s.isEmpty { return s }
         }
         return nil
     }
 
-    private static func parseDate(_ s: String) -> Date? {
+    static func parseDate(_ s: String) -> Date? {
         let f = DateFormatter()
         f.locale = Locale(identifier: "en_US_POSIX")
         f.timeZone = TimeZone(identifier: "UTC")

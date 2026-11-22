@@ -21,6 +21,8 @@ extension AppModel {
             let p = Place(platform: host.hasSuffix(".substack.com") ? "substack" : "site", url: "https://\(host)", handle: host)
             if out[p.id] == nil { out[p.id] = (p, c.name) }
         }
+        // Channels and Bluesky accounts you follow there (issue #39).
+        for s in followingSeeds() where out[s.profile.id] == nil { out[s.profile.id] = (s.profile, s.name) }
         return out
     }
 
@@ -65,7 +67,7 @@ extension AppModel {
             seeds[id] = Place(platform: parts[0], url: url, handle: parts[1])
         }
         let hidden = Set(peopleFile.hidden)
-        people = People.merge(peopleFile.checked, seeds: seeds).filter { !hidden.contains($0.id) }
+        people = withFollowEvidence(People.merge(peopleFile.checked, seeds: seeds).filter { !hidden.contains($0.id) })
         writeCreatorsForPhone()
     }
 

@@ -187,6 +187,17 @@ final class AppModel {
     @ObservationIgnored var peopleFile = People.load()
     var isFindingPeople = false
     @ObservationIgnored var peopleRound: Date?
+    /// Who you follow on each network, by network id (AppModel+Following,
+    /// Storage/FollowingReader.swift, issue #39).
+    var followingData: [String: NetworkFollows] = FollowingStore.load()
+    var isReadingFollowing = false
+    /// The network the monthly export reminder shows now (issue #43).
+    var exportReminder: FollowNetwork?
+    /// The Downloads watcher (AppModel+Downloads): the folder source, the
+    /// pending scan, and zips already checked that are not exports.
+    @ObservationIgnored var downloadsSource: DispatchSourceFileSystemObject?
+    @ObservationIgnored var downloadsScan: Task<Void, Never>?
+    @ObservationIgnored var downloadsChecked: [String: Date] = [:]
     /// The trail the user opened with More Like This (Engine/Trail.swift).
     var trail: TrailState?
     /// Next door: creators your creators link to (Feeds/Creators.swift).
@@ -237,6 +248,7 @@ final class AppModel {
             startLibraryWorker()
             startChromeWatcher()
             startAgentWatcher()
+            startDownloadsWatcher()
         }
     }
 
