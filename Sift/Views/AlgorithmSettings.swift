@@ -138,7 +138,7 @@ struct AlgorithmSettings: View {
                 .font(.callout).foregroundStyle(.secondary).fixedSize(horizontal: false, vertical: true)
             Text("Farther: on request, per theme, your own Claude reads the theme's newest saved titles and history and names sources one step beyond: deeper, adjacent and one counterpoint. Sift checks each for a feed; only those with one can be followed. Each answer keeps the exact text Claude saw.")
                 .font(.callout).foregroundStyle(.secondary).fixedSize(horizontal: false, vertical: true)
-            Text("Trails: More Like This (T) on any item opens up to \(Trail.size) unseen items near it, from your saves and the last \(Int(Trail.offeredDays)) days of your feeds. Same creator counts 3, same theme 1.5, and closeness in meaning 6 × (cosine − 0.25) up to 3, or 0.6 per shared word when there is no vector. At most \(Trail.perCreator) per creator.")
+            Text("Trails: More Like This (T) on any item opens up to \(Trail.size) unseen items near it, from your saves and the last \(Int(Trail.offeredDays)) days of your feeds. Same creator counts 3, same theme 1.5, and the larger of closeness in meaning, 6 × (cosine − 0.25) up to 3, and 0.6 per shared word. At most \(Trail.perCreator) per creator.")
                 .font(.callout).foregroundStyle(.secondary).fixedSize(horizontal: false, vertical: true)
             Button("Open Your Graph") { model.navigationRequest = .creators }
         }

@@ -589,7 +589,7 @@ The one exception is anonymous diagnostics (owner, 2026-11-15, below).
   until seen), Hot (same `linkKeys` in 2+ feeds; aggregator items also count
   for the article they link), then score = freshness × 1/sqrt(posts per day)
   × (1 + 0.8 × affinity) + theme fit (3+ shared words) + cross-mentions; Best
-  Only needs a strong signal and gets 1 slot, Normal 2, Not in Today 0; one
+  Only needs a strong signal and gets 1 slot, Normal 3 (`TodayBuilder.perFeed`), Not in Today 0; one
   exploration slot (feed with < 3 signals), one wildcard from an unused
   feed. Affinity: `FeedSignals.affinity` over this Mac's `signals.json`
   (keep, reader open) and `iCloud Drive/Sift/signals/*.json` from phones,
