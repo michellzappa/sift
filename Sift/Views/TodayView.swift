@@ -305,7 +305,7 @@ struct OfferedList<Header: View, Empty: View>: View {
                   seen: model.isSeen(pick.url),
                   selected: selected == pick.url,
                   kept: model.isKept(pick.url))
-            .overlay(alignment: .topLeading) { NetworkBadge(network: model.network(of: pick), onImage: true).padding(6) }
+            .overlay(alignment: .topLeading) { NetworkBadge(network: model.linkNetwork(of: pick), onImage: true).padding(6) }
             .id(pick.url)
             .onTapGesture { selected = pick.url }
             .contextMenu { menu(pick) }
@@ -423,7 +423,7 @@ private struct TodayRow: View {
                     .foregroundStyle(seen && !kept ? .secondary : .primary)
                     .lineLimit(2)
                 HStack(spacing: 6) {
-                    NetworkBadge(network: model.network(of: pick))
+                    NetworkBadge(network: model.linkNetwork(of: pick))
                     Text([pick.feedTitle, pick.date?.formatted(.relative(presentation: .named)), readingTime].compactMap { $0 }.joined(separator: " · "))
                         .font(.caption).foregroundStyle(.secondary).lineLimit(1)
                 }

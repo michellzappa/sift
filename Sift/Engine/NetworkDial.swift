@@ -61,11 +61,19 @@ enum Network: String, CaseIterable, Codable, Sendable, Identifiable {
 
     /// The network of a link that no feed carries ("Linked by" picks), by host.
     static func of(url: String) -> Network {
-        let host = (URL(string: url)?.host() ?? "").lowercased()
-        let rules: [(String, Network)] = [("youtube.com", .youtube), ("youtu.be", .youtube), ("reddit.com", .reddit),
-                                          ("news.ycombinator.com", .hackernews), ("bsky.app", .bluesky),
-                                          ("github.com", .github), ("arxiv.org", .arxiv), ("news.google.com", .news)]
-        return rules.first { host == $0.0 || host.hasSuffix("." + $0.0) }?.1 ?? .blogs
+        // One host table for both: `LinkNetwork` (Engine/TodayThemes.swift).
+        switch LinkNetwork.of(url: url).id {
+        case "youtube": return .youtube
+        case "podcast": return .podcasts
+        case "bluesky": return .bluesky
+        case "mastodon": return .mastodon
+        case "reddit": return .reddit
+        case "hackernews": return .hackernews
+        case "news": return .news
+        case "github": return .github
+        case "arxiv": return .arxiv
+        default: return .blogs
+        }
     }
 }
 

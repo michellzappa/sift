@@ -32,8 +32,8 @@ extension AppModel {
     }
 
     /// The network badge for a pick: the link's host, else its feed's provider.
-    func network(of pick: TodayPick) -> Network {
+    func linkNetwork(of pick: TodayPick) -> LinkNetwork {
         let feed = state.feeds.first { $0.id == pick.feedID }
-        return Network.of(url: pick.url, provider: feed?.provider ?? feed.flatMap { AppModel.providerID(forFeed: $0.url) })
+        return LinkNetwork.of(url: pick.url, provider: feed?.provider ?? feed.flatMap { AppModel.providerID(forFeed: $0.url) })
     }
 }

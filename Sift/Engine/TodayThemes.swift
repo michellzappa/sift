@@ -5,10 +5,12 @@ import Foundation
 // Compiled into the Mac app and the phone (prototypes/ios-deck/project.yml):
 // keep it Foundation only.
 
-/// The network a link comes from: YouTube, Instagram, TikTok, X, Bluesky,
+/// The network a link comes from (the badge): YouTube, Instagram, TikTok, X, Bluesky,
 /// Mastodon, Reddit and so on, else the web. The badge on Today's rows and
-/// cards. Names follow `Place.names` (Feeds/People.swift).
-struct Network: Hashable, Sendable {
+/// cards. Names follow `Place.names` (Feeds/People.swift). Not the dial
+/// group: `Network` (Engine/NetworkDial.swift) groups feeds for the network
+/// dials and maps a link through this one table (`Network.of(url:)`).
+struct LinkNetwork: Hashable, Sendable {
     /// youtube, instagram, tiktok, x, bluesky, mastodon, reddit, hackernews,
     /// github, substack, medium, tumblr, podcast, arxiv, news or web.
     var id: String
@@ -56,12 +58,12 @@ struct Network: Hashable, Sendable {
     /// The network of a link: its host first (a YouTube video in a blog's
     /// feed is YouTube), then the feed's provider id, then a Mastodon status
     /// address (/@user/123), else the web.
-    static func of(url: String, provider: String? = nil) -> Network {
+    static func of(url: String, provider: String? = nil) -> LinkNetwork {
         let host = (URL(string: url)?.host() ?? "").lowercased()
-        if let id = hosts.first(where: { host == $0.0 || host.hasSuffix("." + $0.0) })?.1 { return Network(id: id) }
-        if let provider, provider != "web", names[provider] != nil { return Network(id: provider) }
-        if url.range(of: #"^https://[^/]+/@[\w.]+/\d+"#, options: .regularExpression) != nil { return Network(id: "mastodon") }
-        return Network(id: "web")
+        if let id = hosts.first(where: { host == $0.0 || host.hasSuffix("." + $0.0) })?.1 { return LinkNetwork(id: id) }
+        if let provider, provider != "web", names[provider] != nil { return LinkNetwork(id: provider) }
+        if url.range(of: #"^https://[^/]+/@[\w.]+/\d+"#, options: .regularExpression) != nil { return LinkNetwork(id: "mastodon") }
+        return LinkNetwork(id: "web")
     }
 }
 

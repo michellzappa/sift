@@ -4,7 +4,7 @@ import SwiftUI
 /// network's symbol and name, quiet. The theme is the headline, the network
 /// a detail. Compiled into the Mac app and the phone.
 struct NetworkBadge: View {
-    let network: Network
+    let network: LinkNetwork
     /// Over a picture (Watch cards): on a material capsule.
     var onImage = false
 

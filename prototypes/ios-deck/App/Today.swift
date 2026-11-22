@@ -353,7 +353,7 @@ private struct TodayCard: View {
                 .padding(.horizontal, 8).padding(.vertical, 4)
                 .background(.ultraThinMaterial, in: Capsule())
             }
-            NetworkBadge(network: store.network(of: pick), onImage: true)
+            NetworkBadge(network: store.linkNetwork(of: pick), onImage: true)
         }
     }
 
@@ -624,7 +624,7 @@ struct TodayListView: View {
                     .foregroundStyle(seen && !kept ? .secondary : .primary)
                     .lineLimit(mode == .scan ? 3 : 2)
                 HStack(spacing: 6) {
-                    NetworkBadge(network: store.network(of: pick))
+                    NetworkBadge(network: store.linkNetwork(of: pick))
                     Text([pick.feedTitle, mode == .read ? pick.minutes.map { "\($0) min read" } : nil,
                           pick.date?.formatted(.relative(presentation: .named))].compactMap { $0 }.joined(separator: " · "))
                         .font(.caption).foregroundStyle(.secondary).lineLimit(1)
@@ -669,7 +669,7 @@ extension Store {
     }
 
     /// The network badge: the link's host, else its feed's provider.
-    func network(of pick: TodayPick) -> Network {
-        Network.of(url: pick.url, provider: macFeeds?.feeds.first { $0.id == pick.feedID }?.provider)
+    func linkNetwork(of pick: TodayPick) -> LinkNetwork {
+        LinkNetwork.of(url: pick.url, provider: macFeeds?.feeds.first { $0.id == pick.feedID }?.provider)
     }
 }
