@@ -219,6 +219,8 @@ private struct InputSettings: View {
                     .foregroundStyle(.secondary)
             }
 
+            SocialAccountsSettings()
+
             Section {
                 StatusRow(icon: "doc.text", name: "Imported files", status: model.importStatus) {
                     Button("Import Links File…") { model.importLinksFile() }

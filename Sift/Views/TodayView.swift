@@ -126,6 +126,7 @@ struct OfferedList<Header: View, Empty: View>: View {
                             HStack {
                                 Text(pick.reason.isEmpty ? pick.feedTitle : pick.reason).font(.callout).foregroundStyle(.secondary).lineLimit(1)
                                 Spacer()
+                                LightActionsButtons(pick: pick)
                                 if !showPage { ReaderSettingsButton().buttonStyle(.borderless) }
                                 // The reader first; the website on request.
                                 Picker("", selection: $showPage) {
