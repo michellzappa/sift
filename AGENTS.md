@@ -1111,3 +1111,23 @@ The one exception is anonymous diagnostics (owner, 2026-11-15, below).
   lane, and one virality dial (Off, A little by default, More) that never
   lets popularity rank alone. Issues #48 to #52.
 
+- Co-save edges (2026-11-22, issue #44). `CreatorGraph.build`
+  (Engine/ThemeGraph.swift) takes `Node.saves` ([CreatorSave]). Two
+  creators saved in the same theme in the same ISO week share a
+  theme-week; each adds `coSaveStep` 0.15, max `coSaveMax` 0.6; a
+  theme-week with more than `coSaveCrowd` 20 creators (a bulk import) is
+  skipped. Edge weight = meaning cos (only at `similarMin` or above) +
+  co-save weight, so a co-save edge stands alone without vectors.
+  `CreatorGraph.Near` (id, cos, weeks, weight) feeds "Close to" (sorted by
+  weight) and the personal rank; every top-400 creator now takes part in
+  the rank. The creator pane shows "0.42, saved together 3 weeks".
+- Watched follow lists (2026-11-22, issue #45). `state.watchedLists`
+  (addresses). `Directory.listAddress` turns a bare name into
+  `https://feedland.com/opml?screenname=<name>`; `Directory.watchedList`
+  fetches the OPML (Directory.get: HostGate, Demo guard) and each feed
+  becomes an entry "In <owner>'s list" (owner = screenname, else OPML head
+  title, else host), weight 0.5, merged by host with the other vouchers.
+  One OPML parser: `FeedParser.opmlDocument` (head title, xmlUrl feeds,
+  htmlUrl-only sites); `FeedParser.opml` and `Directory.blogroll` use it.
+  UI: "Lists you watch" row in `DirectoryList` (Add…, x to remove; both
+  rebuild the directory). Only the list's address leaves the Mac.

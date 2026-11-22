@@ -292,23 +292,47 @@ enum FeedParser {
         }
     }
 
-    /// Reads OPML: every outline with an xmlUrl, with its parent folder.
-    static func opml(_ data: Data) -> [(url: String, title: String, site: String?, category: String?)] {
+    /// One OPML document: the head title, every outline with an xmlUrl
+    /// (with its parent folder) and the outlines with only an htmlUrl
+    /// (blogrolls). The one OPML parser: import, blogrolls and watched lists
+    /// (Feeds/Directory.swift) use it.
+    struct OPMLDocument {
+        var title: String?
+        var feeds: [(url: String, title: String, site: String?, category: String?)] = []
+        var sites: [(url: String, title: String)] = []
+    }
+
+    static func opmlDocument(_ data: Data) -> OPMLDocument {
         final class Delegate: NSObject, XMLParserDelegate {
-            var feeds: [(url: String, title: String, site: String?, category: String?)] = []
+            var doc = OPMLDocument()
             var folders: [String?] = []
+            var inHead = false, inTitle = false
+            var title = ""
             func parser(_ p: XMLParser, didStartElement name: String, namespaceURI: String?, qualifiedName: String?, attributes a: [String: String]) {
-                guard name.lowercased() == "outline" else { return }
-                let title = a["title"] ?? a["text"] ?? ""
-                if let url = a["xmlUrl"] ?? a["xmlurl"], !url.isEmpty {
-                    feeds.append((url, title, a["htmlUrl"] ?? a["htmlurl"], folders.compactMap { $0 }.last))
-                    folders.append(nil)
-                } else {
-                    folders.append(title.isEmpty ? nil : title)
+                switch name.lowercased() {
+                case "head": inHead = true
+                case "title": inTitle = inHead
+                case "outline":
+                    let title = a["title"] ?? a["text"] ?? ""
+                    if let url = a["xmlUrl"] ?? a["xmlurl"], !url.isEmpty {
+                        doc.feeds.append((url, title, a["htmlUrl"] ?? a["htmlurl"], folders.compactMap { $0 }.last))
+                        folders.append(nil)
+                    } else {
+                        if let site = a["htmlUrl"] ?? a["htmlurl"] ?? a["url"], !site.isEmpty { doc.sites.append((site, title)) }
+                        folders.append(title.isEmpty ? nil : title)
+                    }
+                default: break
                 }
             }
+            func parser(_ p: XMLParser, foundCharacters string: String) { if inTitle { title += string } }
             func parser(_ p: XMLParser, didEndElement name: String, namespaceURI: String?, qualifiedName: String?) {
-                if name.lowercased() == "outline", !folders.isEmpty { folders.removeLast() }
+                switch name.lowercased() {
+                case "head": inHead = false
+                case "title":
+                    if inTitle { inTitle = false; let t = title.trimmingCharacters(in: .whitespacesAndNewlines); if !t.isEmpty { doc.title = t } }
+                case "outline": if !folders.isEmpty { folders.removeLast() }
+                default: break
+                }
             }
         }
         let d = Delegate()
@@ -316,7 +340,13 @@ enum FeedParser {
         p.delegate = d
         p.parse()
         var seen = Set<String>()
-        return d.feeds.filter { seen.insert($0.url).inserted }
+        d.doc.feeds = d.doc.feeds.filter { seen.insert($0.url).inserted }
+        return d.doc
+    }
+
+    /// Reads OPML: every outline with an xmlUrl, with its parent folder.
+    static func opml(_ data: Data) -> [(url: String, title: String, site: String?, category: String?)] {
+        opmlDocument(data).feeds
     }
 
     /// OPML for the followed feeds, grouped by category.

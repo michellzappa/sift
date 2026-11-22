@@ -164,11 +164,11 @@ private struct CreatorPane: View {
                 if let near = model.creatorSimilar[creator.id], !near.isEmpty {
                     VStack(alignment: .leading, spacing: 4) {
                         Text("Close to").font(.headline)
-                        Text(near.compactMap { n in model.creators.first { $0.id == n.id }.map { "\($0.name) (\(String(format: "%.2f", n.cos)))" } }
+                        Text(near.compactMap { n in model.creators.first { $0.id == n.id }.map { "\($0.name) (\(Self.closeReason(n)))" } }
                             .joined(separator: ", "))
                             .font(.callout).foregroundStyle(.secondary).fixedSize(horizontal: false, vertical: true)
                         if let r = model.creatorRank[creator.id] {
-                            Text(String(format: "Graph rank %.2f: how central this creator is to the ones you follow, through closeness in meaning (1 = most).", r))
+                            Text(String(format: "Graph rank %.2f: how central this creator is to the ones you follow, through closeness in meaning and saves in the same theme and week (1 = most).", r))
                                 .font(.caption).foregroundStyle(.tertiary).fixedSize(horizontal: false, vertical: true)
                         }
                     }
@@ -190,6 +190,14 @@ private struct CreatorPane: View {
             .padding(20)
             .frame(maxWidth: .infinity, alignment: .leading)
         }
+    }
+
+    /// "0.42", "0.42, saved together 3 weeks" or "saved together 1 week".
+    static func closeReason(_ n: CreatorGraph.Near) -> String {
+        var parts: [String] = []
+        if n.cos > 0 { parts.append(String(format: "%.2f", n.cos)) }
+        if n.weeks > 0 { parts.append("saved together \(n.weeks) week\(n.weeks == 1 ? "" : "s")") }
+        return parts.joined(separator: ", ")
     }
 
     private var score: some View {

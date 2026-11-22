@@ -71,7 +71,7 @@ extension AppModel {
             guard let t = l.theme else { continue }
             texts[t, default: []].append(l.title + " " + String((previews[l.url]?.text ?? "").prefix(300)))
         }
-        let nodes = creators.map { CreatorGraph.Node(id: $0.id, urls: $0.saves.map(\.url), followed: $0.feedID != nil, score: $0.score) }
+        let nodes = creators.map { CreatorGraph.Node(id: $0.id, saves: $0.saves, followed: $0.feedID != nil, score: $0.score) }
         let vectors = embedSpace.unit
         Task { [weak self] in
             let (terms, graph) = await Self.computeThemeGraph(texts: texts, nodes: nodes, vectors: vectors)

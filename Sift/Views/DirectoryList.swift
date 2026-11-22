@@ -5,6 +5,8 @@ import SwiftUI
 struct DirectoryList: View {
     @Environment(AppModel.self) private var model
     @State private var followed: Set<String> = []
+    @State private var addingList = false
+    @State private var listText = ""
 
     var body: some View {
         let shown = model.directoryShown
@@ -33,6 +35,7 @@ struct DirectoryList: View {
                     ForEach(rows) { e in row(e) }
                 }
             }
+            watchedLists
             Toggle(isOn: Binding(get: { model.state.directoryThemeSearch },
                                  set: { model.state.directoryThemeSearch = $0; model.refreshDirectory(force: true) })) {
                 VStack(alignment: .leading, spacing: 1) {
@@ -48,6 +51,36 @@ struct DirectoryList: View {
             }
         }
         .onAppear { model.refreshDirectory() }
+    }
+
+    /// OPML follow lists you watch (issue #45): each feed in them counts as
+    /// "In <owner>'s list". Only the list's address leaves the Mac.
+    private var watchedLists: some View {
+        HStack(alignment: .firstTextBaseline, spacing: 6) {
+            Text("Lists you watch").font(.callout)
+            if model.state.watchedLists.isEmpty {
+                Text("None").font(.caption).foregroundStyle(.tertiary)
+            }
+            ForEach(model.state.watchedLists, id: \.self) { address in
+                HStack(spacing: 3) {
+                    Text(Directory.listOwner(address, title: nil)).font(.caption).lineLimit(1)
+                    Button { model.unwatchList(address) } label: { Image(systemName: "xmark").font(.caption2) }
+                        .buttonStyle(.borderless).help("Stop watching this list")
+                }
+                .padding(.horizontal, 6).padding(.vertical, 1)
+                .background(Capsule().fill(Color.secondary.opacity(0.12)))
+                .help(address)
+            }
+            Button("Add…") { listText = ""; addingList = true }.controlSize(.small).buttonStyle(.link).disabled(Demo.isOn)
+            Spacer()
+        }
+        .alert("Watch a Follow List", isPresented: $addingList) {
+            TextField("FeedLand name or OPML address", text: $listText)
+            Button("Watch") { if !model.watchList(listText) { model.note("That is not a list address") } }
+            Button("Cancel", role: .cancel) {}
+        } message: {
+            Text("A FeedLand screen name or the address of any OPML list. Each feed in it shows here as \"In their list\". Only the address leaves your Mac.")
+        }
     }
 
     private func row(_ e: DirectoryEntry) -> some View {

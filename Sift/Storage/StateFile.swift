@@ -54,6 +54,8 @@ struct SiftState: Codable, Sendable {
     var lanes: [Lane] = []
     /// The directory may search by theme names (owner, 2026-11-21: opt-in).
     var directoryThemeSearch = false
+    /// OPML follow lists the directory reads, by address (issue #45).
+    var watchedLists: [String] = []
     /// Where links can be sent: Starlings projects, Obsidian folders, files.
     var destinations: [Destination] = []
     /// Where each link was sent, keyed by URL.
@@ -119,6 +121,7 @@ struct SiftState: Codable, Sendable {
         savedSearches = try c.decodeIfPresent([String].self, forKey: .savedSearches) ?? []
         lanes = try c.decodeIfPresent([Lane].self, forKey: .lanes) ?? []
         directoryThemeSearch = try c.decodeIfPresent(Bool.self, forKey: .directoryThemeSearch) ?? false
+        watchedLists = try c.decodeIfPresent([String].self, forKey: .watchedLists) ?? []
         destinations = try c.decodeIfPresent([Destination].self, forKey: .destinations) ?? []
         sent = try c.decodeIfPresent([String: [SentRecord]].self, forKey: .sent) ?? [:]
         closeAfterSend = try c.decodeIfPresent(Bool.self, forKey: .closeAfterSend) ?? true

@@ -51,7 +51,7 @@ extension AppModel {
             ? themes.map { t in (t.name, tabs(in: t.name).count) }.sorted { $0.1 > $1.1 }.prefix(6).map(\.0) : []
         for f in state.feeds { if let p = People.profile(of: f), p.platform == "bluesky" { skip.insert("bluesky:" + p.handle.lowercased()) } }
         let inputs = Directory.Inputs(vouchers: Array(vouchers.prefix(Self.directoryVouchers)), skip: skip, savedHosts: saved,
-                                      linkedHosts: linked, themeQueries: queries)
+                                      linkedHosts: linked, themeQueries: queries, watchedLists: state.watchedLists)
         let space = embedSpace
         isBuildingDirectory = true
         Task { [weak self] in
@@ -80,6 +80,22 @@ extension AppModel {
             refreshToday()
             writeCreatorsForPhone()
         }
+    }
+
+    /// Watches an OPML follow list (a FeedLand screen name or any OPML
+    /// address) and builds the directory again. False when the text is not
+    /// an address.
+    @discardableResult
+    func watchList(_ typed: String) -> Bool {
+        guard let address = Directory.listAddress(typed) else { return false }
+        if !state.watchedLists.contains(address) { state.watchedLists.append(address) }
+        refreshDirectory(force: true)
+        return true
+    }
+
+    func unwatchList(_ address: String) {
+        state.watchedLists.removeAll { $0 == address }
+        refreshDirectory(force: true)
     }
 
     func dismissDirectory(_ e: DirectoryEntry) {

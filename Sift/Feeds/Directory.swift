@@ -4,6 +4,8 @@ import Foundation
 /// feed our algo"; "graph walks" only; "think smallweb first, bloggers").
 /// Who the people you follow vouch for, small web first:
 /// - blogrolls and OPML lists on the sites you follow,
+/// - OPML follow lists you watch by address (FeedLand screen names or any
+///   OPML address, `state.watchedLists`): "In <owner>'s list",
 /// - Substack recommendations from the newsletters you follow,
 /// - Bluesky's suggested follows for the Bluesky accounts you follow, kept
 ///   only when the handle is a domain (a person with their own site),
@@ -100,6 +102,8 @@ enum Directory {
         /// Theme names to search with, only when the user turned on theme
         /// searches (`state.directoryThemeSearch`); empty otherwise.
         var themeQueries: [String] = []
+        /// OPML follow lists the person watches (`state.watchedLists`).
+        var watchedLists: [String] = []
     }
 
     static func host(_ s: String) -> String? {
@@ -177,16 +181,10 @@ enum Directory {
         let text = String(decoding: page, as: UTF8.self)
         var out: [String: String] = [:]
         if text.contains("<opml") {
-            let re = try! NSRegularExpression(pattern: #"<outline\b[^>]*>"#, options: .caseInsensitive)
-            let ns = text as NSString
-            for m in re.matches(in: text, range: NSRange(location: 0, length: ns.length)) {
-                let tag = ns.substring(with: m.range)
-                func attr(_ n: String) -> String? {
-                    guard let r = tag.range(of: n + #"=["']([^"']+)["']"#, options: [.regularExpression, .caseInsensitive]) else { return nil }
-                    return String(String(tag[r]).dropFirst(n.count + 2).dropLast())
-                }
-                guard let url = attr("htmlUrl") ?? attr("xmlUrl"), let h = host(url), h != own, !isPlatform(h) else { continue }
-                out[h] = attr("text") ?? attr("title") ?? h
+            let doc = FeedParser.opmlDocument(page)
+            for o in doc.feeds.map({ ($0.site ?? $0.url, $0.title) }) + doc.sites.map({ ($0.url, $0.title) }) {
+                guard let h = host(o.0), h != own, !isPlatform(h) else { continue }
+                out[h] = o.1.isEmpty ? h : o.1
             }
         } else {
             let re = try! NSRegularExpression(pattern: #"<a\b[^>]*href=["'](https?://[^"']+)["'][^>]*>(.{0,120}?)</a>"#, options: [.caseInsensitive, .dotMatchesLineSeparators])
@@ -201,6 +199,41 @@ enum Directory {
         }
         // A page that links to hundreds of sites is a directory, not a roll.
         return out.count > 300 ? [] : out.map { ($0.key, $0.value) }
+    }
+
+    /// A watched OPML follow list (issue #45): what the person typed, as an
+    /// address. A bare name is a FeedLand screen name.
+    static func listAddress(_ typed: String) -> String? {
+        let t = typed.trimmingCharacters(in: .whitespacesAndNewlines)
+        guard !t.isEmpty else { return nil }
+        if !t.contains("."), !t.contains("/"), let q = t.addingPercentEncoding(withAllowedCharacters: .alphanumerics) {
+            return "https://feedland.com/opml?screenname=" + q
+        }
+        let full = t.contains("://") ? t : "https://" + t
+        guard let u = URL(string: full), ["http", "https"].contains(u.scheme?.lowercased() ?? ""), u.host() != nil else { return nil }
+        return u.absoluteString
+    }
+
+    /// Who owns a list: the FeedLand screen name, else the OPML head title,
+    /// else the host.
+    static func listOwner(_ address: String, title: String?) -> String {
+        if let c = URLComponents(string: address), let n = c.queryItems?.first(where: { $0.name.lowercased() == "screenname" })?.value, !n.isEmpty {
+            return n
+        }
+        if let t = title, !t.isEmpty { return t }
+        return host(address) ?? address
+    }
+
+    /// The feeds in one watched list. Only the list's address leaves the Mac.
+    static func watchedList(_ address: String) async -> (owner: String, feeds: [(host: String, name: String, feed: String)]) {
+        guard let u = URL(string: address), let d = await get(u) else { return (listOwner(address, title: nil), []) }
+        let doc = FeedParser.opmlDocument(d)
+        var out: [String: (host: String, name: String, feed: String)] = [:]
+        for f in doc.feeds {
+            guard let h = host(f.site ?? f.url), !isPlatform(h), out[h] == nil else { continue }
+            out[h] = (h, f.title.isEmpty ? h : f.title, f.url)
+        }
+        return (listOwner(address, title: doc.title), Array(out.values))
     }
 
     /// Substack's recommendations from one publication.
@@ -341,6 +374,14 @@ enum Directory {
                     add(id: "mastodon:" + a.input.lowercased(), name: a.name, input: a.input, group: "mastodon",
                         via: "Featured by \(v.name)", about: a.about, weight: v.weight)
                 }
+            }
+        }
+        // Who follows what: the feeds in the OPML lists you watch.
+        for address in input.watchedLists {
+            let list = await watchedList(address)
+            for f in list.feeds {
+                add(id: f.host, name: f.name, input: f.feed, group: f.host.hasSuffix(".substack.com") ? "newsletter" : "blog",
+                    via: "In \(list.owner)'s list", about: "", weight: 0.5)
             }
         }
         // Who follows what: the Bluesky accounts your Bluesky follows follow.

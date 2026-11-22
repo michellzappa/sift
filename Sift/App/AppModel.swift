@@ -164,10 +164,11 @@ final class AppModel {
     /// Meaning on this Mac: link vectors and theme centres (Engine/Embeddings.swift).
     @ObservationIgnored var embedSpace = Meaning.Space()
     var isEmbedding = false
-    /// Subterms per theme, creators close in meaning and their personal rank
+    /// Subterms per theme, creators close in meaning or saved together
+    /// (co-save edges, issue #44) and their personal rank
     /// (Engine/ThemeGraph.swift, `refreshThemeGraph`).
     var themeTerms: [String: [String]] = [:]
-    var creatorSimilar: [String: [(id: String, cos: Double)]] = [:]
+    var creatorSimilar: [String: [CreatorGraph.Near]] = [:]
     var creatorRank: [String: Double] = [:]
     /// Sub-clusters: the parts of each theme by meaning, named on this Mac
     /// (Engine/SubClusters.swift, AppModel+SubClusters). Theme → parts.
