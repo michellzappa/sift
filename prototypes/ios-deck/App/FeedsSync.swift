@@ -260,6 +260,8 @@ struct FollowSheet: View {
 struct StreamMenu: View {
     @Environment(Store.self) private var store
     @State private var sheet: String?
+    /// Today in sections per theme (issue #41); the same key as the lists.
+    @AppStorage("today.groupByTheme") private var groupByTheme = true
 
     private var folders: [String] { Array(Set(store.macFeeds?.feeds.compactMap(\.folder) ?? [])).sorted() }
 
@@ -270,6 +272,8 @@ struct StreamMenu: View {
             Button { sheet = "directory" } label: { Label("Directory", systemImage: "books.vertical") }
             Button { sheet = "feeds" } label: { Label("Feeds", systemImage: "dot.radiowaves.up.forward") }
             Button { sheet = "lanes" } label: { Label("Lanes", systemImage: "line.3.horizontal.decrease.circle") }
+            Divider()
+            Toggle(isOn: $groupByTheme) { Label("Group by Theme", systemImage: "square.stack.3d.up") }
         } label: {
             Image(systemName: "ellipsis.circle")
         }

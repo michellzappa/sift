@@ -336,7 +336,42 @@ private struct TodayCard: View {
     /// usual card. Both keep the Keep pill and double-tap = keep.
     @ViewBuilder private var content: some View {
         PlayableCard(item: pick.item, vertical: pick.vertical, active: current, reason: pick.reason,
-                     doubleTap: keep, played: { store.signal(.play, pick) }, text: open) { keepPill }
+                     doubleTap: keep, played: { store.signal(.play, pick) }, text: open) {
+            HStack(spacing: 8) { notInterested; keepPill }
+        }
+        .overlay(alignment: .topLeading) { themeLabel.padding(10) }
+    }
+
+    /// The theme first, the network as a detail (issue #41).
+    private var themeLabel: some View {
+        HStack(spacing: 6) {
+            if let theme = store.todayTheme(pick) {
+                HStack(spacing: 5) {
+                    Circle().fill(store.color(theme)).frame(width: 8, height: 8)
+                    Text(theme).font(.caption.weight(.semibold)).lineLimit(1)
+                }
+                .padding(.horizontal, 8).padding(.vertical, 4)
+                .background(.ultraThinMaterial, in: Capsule())
+            }
+            NetworkBadge(network: store.network(of: pick), onImage: true)
+        }
+    }
+
+    /// The three Not Interested choices of the Scan and Read rows (issue
+    /// #46), sent to the Mac as a "less" request.
+    private var notInterested: some View {
+        Menu {
+            Button("Less from \(pick.feedTitle)") { store.notInterested(pick, "source") }
+            if let t = pick.why?.theme { Button("Less about \(t)") { store.notInterested(pick, "topic") } }
+            Button("Seen Enough of This Story") { store.notInterested(pick, "story") }
+        } label: {
+            Image(systemName: "hand.thumbsdown")
+                .font(.caption.weight(.semibold))
+                .foregroundStyle(Color.primary)
+                .padding(.horizontal, 11).padding(.vertical, 7)
+                .background(.regularMaterial, in: Capsule())
+        }
+        .accessibilityLabel("Not Interested")
     }
 
     private var keepPill: some View {
@@ -424,12 +459,16 @@ struct ThemesButton: View {
 struct TodayListView: View {
     @Environment(Store.self) private var store
     let mode: ReadingMode
+    /// Themes first (issue #41): sections per theme; off = one ranked list.
+    @AppStorage("today.groupByTheme") private var groupByTheme = true
     @State private var reading: Item?
     @State private var past = ScrollPast()
     @State private var library: [String] = []
     @State private var trailFrom: Item?
 
-    private var picks: [TodayPick] { (store.today?.picks ?? []).filter { $0.readingMode == mode } }
+    private var picks: [TodayPick] { groupByTheme ? sections.flatMap(\.items) : modePicks }
+    private var modePicks: [TodayPick] { (store.today?.picks ?? []).filter { $0.readingMode == mode } }
+    private var sections: [TodayThemes.Group<TodayPick>] { store.todaySections(modePicks) }
 
     private var saved: [Item] {
         var byURL: [String: Item] = [:]
@@ -441,9 +480,27 @@ struct TodayListView: View {
         NavigationStack {
             List {
                 if !picks.isEmpty {
-                    Section { todayRows } header: { Text("Today") } footer: {
-                        // Scan has no saved part, so its end sits under Today.
-                        if mode == .scan { StreamFooter() }
+                    if groupByTheme {
+                        let sections = sections
+                        // Each section's first place in `picks`.
+                        let starts = sections.indices.map { j in sections[..<j].reduce(0) { $0 + $1.items.count } }
+                        ForEach(Array(sections.enumerated()), id: \.element.title) { j, section in
+                            Section {
+                                ForEach(Array(section.items.enumerated()), id: \.element.id) { k, pick in todayRow(pick, starts[j] + k) }
+                            } header: {
+                                ThemeSectionHeader(title: section.title, color: section.theme.map { store.color($0) } ?? .secondary)
+                            } footer: {
+                                // Scan has no saved part, so its end sits under Today.
+                                if mode == .scan, j == sections.count - 1 { StreamFooter() }
+                            }
+                        }
+                    } else {
+                        Section {
+                            ForEach(Array(picks.enumerated()), id: \.element.id) { i, pick in todayRow(pick, i) }
+                        } header: { Text("Today") } footer: {
+                            // Scan has no saved part, so its end sits under Today.
+                            if mode == .scan { StreamFooter() }
+                        }
                     }
                 }
                 let saved = saved
@@ -511,8 +568,8 @@ struct TodayListView: View {
         reading = item
     }
 
-    @ViewBuilder private var todayRows: some View {
-            ForEach(Array(picks.enumerated()), id: \.element.id) { i, pick in
+    /// One Today row. `i` is its place in `picks`, for Scan's scrolled-past rule.
+    private func todayRow(_ pick: TodayPick, _ i: Int) -> some View {
                 Button { open(pick) } label: { row(pick) }
                     .buttonStyle(.plain)
                     .contextMenu {
@@ -546,7 +603,6 @@ struct TodayListView: View {
                         }
                         .tint(.accentColor)
                     }
-            }
     }
 
     private func open(_ pick: TodayPick) {
@@ -567,9 +623,12 @@ struct TodayListView: View {
                     .fontWeight(seen && !kept ? .regular : .semibold)
                     .foregroundStyle(seen && !kept ? .secondary : .primary)
                     .lineLimit(mode == .scan ? 3 : 2)
-                Text([pick.feedTitle, mode == .read ? pick.minutes.map { "\($0) min read" } : nil,
-                      pick.date?.formatted(.relative(presentation: .named))].compactMap { $0 }.joined(separator: " · "))
-                    .font(.caption).foregroundStyle(.secondary).lineLimit(1)
+                HStack(spacing: 6) {
+                    NetworkBadge(network: store.network(of: pick))
+                    Text([pick.feedTitle, mode == .read ? pick.minutes.map { "\($0) min read" } : nil,
+                          pick.date?.formatted(.relative(presentation: .named))].compactMap { $0 }.joined(separator: " · "))
+                        .font(.caption).foregroundStyle(.secondary).lineLimit(1)
+                }
                 if mode == .read, !pick.summary.isEmpty {
                     Text(pick.summary).font(.subheadline).foregroundStyle(.secondary).lineLimit(3)
                 }
@@ -590,5 +649,27 @@ struct TodayListView: View {
         }
         .padding(.vertical, mode == .scan ? 2 : 6)
         .contentShape(Rectangle())
+    }
+}
+
+/// Today, themes first (issue #41): the theme and network of each pick, the
+/// same rules as the Mac (Sift/App/AppModel+TodayThemes.swift).
+extension Store {
+    /// The theme Today fitted the pick to, else the top theme of the Your
+    /// Graph creator its feed comes from (creators.json).
+    func todayTheme(_ pick: TodayPick) -> String? { todaySections([pick]).first?.theme }
+
+    func todaySections(_ picks: [TodayPick]) -> [TodayThemes.Group<TodayPick>] {
+        let creatorTheme = Dictionary((creators?.creators ?? []).compactMap { r in
+            r.feedID.flatMap { id in r.themes.max { $0.value < $1.value }.map { (id, $0.key) } }
+        }, uniquingKeysWith: { a, _ in a })
+        let names = Set(deck.themes.map(\.name))
+        func known(_ t: String?) -> String? { t.flatMap { names.isEmpty || names.contains($0) ? $0 : nil } }
+        return TodayThemes.group(picks, theme: { known($0.why?.theme) ?? known(creatorTheme[$0.feedID]) }, score: { $0.why?.score })
+    }
+
+    /// The network badge: the link's host, else its feed's provider.
+    func network(of pick: TodayPick) -> Network {
+        Network.of(url: pick.url, provider: macFeeds?.feeds.first { $0.id == pick.feedID }?.provider)
     }
 }
