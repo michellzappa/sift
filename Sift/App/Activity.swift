@@ -40,6 +40,7 @@ extension AppModel {
         run("embeddings", "Reading meaning on this Mac", isEmbedding, nil)
         run("subclusters", "Naming the parts of your themes", isNamingSubClusters, nil)
         run("people", "Finding where your creators publish", isFindingPeople, nil)
+        run("following", "Reading who you follow", isReadingFollowing, nil)
         run("directory", "Asking who the people you follow recommend", isBuildingDirectory, nil)
         for theme in fartherAsking.sorted() { run("farther:" + theme, "Asking Claude about \(theme)", true, nil) }
         run("summaries", "Summaries on this Mac", isSummarizing, summaryProgress)

@@ -7,6 +7,8 @@ struct PeopleView: View {
     @State private var selected: String?
     @State private var filter = ""
     @State private var onlyMissing = false
+    /// Every account from your following lists (Views/FollowingSettings.swift).
+    @State private var showFollowing = false
 
     private var shown: [Person] {
         model.people.filter { person in
@@ -24,6 +26,8 @@ struct PeopleView: View {
                     HStack {
                         TextField("Filter", text: $filter).textFieldStyle(.roundedBorder).frame(maxWidth: 200)
                         Toggle("Places not followed", isOn: $onlyMissing)
+                        Toggle("Who you follow", isOn: $showFollowing)
+                            .help("Every account in the following lists from your exports, Bluesky and Mastodon")
                         Spacer()
                         if model.isFindingPeople {
                             ProgressView().controlSize(.small)
@@ -35,7 +39,9 @@ struct PeopleView: View {
                 }
                 .padding(12)
                 Divider()
-                if shown.isEmpty {
+                if showFollowing {
+                    FollowingList()
+                } else if shown.isEmpty {
                     ContentUnavailableView(model.isFindingPeople ? "Reading your creators' sites…" : "No people yet",
                                            systemImage: "person.crop.rectangle.stack",
                                            description: Text("Sift checks up to \(People.perRound) of your feeds' sites and Your Graph writers each hour. A person shows here when two or more of their places are found."))

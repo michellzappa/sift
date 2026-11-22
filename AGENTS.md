@@ -1111,3 +1111,30 @@ The one exception is anonymous diagnostics (owner, 2026-11-15, below).
   lane, and one virality dial (Off, A little by default, More) that never
   lets popularity rank alone. Issues #48 to #52.
 
+- Following lists and Downloads (2026-11-22, issues #39, #43, ADR 0001).
+  `Storage/FollowingReader.swift`: `ExportFile` (the one zip/folder reader,
+  `unzip -p`, `zipinfo -1`; InstagramReader and TikTokReader use it),
+  `FollowNetwork`, `FollowingPrefs` (`state.following`: xArchivePath,
+  youtubeTakeoutPath, blueskyHandle, mastodonHandle, followAsFeeds (on),
+  watchDownloads (off), reminded, followed, fromDownloads) and readers:
+  Takeout `*subscri*.csv` (rows whose first column is a UC id), Instagram
+  `followers_and_following/following.json`, TikTok "Following" lists
+  (`TikTokReader.walk`), X `data/following.js` (ids only; handles from
+  mentions in `data/tweets*.js`, else place `x:#<id>`), Bluesky
+  getFollows and Mastodon lookup + following (Link header), 2,000 max.
+  Data: `following.json` (`FollowingStore`, network → accounts, export
+  file date, newest follow, signature). `AppModel+Following`:
+  `refreshFollowing` (library jobs; reads when path, file date or handle
+  changes; Bluesky/Mastodon daily), `followImported` (YouTube, Bluesky,
+  Mastodon feeds made without a fetch, folder "YouTube subscriptions" /
+  "<Network> follows", each place once: `followed`), People evidence "You
+  follow them on X" (`withFollowEvidence`), YouTube and Bluesky follows as
+  People seeds, creator pane "You follow them on …". UI:
+  `Views/FollowingSettings.swift` (Settings > Inputs "Who you follow",
+  `ExportReminderRow` in the Library box, `FollowingList` behind People's
+  "Who you follow" switch). `AppModel+Downloads`: DispatchSource on
+  ~/Downloads, 5 s debounce, zips of the last 60 days known by member
+  names (`FollowingReader.kind`), the newest per network newer than the
+  current export is copied with `keepCopy` (file date kept) and read; the
+  file in Downloads is never moved or deleted. Reminder: an export older
+  than 30 days (`staleDays`), once per 30 days per network.

@@ -78,6 +78,9 @@ struct SiftState: Codable, Sendable {
     var tiktokExportPath: String?
     /// Also read liked videos, not only favourites. Off: likes can be thousands.
     var tiktokLikes = false
+    /// Who you follow on each network, the Downloads watcher and the
+    /// monthly export reminder (Storage/FollowingReader.swift, issues #39, #43).
+    var following = FollowingPrefs()
     /// Setup Guide step ids the user has been shown. nil: this state predates
     /// the guide (AppModel decides between first run and an existing
     /// install). Set it to [] to see the first run again.
@@ -132,6 +135,7 @@ struct SiftState: Codable, Sendable {
         instagramExportPath = try c.decodeIfPresent(String.self, forKey: .instagramExportPath)
         tiktokExportPath = try c.decodeIfPresent(String.self, forKey: .tiktokExportPath)
         tiktokLikes = try c.decodeIfPresent(Bool.self, forKey: .tiktokLikes) ?? false
+        following = try c.decodeIfPresent(FollowingPrefs.self, forKey: .following) ?? FollowingPrefs()
         onboardingSeen = try c.decodeIfPresent([String].self, forKey: .onboardingSeen)
         localFirstPass = try c.decodeIfPresent(Bool.self, forKey: .localFirstPass) ?? true
         localSorting = try c.decodeIfPresent(Bool.self, forKey: .localSorting) ?? true

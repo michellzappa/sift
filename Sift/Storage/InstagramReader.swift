@@ -63,35 +63,13 @@ enum InstagramReader {
 
     /// The parsed JSON of one saved file, or nil when the export has none.
     private static func read(_ name: String, in path: String) throws -> Any? {
-        var isDir: ObjCBool = false
-        guard FileManager.default.fileExists(atPath: path, isDirectory: &isDir) else {
+        guard FileManager.default.fileExists(atPath: path) else {
             throw Failure(message: "The Instagram export was not found at \(path).")
         }
-        let data: Data?
-        if isDir.boolValue {
-            let root = URL(filePath: path, directoryHint: .isDirectory)
-            let candidates = ["your_instagram_activity/saved/\(name)", "saved/\(name)", name]
-            data = candidates.lazy.compactMap { FileManager.default.contents(atPath: root.appending(path: $0).path(percentEncoded: false)) }.first
-        } else {
-            data = try unzip(path, member: "*saved/\(name)")
-        }
+        let data = try ExportFile.data(at: path, folderPaths: ["your_instagram_activity/saved/\(name)", "saved/\(name)", name],
+                                       zipMember: "*saved/\(name)")
         guard let data, !data.isEmpty else { return nil }
         return try JSONSerialization.jsonObject(with: data)
-    }
-
-    /// One member of the zip, through /usr/bin/unzip. Nil when it is not there.
-    private static func unzip(_ zip: String, member: String) throws -> Data? {
-        let process = Process()
-        process.executableURL = URL(filePath: "/usr/bin/unzip")
-        process.arguments = ["-p", zip, member]
-        let out = Pipe()
-        process.standardOutput = out
-        process.standardError = FileHandle.nullDevice
-        try process.run()
-        // Read before waiting so a full pipe cannot block the child.
-        let data = out.fileHandleForReading.readDataToEndOfFile()
-        process.waitUntilExit()
-        return process.terminationStatus == 0 ? data : nil
     }
 
     // MARK: Shapes

@@ -140,6 +140,8 @@ extension AppModel {
             ("signals.json", FeedSignals.localURL, "What you did with Today picks on this Mac"),
             ("farther.json", Farther.fileURL, "Claude's suggestions per theme, with the prompt it saw"),
             ("subclusters.json", SubClusterStore.fileURL, "The parts of each theme and their names"),
+            ("following.json", FollowingStore.fileURL, "Who you follow on each network, from your exports and Bluesky and Mastodon"),
+            ("Imports", StateFile.url.deletingLastPathComponent().appending(path: "Imports"), "Copies of the exports you chose or Sift found in Downloads"),
             ("Telemetry", Telemetry.folder, "The weekly report waiting to go out, and its secret"),
             ("iCloud Drive/Sift", CloseList.folder, "Shared with your iPhone: close list, Today, kept, follows"),
             ("Seen marks", SeenStore.folder, "Seen and unseen, one file per device"),

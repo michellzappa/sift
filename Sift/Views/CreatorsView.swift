@@ -173,6 +173,11 @@ private struct CreatorPane: View {
                         }
                     }
                 }
+                let followedOn = model.followedNetworks(of: creator)
+                if !followedOn.isEmpty {
+                    Label("You follow them on \(followedOn.map(\.name).joined(separator: ", "))", systemImage: "person.badge.plus")
+                        .font(.callout).foregroundStyle(.secondary)
+                }
                 if let person = model.person(forCreator: creator) {
                     VStack(alignment: .leading, spacing: 6) {
                         Text("Also publishes on").font(.headline)
